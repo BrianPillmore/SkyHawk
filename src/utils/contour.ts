@@ -1,12 +1,14 @@
-import { fromArrayBuffer, GeoTIFFImage } from 'geotiff';
+import type { GeoTIFFImage } from 'geotiff';
 import type { GeoTiffAffine, ParsedMask } from '../types/solar';
 import type { LatLng } from '../types';
 
 /**
  * Parse a GeoTIFF mask buffer into a binary mask array + affine transform.
  * The mask indicates which pixels are rooftop (non-zero) vs ground (zero).
+ * Uses dynamic import() for geotiff to enable code-splitting.
  */
 export async function parseMaskGeoTiff(buffer: ArrayBuffer): Promise<ParsedMask> {
+  const { fromArrayBuffer } = await import('geotiff');
   const tiff = await fromArrayBuffer(buffer);
   const image = await tiff.getImage();
   const rasters = await image.readRasters();
@@ -213,17 +215,33 @@ export function findTargetComponent(
 }
 
 /**
- * Extract binary mask for a single component.
+ * Extract boundary-only mask for a single component.
+ * A pixel is a boundary pixel if it belongs to the component AND
+ * has at least one 4-connected neighbor that is background (label 0).
+ * This produces a 1-pixel-thick outline suitable for Moore boundary tracing.
  */
-function extractComponentMask(
+function extractComponentBoundaryMask(
   labels: Int32Array,
   w: number,
   h: number,
   componentId: number
 ): Uint8Array {
   const mask = new Uint8Array(w * h);
-  for (let i = 0; i < labels.length; i++) {
-    mask[i] = labels[i] === componentId ? 1 : 0;
+  for (let row = 0; row < h; row++) {
+    for (let col = 0; col < w; col++) {
+      const idx = row * w + col;
+      if (labels[idx] !== componentId) continue;
+
+      // Check if any 4-connected neighbor is background
+      const isEdge =
+        row === 0 || row === h - 1 || col === 0 || col === w - 1 ||
+        labels[(row - 1) * w + col] !== componentId ||
+        labels[(row + 1) * w + col] !== componentId ||
+        labels[row * w + (col - 1)] !== componentId ||
+        labels[row * w + (col + 1)] !== componentId;
+
+      if (isEdge) mask[idx] = 1;
+    }
   }
   return mask;
 }
@@ -260,7 +278,7 @@ export function mooreBoundaryTrace(
   const boundary: { col: number; row: number }[] = [];
   let col = startCol;
   let row = startRow;
-  let dir = 0; // start looking left
+  let dir = 4; // entered from the left during raster scan (moved right), so backtrack = left
 
   const maxSteps = w * h * 2; // safety limit
   let steps = 0;
@@ -369,8 +387,8 @@ export function extractBuildingOutline(
     Math.max(0, Math.min(height - 1, targetPixel.row))
   );
 
-  // Step 3: Extract single building mask
-  const buildingMask = extractComponentMask(labels, width, height, targetComponent);
+  // Step 3: Extract boundary-only mask (1-pixel outline for clean Moore tracing)
+  const buildingMask = extractComponentBoundaryMask(labels, width, height, targetComponent);
 
   // Step 4: Trace boundary
   const boundary = mooreBoundaryTrace(buildingMask, width, height);
