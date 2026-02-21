@@ -62,6 +62,7 @@ export interface Property {
   measurements: RoofMeasurement[];
   damageAnnotations: DamageAnnotation[];
   snapshots: ImageSnapshot[];
+  claims: Claim[];
   notes: string;
 }
 
@@ -128,6 +129,42 @@ export interface ImageSnapshot {
   lat: number;
   lng: number;
   zoom: number;
+}
+
+// ─── Claims Workflow Types ──────────────────────────────────────
+
+export type ClaimStatus = 'new' | 'inspected' | 'estimated' | 'submitted' | 'approved' | 'denied' | 'closed';
+
+export const CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
+  new: 'New',
+  inspected: 'Inspected',
+  estimated: 'Estimated',
+  submitted: 'Submitted',
+  approved: 'Approved',
+  denied: 'Denied',
+  closed: 'Closed',
+};
+
+export const CLAIM_STATUS_COLORS: Record<ClaimStatus, string> = {
+  new: '#6b7280',
+  inspected: '#3b82f6',
+  estimated: '#8b5cf6',
+  submitted: '#f59e0b',
+  approved: '#10b981',
+  denied: '#ef4444',
+  closed: '#6b7280',
+};
+
+export interface Claim {
+  id: string;
+  propertyId: string;
+  claimNumber: string;
+  insuredName: string;
+  dateOfLoss: string;
+  status: ClaimStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ReportConfig {

@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import type { RoofMeasurement } from '../../types';
+import type { RoofMeasurement, Property } from '../../types';
 import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils/geometry';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
 import { estimateMaterials } from '../../utils/materials';
 import { exportMeasurementJSON, exportMeasurementGeoJSON, exportMeasurementCSV } from '../../utils/exportData';
+import { exportESX } from '../../utils/esxExport';
 import PitchDiagram from './PitchDiagram';
 import DamagePanel from './DamagePanel';
 
@@ -19,6 +20,8 @@ export default function MeasurementsPanel() {
     deleteEdge,
     selectEdge,
     selectedEdgeId,
+    properties,
+    activePropertyId,
   } = useStore();
 
   if (!activeMeasurement) return null;
@@ -34,7 +37,7 @@ export default function MeasurementsPanel() {
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Roof Summary
           </h3>
-          <ExportDropdown measurement={activeMeasurement} />
+          <ExportDropdown measurement={activeMeasurement} property={properties.find(p => p.id === activePropertyId)} />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Total Area" value={formatArea(activeMeasurement.totalTrueAreaSqFt)} />
@@ -303,13 +306,14 @@ function MaterialEstimateTable({ measurement }: { measurement: RoofMeasurement }
   );
 }
 
-function ExportDropdown({ measurement }: { measurement: RoofMeasurement }) {
+function ExportDropdown({ measurement, property }: { measurement: RoofMeasurement; property?: Property }) {
   const [open, setOpen] = useState(false);
 
   const exports = [
     { label: 'JSON', fn: () => exportMeasurementJSON(measurement) },
     { label: 'GeoJSON', fn: () => exportMeasurementGeoJSON(measurement) },
     { label: 'CSV', fn: () => exportMeasurementCSV(measurement) },
+    ...(property ? [{ label: 'ESX (Xactimate)', fn: () => exportESX(property, measurement) }] : []),
   ];
 
   return (

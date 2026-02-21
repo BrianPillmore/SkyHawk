@@ -4,6 +4,7 @@ import MeasurementsPanel from '../measurement/MeasurementsPanel';
 import MeasurementSelector from '../measurement/MeasurementSelector';
 import ReportPanel from '../reports/ReportPanel';
 import ComparisonPanel from '../comparison/ComparisonPanel';
+import ClaimsPanel from '../claims/ClaimsPanel';
 
 export default function Sidebar() {
   const { sidebarOpen, activePanel, setActivePanel, activeMeasurement, activePropertyId } = useStore();
@@ -15,6 +16,7 @@ export default function Sidebar() {
     { id: 'measurements' as const, label: 'Data', icon: '📐' },
     { id: 'report' as const, label: 'Report', icon: '📄' },
     { id: 'compare' as const, label: 'Compare', icon: '🔄' },
+    { id: 'claims' as const, label: 'Claims', icon: '📋' },
   ];
 
   return (
@@ -42,18 +44,24 @@ export default function Sidebar() {
 
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto">
-        {!activeMeasurement ? (
-          <div className="p-4 text-center text-gray-500 text-sm">
-            <p className="mb-2">No active measurement</p>
-            <p className="text-xs">Search for a property address to begin, or select an existing property from the dashboard.</p>
-          </div>
-        ) : (
-          <>
-            {activePanel === 'tools' && <ToolsPanel />}
-            {activePanel === 'measurements' && <MeasurementsPanel />}
-            {activePanel === 'report' && <ReportPanel />}
-            {activePanel === 'compare' && <ComparisonPanel />}
-          </>
+        {/* Claims and Compare work without active measurement */}
+        {activePanel === 'claims' && <ClaimsPanel />}
+        {activePanel === 'compare' && <ComparisonPanel />}
+
+        {/* Other panels require active measurement */}
+        {activePanel !== 'claims' && activePanel !== 'compare' && (
+          !activeMeasurement ? (
+            <div className="p-4 text-center text-gray-500 text-sm">
+              <p className="mb-2">No active measurement</p>
+              <p className="text-xs">Search for a property address to begin, or select an existing property from the dashboard.</p>
+            </div>
+          ) : (
+            <>
+              {activePanel === 'tools' && <ToolsPanel />}
+              {activePanel === 'measurements' && <MeasurementsPanel />}
+              {activePanel === 'report' && <ReportPanel />}
+            </>
+          )
         )}
       </div>
     </aside>

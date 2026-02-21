@@ -14,6 +14,8 @@ import type {
   DamageSeverity,
   DamageAnnotation,
   ImageSnapshot,
+  Claim,
+  ClaimStatus,
 } from '../types';
 import type { ReconstructedRoof } from '../types/solar';
 import {
@@ -51,7 +53,7 @@ interface AppState {
 
   // UI state
   sidebarOpen: boolean;
-  activePanel: 'tools' | 'measurements' | 'report' | 'compare';
+  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims';
 
   // Undo/Redo
   _undoStack: RoofMeasurement[];
@@ -97,7 +99,7 @@ interface AppState {
 
   // Actions - UI
   toggleSidebar: () => void;
-  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare') => void;
+  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims') => void;
 
   // Actions - Recalculate
   recalculateMeasurements: () => void;
@@ -123,6 +125,12 @@ interface AppState {
   // Actions - Snapshots (before/after comparison)
   addSnapshot: (label: string, dataUrl: string) => string;
   deleteSnapshot: (id: string) => void;
+
+  // Actions - Claims
+  addClaim: (claimNumber: string, insuredName: string, dateOfLoss: string) => string;
+  updateClaimStatus: (claimId: string, status: ClaimStatus) => void;
+  updateClaimNotes: (claimId: string, notes: string) => void;
+  deleteClaim: (claimId: string) => void;
 
   // Actions - Undo/Redo
   undo: () => void;
@@ -207,6 +215,7 @@ export const useStore = create<AppState>()(
             measurements: [],
             damageAnnotations: [],
             snapshots: [],
+            claims: [],
             notes: '',
           };
           set((s) => ({
@@ -794,6 +803,75 @@ export const useStore = create<AppState>()(
               return {
                 ...p,
                 snapshots: (p.snapshots || []).filter((snap) => snap.id !== id),
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+          }));
+        },
+
+        // Claims
+        addClaim: (claimNumber: string, insuredName: string, dateOfLoss: string) => {
+          const { activePropertyId } = get();
+          if (!activePropertyId) return '';
+          const id = uuidv4();
+          const claim: Claim = {
+            id, propertyId: activePropertyId, claimNumber, insuredName, dateOfLoss,
+            status: 'new', notes: '',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return { ...p, claims: [...(p.claims || []), claim], updatedAt: new Date().toISOString() };
+            }),
+          }));
+          return id;
+        },
+
+        updateClaimStatus: (claimId: string, status: ClaimStatus) => {
+          const { activePropertyId } = get();
+          if (!activePropertyId) return;
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                claims: (p.claims || []).map((c) =>
+                  c.id === claimId ? { ...c, status, updatedAt: new Date().toISOString() } : c
+                ),
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+          }));
+        },
+
+        updateClaimNotes: (claimId: string, notes: string) => {
+          const { activePropertyId } = get();
+          if (!activePropertyId) return;
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                claims: (p.claims || []).map((c) =>
+                  c.id === claimId ? { ...c, notes, updatedAt: new Date().toISOString() } : c
+                ),
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+          }));
+        },
+
+        deleteClaim: (claimId: string) => {
+          const { activePropertyId } = get();
+          if (!activePropertyId) return;
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                claims: (p.claims || []).filter((c) => c.id !== claimId),
                 updatedAt: new Date().toISOString(),
               };
             }),
