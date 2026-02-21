@@ -14,6 +14,7 @@
     "qa": "bash scripts/test-agent-team.sh"
   },
   "dependencies": {
+    "geotiff": "^3.0.3",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "react": "^19.2.0",

@@ -1,6 +1,7 @@
 import { useStore } from '../../store/useStore';
 import type { DrawingMode } from '../../types';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
+import AutoMeasureButton from './AutoMeasureButton';
 
 const TOOLS: { mode: DrawingMode; label: string; icon: string; description: string; color?: string }[] = [
   { mode: 'pan', label: 'Pan/Navigate', icon: '🖐️', description: 'Pan and navigate the map' },
@@ -19,8 +20,13 @@ export default function ToolsPanel() {
 
   return (
     <div className="p-3">
+      {/* Auto Detect */}
+      <AutoMeasureButton />
+
+      <div className="mb-4 border-t border-gray-800" />
+
       <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-        Drawing Tools
+        Manual Drawing Tools
       </h3>
 
       <div className="space-y-1">

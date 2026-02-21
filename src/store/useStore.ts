@@ -10,6 +10,7 @@ import type {
   EdgeType,
   MapType,
 } from '../types';
+import type { ReconstructedRoof } from '../types/solar';
 import {
   calculatePolygonAreaSqFt,
   adjustAreaForPitch,
@@ -90,6 +91,9 @@ interface AppState {
   // Actions - Recalculate
   recalculateMeasurements: () => void;
   saveMeasurement: () => void;
+
+  // Actions - Auto measurement
+  applyAutoMeasurement: (reconstructed: ReconstructedRoof) => void;
 
   // Actions - Undo support
   clearAll: () => void;
@@ -541,6 +545,71 @@ export const useStore = create<AppState>((set, get) => ({
         return { ...p, measurements, updatedAt: new Date().toISOString() };
       }),
     }));
+  },
+
+  // Auto measurement: apply reconstructed roof to current measurement
+  applyAutoMeasurement: (reconstructed: ReconstructedRoof) => {
+    const { activePropertyId } = get();
+    if (!activePropertyId) return;
+
+    const measurement = createEmptyMeasurement(activePropertyId);
+
+    // Create vertices
+    const vertices: RoofVertex[] = reconstructed.vertices.map((v) => ({
+      id: uuidv4(),
+      lat: v.lat,
+      lng: v.lng,
+    }));
+
+    // Create edges (map vertex indices to IDs)
+    const edges: RoofEdge[] = reconstructed.edges.map((e) => {
+      const startV = vertices[e.startIndex];
+      const endV = vertices[e.endIndex];
+      return {
+        id: uuidv4(),
+        startVertexId: startV.id,
+        endVertexId: endV.id,
+        type: e.type,
+        lengthFt: startV && endV ? calculateEdgeLengthFt(startV, endV) : 0,
+      };
+    });
+
+    // Create facets (map vertex indices to IDs)
+    const facets: RoofFacet[] = reconstructed.facets.map((f) => {
+      const facetVertexIds = f.vertexIndices.map((idx) => vertices[idx]?.id).filter(Boolean);
+      const facetVertices = f.vertexIndices
+        .map((idx) => vertices[idx])
+        .filter((v): v is RoofVertex => v !== undefined);
+      const flatArea = calculatePolygonAreaSqFt(facetVertices);
+      const trueArea = adjustAreaForPitch(flatArea, f.pitch);
+
+      return {
+        id: uuidv4(),
+        name: f.name,
+        vertexIds: facetVertexIds,
+        pitch: f.pitch,
+        areaSqFt: flatArea,
+        trueAreaSqFt: trueArea,
+        edgeIds: [],
+      };
+    });
+
+    measurement.vertices = vertices;
+    measurement.edges = edges;
+    measurement.facets = facets;
+
+    set({
+      activeMeasurement: measurement,
+      drawingMode: 'select',
+      selectedVertexId: null,
+      selectedEdgeId: null,
+      selectedFacetId: null,
+      isDrawingOutline: false,
+      currentOutlineVertices: [],
+      edgeStartVertexId: null,
+    });
+
+    get().recalculateMeasurements();
   },
 
   // Clear all drawing

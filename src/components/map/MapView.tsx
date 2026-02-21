@@ -9,6 +9,7 @@ export default function MapView() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement | google.maps.Marker>>(new Map());
+  const outlineMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const polylinesRef = useRef<Map<string, google.maps.Polyline>>(new Map());
   const polygonsRef = useRef<Map<string, google.maps.Polygon>>(new Map());
   const outlinePolylineRef = useRef<google.maps.Polyline | null>(null);
@@ -158,8 +159,8 @@ export default function MapView() {
           draggable: drawingMode === 'select',
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: selectedVertexId === vertex.id ? 8 : 6,
-            fillColor: selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
+            scale: selectedVertexId === vertex.id || edgeStartVertexId === vertex.id ? 8 : 6,
+            fillColor: edgeStartVertexId === vertex.id ? '#22c55e' : selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
             fillOpacity: 1,
             strokeColor: '#ffffff',
             strokeWeight: 2,
@@ -197,15 +198,15 @@ export default function MapView() {
         gMarker.setDraggable(drawingMode === 'select');
         gMarker.setIcon({
           path: google.maps.SymbolPath.CIRCLE,
-          scale: selectedVertexId === vertex.id ? 8 : 6,
-          fillColor: selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
+          scale: selectedVertexId === vertex.id || edgeStartVertexId === vertex.id ? 8 : 6,
+          fillColor: edgeStartVertexId === vertex.id ? '#22c55e' : selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
           fillOpacity: 1,
           strokeColor: '#ffffff',
           strokeWeight: 2,
         });
       }
     }
-  }, [activeMeasurement?.vertices, drawingMode, selectedVertexId]);
+  }, [activeMeasurement?.vertices, drawingMode, selectedVertexId, edgeStartVertexId]);
 
   // Render edges as polylines
   useEffect(() => {
@@ -328,6 +329,12 @@ export default function MapView() {
       outlinePolylineRef.current = null;
     }
 
+    // Clean up previous outline markers
+    for (const [id, m] of outlineMarkersRef.current) {
+      m.setMap(null);
+      outlineMarkersRef.current.delete(id);
+    }
+
     if (isDrawingOutline && currentOutlineVertices.length > 0) {
       const path = currentOutlineVertices.map((v) => ({ lat: v.lat, lng: v.lng }));
 
@@ -347,9 +354,9 @@ export default function MapView() {
         zIndex: 200,
       });
 
-      // Render temp vertex markers for outline points
+      // Render temp vertex markers for outline points (separate from vertex markers)
       for (const v of currentOutlineVertices) {
-        if (!markersRef.current.has(v.id)) {
+        if (!outlineMarkersRef.current.has(v.id)) {
           const m = new google.maps.Marker({
             position: { lat: v.lat, lng: v.lng },
             map,
@@ -363,21 +370,16 @@ export default function MapView() {
             },
             zIndex: 201,
           });
-          markersRef.current.set(v.id, m);
+          outlineMarkersRef.current.set(v.id, m);
         }
       }
     }
 
     return () => {
-      // Clean up temp outline markers when outline is finished
-      if (!isDrawingOutline) {
-        for (const v of currentOutlineVertices) {
-          const m = markersRef.current.get(v.id);
-          if (m && 'setMap' in m) {
-            (m as google.maps.Marker).setMap(null);
-            markersRef.current.delete(v.id);
-          }
-        }
+      // Clean up all outline markers on unmount or re-run
+      for (const [id, m] of outlineMarkersRef.current) {
+        m.setMap(null);
+        outlineMarkersRef.current.delete(id);
       }
     };
   }, [isDrawingOutline, currentOutlineVertices]);
@@ -388,6 +390,7 @@ export default function MapView() {
       for (const [, marker] of markersRef.current) {
         if ('setMap' in marker) (marker as google.maps.Marker).setMap(null);
       }
+      for (const [, m] of outlineMarkersRef.current) m.setMap(null);
       for (const [, line] of polylinesRef.current) line.setMap(null);
       for (const [, polygon] of polygonsRef.current) polygon.setMap(null);
       if (outlinePolylineRef.current) outlinePolylineRef.current.setMap(null);
