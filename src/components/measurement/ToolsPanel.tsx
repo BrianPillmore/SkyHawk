@@ -1,6 +1,7 @@
 import { useStore } from '../../store/useStore';
-import type { DrawingMode } from '../../types';
+import type { DrawingMode, DamageType, DamageSeverity } from '../../types';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
+import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import AutoMeasureButton from './AutoMeasureButton';
 
 const TOOLS: { mode: DrawingMode; label: string; icon: string; description: string; color?: string }[] = [
@@ -13,6 +14,7 @@ const TOOLS: { mode: DrawingMode; label: string; icon: string; description: stri
   { mode: 'rake', label: EDGE_LABELS.rake, icon: '\u2502', description: 'Draw rake/gable edges', color: EDGE_COLORS.rake },
   { mode: 'eave', label: EDGE_LABELS.eave, icon: '\u2500', description: 'Draw eave edges', color: EDGE_COLORS.eave },
   { mode: 'flashing', label: EDGE_LABELS.flashing, icon: '\u2504', description: 'Draw flashing lines', color: EDGE_COLORS.flashing },
+  { mode: 'damage', label: 'Damage Marker', icon: '\u26A0', description: 'Place damage assessment markers', color: '#ef4444' },
 ];
 
 export default function ToolsPanel() {
@@ -20,6 +22,8 @@ export default function ToolsPanel() {
     drawingMode, setDrawingMode, clearAll,
     isDrawingOutline, finishOutline, cancelOutline,
     undo, redo, _undoStack, _redoStack,
+    activeDamageType, activeDamageSeverity,
+    setActiveDamageType, setActiveDamageSeverity,
   } = useStore();
 
   const canUndo = _undoStack.length > 0;
@@ -89,6 +93,54 @@ export default function ToolsPanel() {
           <p className="text-xs text-blue-300">
             Click on a vertex to start a line, then click another vertex to complete the {drawingMode} line.
           </p>
+        </div>
+      )}
+
+      {/* Damage mode config */}
+      {drawingMode === 'damage' && (
+        <div className="mt-4 p-3 bg-red-900/20 border border-red-900/50 rounded-lg space-y-3">
+          <p className="text-xs text-red-300 mb-2">
+            Click on the map to place damage markers. Configure the type and severity below.
+          </p>
+          <div>
+            <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Damage Type</label>
+            <select
+              value={activeDamageType}
+              onChange={(e) => setActiveDamageType(e.target.value as DamageType)}
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-red-500"
+            >
+              {(Object.entries(DAMAGE_TYPE_LABELS) as [DamageType, string][]).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Severity</label>
+            <div className="flex gap-1">
+              {(['minor', 'moderate', 'severe'] as DamageSeverity[]).map((sev) => (
+                <button
+                  key={sev}
+                  onClick={() => setActiveDamageSeverity(sev)}
+                  className={`flex-1 px-2 py-1.5 text-xs rounded transition-colors border ${
+                    activeDamageSeverity === sev
+                      ? 'border-white/40 text-white font-medium'
+                      : 'border-gray-700 text-gray-400 hover:text-gray-300'
+                  }`}
+                  style={{
+                    backgroundColor: activeDamageSeverity === sev
+                      ? DAMAGE_SEVERITY_COLORS[sev] + '33'
+                      : 'transparent',
+                  }}
+                >
+                  <span
+                    className="inline-block w-2 h-2 rounded-full mr-1"
+                    style={{ backgroundColor: DAMAGE_SEVERITY_COLORS[sev] }}
+                  />
+                  {sev.charAt(0).toUpperCase() + sev.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

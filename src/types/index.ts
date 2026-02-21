@@ -60,6 +60,8 @@ export interface Property {
   createdAt: string;
   updatedAt: string;
   measurements: RoofMeasurement[];
+  damageAnnotations: DamageAnnotation[];
+  snapshots: ImageSnapshot[];
   notes: string;
 }
 
@@ -79,9 +81,54 @@ export type DrawingMode =
   | 'eave'
   | 'flashing'
   | 'facet'
+  | 'damage'
   | 'pan';
 
 export type MapType = 'satellite' | 'hybrid' | 'roadmap';
+
+// ─── Damage Assessment Types ───────────────────────────────────────
+
+export type DamageType = 'hail' | 'wind' | 'missing-shingle' | 'crack' | 'ponding' | 'debris' | 'other';
+
+export type DamageSeverity = 'minor' | 'moderate' | 'severe';
+
+export interface DamageAnnotation {
+  id: string;
+  lat: number;
+  lng: number;
+  type: DamageType;
+  severity: DamageSeverity;
+  note: string;
+  createdAt: string;
+}
+
+export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
+  hail: 'Hail Impact',
+  wind: 'Wind Damage',
+  'missing-shingle': 'Missing Shingle',
+  crack: 'Crack/Split',
+  ponding: 'Ponding/Water',
+  debris: 'Debris Impact',
+  other: 'Other Damage',
+};
+
+export const DAMAGE_SEVERITY_COLORS: Record<DamageSeverity, string> = {
+  minor: '#f59e0b',
+  moderate: '#f97316',
+  severe: '#ef4444',
+};
+
+// ─── Before/After Comparison Types ────────────────────────────────
+
+export interface ImageSnapshot {
+  id: string;
+  label: string;
+  dataUrl: string;
+  capturedAt: string;
+  lat: number;
+  lng: number;
+  zoom: number;
+}
 
 export interface ReportConfig {
   includeOverview: boolean;

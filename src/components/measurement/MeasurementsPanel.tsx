@@ -6,6 +6,8 @@ import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
 import { estimateMaterials } from '../../utils/materials';
 import { exportMeasurementJSON, exportMeasurementGeoJSON, exportMeasurementCSV } from '../../utils/exportData';
+import PitchDiagram from './PitchDiagram';
+import DamagePanel from './DamagePanel';
 
 export default function MeasurementsPanel() {
   const {
@@ -121,6 +123,11 @@ export default function MeasurementsPanel() {
                     </div>
                   </div>
                 </div>
+                {selectedFacetId === facet.id && (
+                  <div className="mt-2 flex justify-center border-t border-gray-700/50 pt-2">
+                    <PitchDiagram pitch={facet.pitch} width={150} height={90} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -165,6 +172,9 @@ export default function MeasurementsPanel() {
           </div>
         </section>
       )}
+
+      {/* Damage Annotations */}
+      <DamagePanel />
 
       {/* Material Estimates */}
       {activeMeasurement.totalSquares > 0 && (

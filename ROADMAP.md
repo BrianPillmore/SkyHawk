@@ -70,10 +70,10 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 
 ### Phase 3: Insurance & Claims Workflow
 - [ ] Claims management dashboard
-- [ ] Before/after imagery comparison (dual-pane viewer)
-- [ ] Damage assessment annotations
+- [x] Before/after imagery comparison (dual-pane viewer)
+- [x] Damage assessment annotations
 - [ ] Xactimate-compatible export (ESX format)
-- [ ] Hail/wind damage markers
+- [x] Hail/wind damage markers
 - [ ] Claim status tracking workflow
 - [ ] Adjuster assignment and scheduling
 

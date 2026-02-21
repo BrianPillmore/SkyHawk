@@ -10,6 +10,10 @@ import type {
   DrawingMode,
   EdgeType,
   MapType,
+  DamageType,
+  DamageSeverity,
+  DamageAnnotation,
+  ImageSnapshot,
 } from '../types';
 import type { ReconstructedRoof } from '../types/solar';
 import {
@@ -47,7 +51,7 @@ interface AppState {
 
   // UI state
   sidebarOpen: boolean;
-  activePanel: 'tools' | 'measurements' | 'report';
+  activePanel: 'tools' | 'measurements' | 'report' | 'compare';
 
   // Undo/Redo
   _undoStack: RoofMeasurement[];
@@ -93,7 +97,7 @@ interface AppState {
 
   // Actions - UI
   toggleSidebar: () => void;
-  setActivePanel: (panel: 'tools' | 'measurements' | 'report') => void;
+  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare') => void;
 
   // Actions - Recalculate
   recalculateMeasurements: () => void;
@@ -105,6 +109,20 @@ interface AppState {
   // Actions - Multi-structure
   loadMeasurement: (measurementId: string) => void;
   deleteSavedMeasurement: (measurementId: string) => void;
+
+  // Actions - Damage annotations
+  addDamageAnnotation: (lat: number, lng: number, type: DamageType, severity: DamageSeverity, note: string) => string;
+  deleteDamageAnnotation: (id: string) => void;
+  selectedDamageId: string | null;
+  selectDamage: (id: string | null) => void;
+  activeDamageType: DamageType;
+  activeDamageSeverity: DamageSeverity;
+  setActiveDamageType: (type: DamageType) => void;
+  setActiveDamageSeverity: (severity: DamageSeverity) => void;
+
+  // Actions - Snapshots (before/after comparison)
+  addSnapshot: (label: string, dataUrl: string) => string;
+  deleteSnapshot: (id: string) => void;
 
   // Actions - Undo/Redo
   undo: () => void;
@@ -169,6 +187,9 @@ export const useStore = create<AppState>()(
         activePanel: 'tools' as const,
         _undoStack: [],
         _redoStack: [],
+        selectedDamageId: null,
+        activeDamageType: 'hail' as DamageType,
+        activeDamageSeverity: 'moderate' as DamageSeverity,
 
         // Property actions
         createProperty: (address, city, state, zip, lat, lng) => {
@@ -184,6 +205,8 @@ export const useStore = create<AppState>()(
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             measurements: [],
+            damageAnnotations: [],
+            snapshots: [],
             notes: '',
           };
           set((s) => ({
@@ -694,6 +717,86 @@ export const useStore = create<AppState>()(
             ...(activeMeasurement?.id === measurementId
               ? { activeMeasurement: null, _undoStack: [], _redoStack: [] }
               : {}),
+          }));
+        },
+
+        // Damage annotations
+        addDamageAnnotation: (lat: number, lng: number, type: DamageType, severity: DamageSeverity, note: string) => {
+          const { activePropertyId } = get();
+          if (!activePropertyId) return '';
+          const id = uuidv4();
+          const annotation: DamageAnnotation = {
+            id, lat, lng, type, severity, note,
+            createdAt: new Date().toISOString(),
+          };
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                damageAnnotations: [...(p.damageAnnotations || []), annotation],
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+          }));
+          return id;
+        },
+
+        deleteDamageAnnotation: (id: string) => {
+          const { activePropertyId } = get();
+          if (!activePropertyId) return;
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                damageAnnotations: (p.damageAnnotations || []).filter((d) => d.id !== id),
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+            selectedDamageId: s.selectedDamageId === id ? null : s.selectedDamageId,
+          }));
+        },
+
+        selectDamage: (id: string | null) => set({ selectedDamageId: id }),
+        setActiveDamageType: (type: DamageType) => set({ activeDamageType: type }),
+        setActiveDamageSeverity: (severity: DamageSeverity) => set({ activeDamageSeverity: severity }),
+
+        // Snapshots
+        addSnapshot: (label: string, dataUrl: string) => {
+          const { activePropertyId, mapCenter, mapZoom } = get();
+          if (!activePropertyId) return '';
+          const id = uuidv4();
+          const snapshot: ImageSnapshot = {
+            id, label, dataUrl,
+            capturedAt: new Date().toISOString(),
+            lat: mapCenter.lat, lng: mapCenter.lng, zoom: mapZoom,
+          };
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                snapshots: [...(p.snapshots || []), snapshot],
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+          }));
+          return id;
+        },
+
+        deleteSnapshot: (id: string) => {
+          const { activePropertyId } = get();
+          if (!activePropertyId) return;
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                snapshots: (p.snapshots || []).filter((snap) => snap.id !== id),
+                updatedAt: new Date().toISOString(),
+              };
+            }),
           }));
         },
 

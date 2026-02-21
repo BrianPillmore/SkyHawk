@@ -3,7 +3,8 @@ import { useStore } from '../../store/useStore';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
 import { getMidpoint, getCentroid, formatLength, formatArea } from '../../utils/geometry';
-import type { DrawingMode, EdgeType, RoofVertex } from '../../types';
+import type { DrawingMode, EdgeType, RoofVertex, DamageAnnotation } from '../../types';
+import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
 
 // Distance threshold in pixels for vertex snap highlight
@@ -22,6 +23,7 @@ export default function MapView() {
   const snapHighlightRef = useRef<google.maps.Marker | null>(null);
   const edgeLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const facetLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const damageMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
 
   const { loaded, error, apiKey } = useGoogleMaps();
 
@@ -34,6 +36,8 @@ export default function MapView() {
     moveVertex, selectVertex, selectEdge, selectFacet,
     selectedVertexId, selectedEdgeId, selectedFacetId,
     setMapCenter, setMapZoom,
+    addDamageAnnotation, activeDamageType, activeDamageSeverity,
+    properties, activePropertyId, selectedDamageId, selectDamage,
   } = useStore();
 
   // Initialize map
@@ -108,9 +112,11 @@ export default function MapView() {
           }
         }
         addOutlinePoint(lat, lng);
+      } else if (drawingMode === 'damage') {
+        addDamageAnnotation(lat, lng, activeDamageType, activeDamageSeverity, '');
       }
     },
-    [drawingMode, isDrawingOutline, currentOutlineVertices, addOutlinePoint, finishOutline]
+    [drawingMode, isDrawingOutline, currentOutlineVertices, addOutlinePoint, finishOutline, addDamageAnnotation, activeDamageType, activeDamageSeverity]
   );
 
   // Register map click listener
@@ -137,6 +143,7 @@ export default function MapView() {
       eave: 'crosshair',
       flashing: 'crosshair',
       facet: 'crosshair',
+      damage: 'crosshair',
     };
 
     map.setOptions({ draggableCursor: cursorMap[drawingMode] || 'default' });
@@ -645,6 +652,65 @@ export default function MapView() {
     };
   }, [drawingMode, edgeStartVertexId, activeMeasurement?.vertices]);
 
+  // Render damage annotation markers
+  const activeProperty = properties.find((p) => p.id === activePropertyId);
+  const damageAnnotations: DamageAnnotation[] = activeProperty?.damageAnnotations || [];
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const existingIds = new Set(damageAnnotations.map((d) => d.id));
+
+    // Remove markers for deleted annotations
+    for (const [id, marker] of damageMarkersRef.current) {
+      if (!existingIds.has(id)) {
+        marker.setMap(null);
+        damageMarkersRef.current.delete(id);
+      }
+    }
+
+    // Add/update damage markers
+    for (const annotation of damageAnnotations) {
+      const color = DAMAGE_SEVERITY_COLORS[annotation.severity];
+      const isSelected = selectedDamageId === annotation.id;
+
+      let marker = damageMarkersRef.current.get(annotation.id);
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: { lat: annotation.lat, lng: annotation.lng },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: isSelected ? 10 : 7,
+            fillColor: color,
+            fillOpacity: 0.9,
+            strokeColor: isSelected ? '#ffffff' : color,
+            strokeWeight: isSelected ? 3 : 2,
+          },
+          title: `${DAMAGE_TYPE_LABELS[annotation.type]} (${annotation.severity})`,
+          zIndex: 120,
+        });
+
+        marker.addListener('click', () => {
+          selectDamage(annotation.id);
+        });
+
+        damageMarkersRef.current.set(annotation.id, marker);
+      } else {
+        marker.setPosition({ lat: annotation.lat, lng: annotation.lng });
+        marker.setIcon({
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: isSelected ? 10 : 7,
+          fillColor: color,
+          fillOpacity: 0.9,
+          strokeColor: isSelected ? '#ffffff' : color,
+          strokeWeight: isSelected ? 3 : 2,
+        });
+      }
+    }
+  }, [damageAnnotations, selectedDamageId]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -656,6 +722,7 @@ export default function MapView() {
       for (const [, polygon] of polygonsRef.current) polygon.setMap(null);
       for (const [, m] of edgeLabelsRef.current) m.setMap(null);
       for (const [, m] of facetLabelsRef.current) m.setMap(null);
+      for (const [, m] of damageMarkersRef.current) m.setMap(null);
       if (outlinePolylineRef.current) outlinePolylineRef.current.setMap(null);
       if (tempLineRef.current) tempLineRef.current.setMap(null);
       if (previewLineRef.current) previewLineRef.current.setMap(null);
@@ -732,11 +799,17 @@ export default function MapView() {
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/90 backdrop-blur px-4 py-2 rounded-lg border border-gray-700/50 z-10">
           <p className="text-sm text-gray-300">
             <span className="text-skyhawk-400 font-medium">
-              {drawingMode === 'outline' ? 'Drawing Outline' : `Drawing ${drawingMode.charAt(0).toUpperCase() + drawingMode.slice(1)}`}
+              {drawingMode === 'outline'
+                ? 'Drawing Outline'
+                : drawingMode === 'damage'
+                  ? 'Damage Assessment'
+                  : `Drawing ${drawingMode.charAt(0).toUpperCase() + drawingMode.slice(1)}`}
             </span>
             {drawingMode === 'outline'
               ? ' — Click to place points, click first point to close'
-              : ' — Click vertices to create line'}
+              : drawingMode === 'damage'
+                ? ' — Click on the map to place damage markers'
+                : ' — Click vertices to create line'}
           </p>
         </div>
       )}

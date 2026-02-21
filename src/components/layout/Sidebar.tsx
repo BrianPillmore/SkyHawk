@@ -3,6 +3,7 @@ import ToolsPanel from '../measurement/ToolsPanel';
 import MeasurementsPanel from '../measurement/MeasurementsPanel';
 import MeasurementSelector from '../measurement/MeasurementSelector';
 import ReportPanel from '../reports/ReportPanel';
+import ComparisonPanel from '../comparison/ComparisonPanel';
 
 export default function Sidebar() {
   const { sidebarOpen, activePanel, setActivePanel, activeMeasurement, activePropertyId } = useStore();
@@ -13,6 +14,7 @@ export default function Sidebar() {
     { id: 'tools' as const, label: 'Tools', icon: '✏️' },
     { id: 'measurements' as const, label: 'Data', icon: '📐' },
     { id: 'report' as const, label: 'Report', icon: '📄' },
+    { id: 'compare' as const, label: 'Compare', icon: '🔄' },
   ];
 
   return (
@@ -50,6 +52,7 @@ export default function Sidebar() {
             {activePanel === 'tools' && <ToolsPanel />}
             {activePanel === 'measurements' && <MeasurementsPanel />}
             {activePanel === 'report' && <ReportPanel />}
+            {activePanel === 'compare' && <ComparisonPanel />}
           </>
         )}
       </div>

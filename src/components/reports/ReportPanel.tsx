@@ -8,14 +8,13 @@ export default function ReportPanel() {
   const [generating, setGenerating] = useState(false);
   const [companyName, setCompanyName] = useState('SkyHawk Reports');
   const [notes, setNotes] = useState('');
+  const [includeMap, setIncludeMap] = useState(true);
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
 
   if (!activeMeasurement) return null;
 
   const hasData = activeMeasurement.facets.length > 0;
-
-  const [includeMap, setIncludeMap] = useState(true);
 
   const handleGenerateReport = async () => {
     if (!property || !hasData) return;
