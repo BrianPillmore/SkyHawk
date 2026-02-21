@@ -1,0 +1,33 @@
+{
+  "project": "SkyHawk - Aerial Property Intelligence Platform",
+  "description": "EagleView alternative for roofing and insurance adjustment industry",
+  "version": "1.0.0",
+  "tech_stack": {
+    "frontend": "React 19 + TypeScript + Vite 7",
+    "styling": "Tailwind CSS v4",
+    "state": "Zustand",
+    "maps": "Google Maps JavaScript API",
+    "pdf": "jsPDF",
+    "routing": "React Router v7"
+  },
+  "directories": {
+    "source": "src/",
+    "tests": "tests/",
+    "plans": "plans/",
+    "specs": "specs/",
+    "docs": "docs/",
+    "scripts": "scripts/",
+    "agents": ".claude/agents/",
+    "skills": ".claude/skills/",
+    "commands": ".claude/commands/"
+  },
+  "conventions": {
+    "components": "Functional React components with hooks, one per file",
+    "state": "Zustand store in src/store/useStore.ts",
+    "types": "All domain types in src/types/index.ts",
+    "geometry": "All math in src/utils/geometry.ts",
+    "colors": "Color constants in src/utils/colors.ts",
+    "styling": "Tailwind utility classes, no CSS modules",
+    "naming": "PascalCase for components, camelCase for utils/hooks"
+  }
+}

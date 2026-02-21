@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --color-skyhawk-50: #eff8ff;
+  --color-skyhawk-100: #dbeefe;
+  --color-skyhawk-200: #bfe2fe;
+  --color-skyhawk-300: #93d1fd;
+  --color-skyhawk-400: #60b6fa;
+  --color-skyhawk-500: #3b96f6;
+  --color-skyhawk-600: #2578eb;
+  --color-skyhawk-700: #1d62d8;
+  --color-skyhawk-800: #1e50af;
+  --color-skyhawk-900: #1e458a;
+  --color-skyhawk-950: #172b54;
+
+  --color-roof-outline: #f59e0b;
+  --color-roof-ridge: #ef4444;
+  --color-roof-hip: #8b5cf6;
+  --color-roof-valley: #3b82f6;
+  --color-roof-rake: #10b981;
+  --color-roof-eave: #06b6d4;
+  --color-roof-facet: rgba(245, 158, 11, 0.2);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Google Maps overrides */
+.gm-style .gm-style-iw-c {
+  padding: 0 !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
