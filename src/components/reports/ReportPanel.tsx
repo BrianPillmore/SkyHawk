@@ -9,8 +9,15 @@ export default function ReportPanel() {
   const [companyName, setCompanyName] = useState('SkyHawk Reports');
   const [notes, setNotes] = useState('');
   const [includeMap, setIncludeMap] = useState(true);
+  const [includeDamage, setIncludeDamage] = useState(true);
+  const [includeClaims, setIncludeClaims] = useState(true);
+  const [includeMultiStructure, setIncludeMultiStructure] = useState(true);
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
+
+  const damageCount = property?.damageAnnotations.length ?? 0;
+  const claimsCount = property?.claims.length ?? 0;
+  const structureCount = property?.measurements.length ?? 0;
 
   if (!activeMeasurement) return null;
 
@@ -25,7 +32,14 @@ export default function ReportPanel() {
       if (includeMap) {
         mapScreenshot = await captureMapScreenshot();
       }
-      await generateReport(property, activeMeasurement, { companyName, notes, mapScreenshot });
+      await generateReport(property, activeMeasurement, {
+        companyName,
+        notes,
+        mapScreenshot,
+        includeDamage,
+        includeClaims,
+        includeMultiStructure,
+      });
     } catch (err) {
       console.error('Report generation failed:', err);
     } finally {
@@ -103,6 +117,48 @@ export default function ReportPanel() {
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span> Material estimation
             </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeDamage}
+                onChange={(e) => setIncludeDamage(e.target.checked)}
+                className="accent-skyhawk-500"
+              />
+              <span>
+                Damage assessment annotations
+                {damageCount > 0 && (
+                  <span className="text-gray-500 ml-1">({damageCount} marker{damageCount !== 1 ? 's' : ''})</span>
+                )}
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeClaims}
+                onChange={(e) => setIncludeClaims(e.target.checked)}
+                className="accent-skyhawk-500"
+              />
+              <span>
+                Claims information
+                {claimsCount > 0 && (
+                  <span className="text-gray-500 ml-1">({claimsCount} claim{claimsCount !== 1 ? 's' : ''})</span>
+                )}
+              </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeMultiStructure}
+                onChange={(e) => setIncludeMultiStructure(e.target.checked)}
+                className="accent-skyhawk-500"
+              />
+              <span>
+                Multi-structure summary
+                {structureCount > 1 && (
+                  <span className="text-gray-500 ml-1">({structureCount} structure{structureCount !== 1 ? 's' : ''})</span>
+                )}
+              </span>
+            </label>
           </div>
         </section>
       )}

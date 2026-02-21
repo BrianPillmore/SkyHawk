@@ -167,6 +167,63 @@ export interface Claim {
   updatedAt: string;
 }
 
+// ─── Adjuster Assignment & Scheduling Types ──────────────────────
+
+export interface Adjuster {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialty: AdjusterSpecialty;
+  status: AdjusterStatus;
+  createdAt: string;
+}
+
+export type AdjusterSpecialty = 'residential' | 'commercial' | 'catastrophe' | 'general';
+export type AdjusterStatus = 'available' | 'assigned' | 'on-site' | 'unavailable';
+
+export const ADJUSTER_SPECIALTY_LABELS: Record<AdjusterSpecialty, string> = {
+  residential: 'Residential',
+  commercial: 'Commercial',
+  catastrophe: 'Catastrophe',
+  general: 'General',
+};
+
+export const ADJUSTER_STATUS_COLORS: Record<AdjusterStatus, string> = {
+  available: '#10b981',
+  assigned: '#3b82f6',
+  'on-site': '#f59e0b',
+  unavailable: '#6b7280',
+};
+
+export interface Inspection {
+  id: string;
+  claimId: string;
+  adjusterId: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  status: InspectionStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type InspectionStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+
+export const INSPECTION_STATUS_LABELS: Record<InspectionStatus, string> = {
+  scheduled: 'Scheduled',
+  'in-progress': 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+export const INSPECTION_STATUS_COLORS: Record<InspectionStatus, string> = {
+  scheduled: '#3b82f6',
+  'in-progress': '#f59e0b',
+  completed: '#10b981',
+  cancelled: '#6b7280',
+};
+
 export interface ReportConfig {
   includeOverview: boolean;
   includePitchDiagram: boolean;

@@ -55,6 +55,7 @@ function createProperty(overrides: Partial<Property> = {}): Property {
     measurements: [],
     damageAnnotations: [],
     snapshots: [],
+    claims: [],
     notes: '',
     ...overrides,
   };

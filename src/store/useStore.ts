@@ -16,6 +16,11 @@ import type {
   ImageSnapshot,
   Claim,
   ClaimStatus,
+  Adjuster,
+  AdjusterSpecialty,
+  AdjusterStatus,
+  Inspection,
+  InspectionStatus,
 } from '../types';
 import type { ReconstructedRoof } from '../types/solar';
 import {
@@ -53,7 +58,7 @@ interface AppState {
 
   // UI state
   sidebarOpen: boolean;
-  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims';
+  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule';
 
   // Undo/Redo
   _undoStack: RoofMeasurement[];
@@ -99,7 +104,7 @@ interface AppState {
 
   // Actions - UI
   toggleSidebar: () => void;
-  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims') => void;
+  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule') => void;
 
   // Actions - Recalculate
   recalculateMeasurements: () => void;
@@ -131,6 +136,19 @@ interface AppState {
   updateClaimStatus: (claimId: string, status: ClaimStatus) => void;
   updateClaimNotes: (claimId: string, notes: string) => void;
   deleteClaim: (claimId: string) => void;
+
+  // Actions - Adjusters
+  adjusters: Adjuster[];
+  addAdjuster: (name: string, email: string, phone: string, specialty: AdjusterSpecialty) => string;
+  updateAdjusterStatus: (id: string, status: AdjusterStatus) => void;
+  deleteAdjuster: (id: string) => void;
+
+  // Actions - Inspections
+  inspections: Inspection[];
+  scheduleInspection: (claimId: string, adjusterId: string, date: string, time: string, notes: string) => string;
+  updateInspectionStatus: (id: string, status: InspectionStatus) => void;
+  cancelInspection: (id: string) => void;
+  deleteInspection: (id: string) => void;
 
   // Actions - Undo/Redo
   undo: () => void;
@@ -198,6 +216,8 @@ export const useStore = create<AppState>()(
         selectedDamageId: null,
         activeDamageType: 'hail' as DamageType,
         activeDamageSeverity: 'moderate' as DamageSeverity,
+        adjusters: [],
+        inspections: [],
 
         // Property actions
         createProperty: (address, city, state, zip, lat, lng) => {
@@ -878,6 +898,101 @@ export const useStore = create<AppState>()(
           }));
         },
 
+        // Adjusters
+        addAdjuster: (name: string, email: string, phone: string, specialty: AdjusterSpecialty) => {
+          const id = uuidv4();
+          const adjuster: Adjuster = {
+            id,
+            name,
+            email,
+            phone,
+            specialty,
+            status: 'available',
+            createdAt: new Date().toISOString(),
+          };
+          set((s) => ({
+            adjusters: [...s.adjusters, adjuster],
+          }));
+          return id;
+        },
+
+        updateAdjusterStatus: (id: string, status: AdjusterStatus) => {
+          set((s) => ({
+            adjusters: s.adjusters.map((a) =>
+              a.id === id ? { ...a, status } : a
+            ),
+          }));
+        },
+
+        deleteAdjuster: (id: string) => {
+          set((s) => ({
+            adjusters: s.adjusters.filter((a) => a.id !== id),
+            inspections: s.inspections.map((insp) =>
+              insp.adjusterId === id && insp.status !== 'completed' && insp.status !== 'cancelled'
+                ? { ...insp, status: 'cancelled' as const, updatedAt: new Date().toISOString() }
+                : insp
+            ),
+          }));
+        },
+
+        // Inspections
+        scheduleInspection: (claimId: string, adjusterId: string, date: string, time: string, notes: string) => {
+          const id = uuidv4();
+          const inspection: Inspection = {
+            id,
+            claimId,
+            adjusterId,
+            scheduledDate: date,
+            scheduledTime: time,
+            status: 'scheduled',
+            notes,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          set((s) => ({
+            inspections: [...s.inspections, inspection],
+            adjusters: s.adjusters.map((a) =>
+              a.id === adjusterId ? { ...a, status: 'assigned' as const } : a
+            ),
+          }));
+          return id;
+        },
+
+        updateInspectionStatus: (id: string, status: InspectionStatus) => {
+          const inspection = get().inspections.find((i) => i.id === id);
+          if (!inspection) return;
+          set((s) => ({
+            inspections: s.inspections.map((i) =>
+              i.id === id ? { ...i, status, updatedAt: new Date().toISOString() } : i
+            ),
+            adjusters: s.adjusters.map((a) => {
+              if (a.id !== inspection.adjusterId) return a;
+              if (status === 'completed') return { ...a, status: 'available' as const };
+              if (status === 'in-progress') return { ...a, status: 'on-site' as const };
+              return a;
+            }),
+          }));
+        },
+
+        cancelInspection: (id: string) => {
+          const inspection = get().inspections.find((i) => i.id === id);
+          if (!inspection) return;
+          set((s) => ({
+            inspections: s.inspections.map((i) =>
+              i.id === id ? { ...i, status: 'cancelled' as const, updatedAt: new Date().toISOString() } : i
+            ),
+            adjusters: s.adjusters.map((a) =>
+              a.id === inspection.adjusterId ? { ...a, status: 'available' as const } : a
+            ),
+          }));
+        },
+
+        deleteInspection: (id: string) => {
+          set((s) => ({
+            inspections: s.inspections.filter((i) => i.id !== id),
+          }));
+        },
+
         // Undo/Redo
         undo: () => {
           const { _undoStack, activeMeasurement } = get();
@@ -941,6 +1056,8 @@ export const useStore = create<AppState>()(
         mapType: state.mapType,
         mapCenter: state.mapCenter,
         mapZoom: state.mapZoom,
+        adjusters: state.adjusters,
+        inspections: state.inspections,
       }),
     }
   )
