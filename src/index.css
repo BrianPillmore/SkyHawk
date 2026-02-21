@@ -38,6 +38,16 @@ body {
   overflow: hidden !important;
 }
 
+/* Map label styles */
+.edge-label,
+.facet-label {
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 3px;
+  padding: 1px 4px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

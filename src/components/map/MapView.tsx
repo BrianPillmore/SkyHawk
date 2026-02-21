@@ -2,6 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../../store/useStore';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
+import { getMidpoint, getCentroid, formatLength, formatArea } from '../../utils/geometry';
 import type { DrawingMode, EdgeType, RoofVertex } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
 
@@ -19,6 +20,8 @@ export default function MapView() {
   const tempLineRef = useRef<google.maps.Polyline | null>(null);
   const previewLineRef = useRef<google.maps.Polyline | null>(null);
   const snapHighlightRef = useRef<google.maps.Marker | null>(null);
+  const edgeLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const facetLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
 
   const { loaded, error, apiKey } = useGoogleMaps();
 
@@ -269,6 +272,126 @@ export default function MapView() {
       }
     }
   }, [activeMeasurement?.edges, activeMeasurement?.vertices, selectedEdgeId]);
+
+  // Render edge length labels at midpoints
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !activeMeasurement) {
+      // Clean up all labels
+      for (const [, marker] of edgeLabelsRef.current) marker.setMap(null);
+      edgeLabelsRef.current.clear();
+      return;
+    }
+
+    const existingIds = new Set(activeMeasurement.edges.map((e) => e.id));
+
+    // Remove labels for deleted edges
+    for (const [id, marker] of edgeLabelsRef.current) {
+      if (!existingIds.has(id)) {
+        marker.setMap(null);
+        edgeLabelsRef.current.delete(id);
+      }
+    }
+
+    // Add/update edge labels
+    for (const edge of activeMeasurement.edges) {
+      const startV = activeMeasurement.vertices.find((v) => v.id === edge.startVertexId);
+      const endV = activeMeasurement.vertices.find((v) => v.id === edge.endVertexId);
+      if (!startV || !endV) continue;
+
+      const mid = getMidpoint(startV, endV);
+      const labelText = `${edge.lengthFt.toFixed(1)}'`;
+      const color = getEdgeColor(edge.type);
+
+      let marker = edgeLabelsRef.current.get(edge.id);
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: mid,
+          map,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+          label: {
+            text: labelText,
+            color: '#ffffff',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            className: 'edge-label',
+          },
+          clickable: false,
+          zIndex: 80,
+        });
+        edgeLabelsRef.current.set(edge.id, marker);
+      } else {
+        marker.setPosition(mid);
+        marker.setLabel({
+          text: labelText,
+          color: '#ffffff',
+          fontSize: '10px',
+          fontWeight: 'bold',
+          className: 'edge-label',
+        });
+      }
+    }
+  }, [activeMeasurement?.edges, activeMeasurement?.vertices]);
+
+  // Render facet area labels at centroids
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !activeMeasurement) {
+      for (const [, marker] of facetLabelsRef.current) marker.setMap(null);
+      facetLabelsRef.current.clear();
+      return;
+    }
+
+    const existingIds = new Set(activeMeasurement.facets.map((f) => f.id));
+
+    // Remove labels for deleted facets
+    for (const [id, marker] of facetLabelsRef.current) {
+      if (!existingIds.has(id)) {
+        marker.setMap(null);
+        facetLabelsRef.current.delete(id);
+      }
+    }
+
+    // Add/update facet labels
+    for (const facet of activeMeasurement.facets) {
+      const vertices = facet.vertexIds
+        .map((id) => activeMeasurement.vertices.find((v) => v.id === id))
+        .filter((v): v is RoofVertex => v !== undefined);
+
+      if (vertices.length < 3) continue;
+
+      const centroid = getCentroid(vertices);
+      const labelText = `${Math.round(facet.trueAreaSqFt)} sf`;
+
+      let marker = facetLabelsRef.current.get(facet.id);
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: centroid,
+          map,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+          label: {
+            text: labelText,
+            color: '#ffffff',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            className: 'facet-label',
+          },
+          clickable: false,
+          zIndex: 75,
+        });
+        facetLabelsRef.current.set(facet.id, marker);
+      } else {
+        marker.setPosition(centroid);
+        marker.setLabel({
+          text: labelText,
+          color: '#ffffff',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          className: 'facet-label',
+        });
+      }
+    }
+  }, [activeMeasurement?.facets, activeMeasurement?.vertices]);
 
   // Render facets as polygons
   useEffect(() => {
@@ -531,6 +654,8 @@ export default function MapView() {
       for (const [, m] of outlineMarkersRef.current) m.setMap(null);
       for (const [, line] of polylinesRef.current) line.setMap(null);
       for (const [, polygon] of polygonsRef.current) polygon.setMap(null);
+      for (const [, m] of edgeLabelsRef.current) m.setMap(null);
+      for (const [, m] of facetLabelsRef.current) m.setMap(null);
       if (outlinePolylineRef.current) outlinePolylineRef.current.setMap(null);
       if (tempLineRef.current) tempLineRef.current.setMap(null);
       if (previewLineRef.current) previewLineRef.current.setMap(null);

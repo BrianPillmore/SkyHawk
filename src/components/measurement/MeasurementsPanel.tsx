@@ -4,6 +4,7 @@ import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
 import { estimateMaterials } from '../../utils/materials';
+import { exportMeasurementJSON } from '../../utils/exportData';
 
 export default function MeasurementsPanel() {
   const {
@@ -26,9 +27,18 @@ export default function MeasurementsPanel() {
     <div className="p-3 space-y-4">
       {/* Summary */}
       <section>
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Roof Summary
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Roof Summary
+          </h3>
+          <button
+            onClick={() => exportMeasurementJSON(activeMeasurement)}
+            className="px-2 py-1 text-[10px] font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors border border-gray-700"
+            title="Export measurement data as JSON"
+          >
+            Export JSON
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Total Area" value={formatArea(activeMeasurement.totalTrueAreaSqFt)} />
           <SummaryCard label="Flat Area" value={formatArea(activeMeasurement.totalAreaSqFt)} />
