@@ -419,9 +419,9 @@ export async function generateReport(
     addText('Status', margin + contentWidth * 0.8, y, 8, [255, 255, 255], 'bold');
     y += 7;
 
-    for (let i = 0; i < property.claims.length; i++) {
+    for (let i = 0; i < claims.length; i++) {
       checkPage(10);
-      const claim = property.claims[i];
+      const claim = claims[i];
       const rowY = y + i * 7;
       if (i % 2 === 0) {
         doc.setFillColor(...lightBg);
@@ -440,11 +440,12 @@ export async function generateReport(
       const statusLabel = CLAIM_STATUS_LABELS[claim.status] || claim.status;
       addText(statusLabel, margin + contentWidth * 0.8, rowY, 9, darkText, 'bold');
     }
-    y += property.claims.length * 7 + 6;
+    y += claims.length * 7 + 6;
   }
 
   // ============ MULTI-STRUCTURE SUMMARY ============
-  if (options.includeMultiStructure !== false && property.measurements.length > 1) {
+  const measurements = property.measurements ?? [];
+  if (options.includeMultiStructure !== false && measurements.length > 1) {
     checkPage(60);
     y = addText('MULTI-STRUCTURE SUMMARY', margin, y, 12, primaryColor, 'bold');
     y += 2;
@@ -464,9 +465,9 @@ export async function generateReport(
     let totalArea = 0;
     let totalSquares = 0;
 
-    for (let i = 0; i < property.measurements.length; i++) {
+    for (let i = 0; i < measurements.length; i++) {
       checkPage(10);
-      const m = property.measurements[i];
+      const m = measurements[i];
       const rowY = y + i * 7;
       if (i % 2 === 0) {
         doc.setFillColor(...lightBg);
@@ -482,7 +483,7 @@ export async function generateReport(
       totalArea += m.totalTrueAreaSqFt;
       totalSquares += m.totalSquares;
     }
-    y += property.measurements.length * 7;
+    y += measurements.length * 7;
 
     // Total row
     checkPage(10);

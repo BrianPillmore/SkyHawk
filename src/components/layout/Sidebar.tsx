@@ -5,6 +5,7 @@ import MeasurementSelector from '../measurement/MeasurementSelector';
 import ReportPanel from '../reports/ReportPanel';
 import ComparisonPanel from '../comparison/ComparisonPanel';
 import ClaimsPanel from '../claims/ClaimsPanel';
+import AdjusterPanel from '../claims/AdjusterPanel';
 
 export default function Sidebar() {
   const { sidebarOpen, activePanel, setActivePanel, activeMeasurement, activePropertyId } = useStore();
@@ -17,6 +18,7 @@ export default function Sidebar() {
     { id: 'report' as const, label: 'Report', icon: '📄' },
     { id: 'compare' as const, label: 'Compare', icon: '🔄' },
     { id: 'claims' as const, label: 'Claims', icon: '📋' },
+    { id: 'schedule' as const, label: 'Schedule', icon: '📅' },
   ];
 
   return (
@@ -44,12 +46,13 @@ export default function Sidebar() {
 
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Claims and Compare work without active measurement */}
+        {/* Claims, Compare, and Schedule work without active measurement */}
         {activePanel === 'claims' && <ClaimsPanel />}
         {activePanel === 'compare' && <ComparisonPanel />}
+        {activePanel === 'schedule' && <AdjusterPanel />}
 
         {/* Other panels require active measurement */}
-        {activePanel !== 'claims' && activePanel !== 'compare' && (
+        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && (
           !activeMeasurement ? (
             <div className="p-4 text-center text-gray-500 text-sm">
               <p className="mb-2">No active measurement</p>

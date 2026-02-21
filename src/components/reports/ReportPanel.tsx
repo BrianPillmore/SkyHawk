@@ -15,9 +15,9 @@ export default function ReportPanel() {
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
 
-  const damageCount = property?.damageAnnotations.length ?? 0;
-  const claimsCount = property?.claims.length ?? 0;
-  const structureCount = property?.measurements.length ?? 0;
+  const damageCount = property?.damageAnnotations?.length ?? 0;
+  const claimsCount = property?.claims?.length ?? 0;
+  const structureCount = property?.measurements?.length ?? 0;
 
   if (!activeMeasurement) return null;
 
