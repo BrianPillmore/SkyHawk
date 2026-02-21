@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import type { Property, RoofMeasurement } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
+import { estimateMaterials } from './materials';
 
 interface ReportOptions {
   companyName: string;
@@ -222,6 +223,58 @@ export async function generateReport(
     addText(formatNumber(row.totalSquaresWithWaste, 1), margin + contentWidth * 0.75, rowY, 9, darkText, 'bold');
   }
   y += wasteTable.length * 7 + 6;
+
+  // ============ MATERIAL ESTIMATES ============
+  if (measurement.totalSquares > 0) {
+    checkPage(80);
+    y = addText('MATERIAL ESTIMATES', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 2;
+    y = addText(
+      `Based on ${measurement.suggestedWastePercent}% waste factor. Quantities are approximate and may vary by material type and installation method.`,
+      margin, y, 7, grayText
+    );
+    y += 5;
+
+    const materials = estimateMaterials(measurement);
+    const materialRows: [string, string, string][] = [
+      ['Shingle Bundles', String(materials.shingleBundles), '3 bundles per square'],
+      ['Underlayment', `${materials.underlaymentRolls} rolls`, '~4 squares per roll'],
+      ['Ice & Water Shield', `${materials.iceWaterRolls} rolls`, 'At eave edges'],
+      ['Starter Strip', `${materials.starterStripLf} lf`, 'Eave + rake perimeter'],
+      ['Ridge Cap', `${materials.ridgeCapLf} lf`, 'Ridge + hip lines'],
+      ['Drip Edge', `${materials.dripEdgeLf} lf`, 'Eave + rake edges'],
+      ['Step Flashing', `${materials.stepFlashingPcs} pcs`, 'Wall junctions'],
+      ['Pipe Boots', `${materials.pipeBoots} pcs`, 'Est. 1 per 1,000 sq ft'],
+      ['Roofing Nails', `${materials.nailsLbs} lbs`, '~1.75 lbs per square'],
+      ['Ridge Vent', `${materials.ridgeVentLf} lf`, 'Full ridge length'],
+    ];
+
+    // Filter out zero-quantity rows
+    const activeRows = materialRows.filter((r) => !r[1].startsWith('0'));
+
+    // Table header
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('Material', margin + 3, y, 8, [255, 255, 255], 'bold');
+    addText('Quantity', margin + contentWidth * 0.45, y, 8, [255, 255, 255], 'bold');
+    addText('Basis', margin + contentWidth * 0.7, y, 8, [255, 255, 255], 'bold');
+    y += 7;
+
+    for (let i = 0; i < activeRows.length; i++) {
+      checkPage(10);
+      const rowY = y + i * 7;
+      if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(activeRows[i][0], margin + 3, rowY, 9, darkText);
+      addText(activeRows[i][1], margin + contentWidth * 0.45, rowY, 9, darkText, 'bold');
+      addText(activeRows[i][2], margin + contentWidth * 0.7, rowY, 9, grayText);
+    }
+    y += activeRows.length * 7 + 6;
+  }
 
   // ============ NOTES ============
   if (options.notes) {

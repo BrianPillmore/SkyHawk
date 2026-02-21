@@ -1,7 +1,9 @@
 import { useStore } from '../../store/useStore';
+import type { RoofMeasurement } from '../../types';
 import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils/geometry';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
+import { estimateMaterials } from '../../utils/materials';
 
 export default function MeasurementsPanel() {
   const {
@@ -159,6 +161,16 @@ export default function MeasurementsPanel() {
         </section>
       )}
 
+      {/* Material Estimates */}
+      {activeMeasurement.totalSquares > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Material Estimates
+          </h3>
+          <MaterialEstimateTable measurement={activeMeasurement} />
+        </section>
+      )}
+
       {/* Waste Table */}
       {activeMeasurement.totalTrueAreaSqFt > 0 && (
         <section>
@@ -222,6 +234,55 @@ function LineSummary({ type, label, length, count }: { type: string; label: stri
         {count > 0 && <span className="text-gray-600 text-xs">({count})</span>}
       </div>
       <span className={length > 0 ? 'text-white font-medium' : 'text-gray-600'}>{formatLength(length)}</span>
+    </div>
+  );
+}
+
+function MaterialEstimateTable({ measurement }: { measurement: RoofMeasurement }) {
+  const materials = estimateMaterials(measurement);
+
+  const rows: { label: string; qty: number; unit: string }[] = [
+    { label: 'Shingle Bundles', qty: materials.shingleBundles, unit: 'bundles' },
+    { label: 'Underlayment', qty: materials.underlaymentRolls, unit: 'rolls' },
+    { label: 'Ice & Water Shield', qty: materials.iceWaterRolls, unit: 'rolls' },
+    { label: 'Starter Strip', qty: materials.starterStripLf, unit: 'lf' },
+    { label: 'Ridge Cap', qty: materials.ridgeCapLf, unit: 'lf' },
+    { label: 'Drip Edge', qty: materials.dripEdgeLf, unit: 'lf' },
+    { label: 'Step Flashing', qty: materials.stepFlashingPcs, unit: 'pcs' },
+    { label: 'Pipe Boots', qty: materials.pipeBoots, unit: 'pcs' },
+    { label: 'Roofing Nails', qty: materials.nailsLbs, unit: 'lbs' },
+    { label: 'Ridge Vent', qty: materials.ridgeVentLf, unit: 'lf' },
+  ];
+
+  // Filter out zero-quantity items
+  const activeRows = rows.filter((r) => r.qty > 0);
+
+  return (
+    <div className="bg-gray-800/50 rounded-lg overflow-hidden">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-gray-700">
+            <th className="px-3 py-2 text-left text-gray-400">Material</th>
+            <th className="px-3 py-2 text-right text-gray-400">Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {activeRows.map((row, i) => (
+            <tr
+              key={row.label}
+              className={`border-b border-gray-700/50 text-gray-300 ${i % 2 === 0 ? 'bg-gray-800/30' : ''}`}
+            >
+              <td className="px-3 py-1.5">{row.label}</td>
+              <td className="px-3 py-1.5 text-right font-medium text-white">
+                {row.qty} <span className="text-gray-500 font-normal">{row.unit}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="px-3 py-2 text-[10px] text-gray-500 border-t border-gray-700/50">
+        Includes {measurement.suggestedWastePercent}% waste factor. Estimates are approximate.
+      </div>
     </div>
   );
 }

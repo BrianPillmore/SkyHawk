@@ -102,6 +102,10 @@ interface AppState {
   // Actions - Auto measurement
   applyAutoMeasurement: (reconstructed: ReconstructedRoof) => void;
 
+  // Actions - Multi-structure
+  loadMeasurement: (measurementId: string) => void;
+  deleteSavedMeasurement: (measurementId: string) => void;
+
   // Actions - Undo/Redo
   undo: () => void;
   redo: () => void;
@@ -647,6 +651,50 @@ export const useStore = create<AppState>()(
           });
 
           get().recalculateMeasurements();
+        },
+
+        // Multi-structure: load a saved measurement
+        loadMeasurement: (measurementId: string) => {
+          const { activePropertyId, properties } = get();
+          if (!activePropertyId) return;
+          const property = properties.find((p) => p.id === activePropertyId);
+          if (!property) return;
+          const measurement = property.measurements.find((m) => m.id === measurementId);
+          if (!measurement) return;
+
+          set({
+            activeMeasurement: JSON.parse(JSON.stringify(measurement)) as RoofMeasurement,
+            drawingMode: 'select',
+            selectedVertexId: null,
+            selectedEdgeId: null,
+            selectedFacetId: null,
+            isDrawingOutline: false,
+            currentOutlineVertices: [],
+            edgeStartVertexId: null,
+            _undoStack: [],
+            _redoStack: [],
+          });
+        },
+
+        // Multi-structure: delete a saved measurement from property
+        deleteSavedMeasurement: (measurementId: string) => {
+          const { activePropertyId, activeMeasurement } = get();
+          if (!activePropertyId) return;
+
+          set((s) => ({
+            properties: s.properties.map((p) => {
+              if (p.id !== activePropertyId) return p;
+              return {
+                ...p,
+                measurements: p.measurements.filter((m) => m.id !== measurementId),
+                updatedAt: new Date().toISOString(),
+              };
+            }),
+            // Clear active if we deleted the loaded one
+            ...(activeMeasurement?.id === measurementId
+              ? { activeMeasurement: null, _undoStack: [], _redoStack: [] }
+              : {}),
+          }));
         },
 
         // Undo/Redo

@@ -1,10 +1,11 @@
 import { useStore } from '../../store/useStore';
 import ToolsPanel from '../measurement/ToolsPanel';
 import MeasurementsPanel from '../measurement/MeasurementsPanel';
+import MeasurementSelector from '../measurement/MeasurementSelector';
 import ReportPanel from '../reports/ReportPanel';
 
 export default function Sidebar() {
-  const { sidebarOpen, activePanel, setActivePanel, activeMeasurement } = useStore();
+  const { sidebarOpen, activePanel, setActivePanel, activeMeasurement, activePropertyId } = useStore();
 
   if (!sidebarOpen) return null;
 
@@ -33,6 +34,9 @@ export default function Sidebar() {
           </button>
         ))}
       </div>
+
+      {/* Measurement selector */}
+      {activePropertyId && <MeasurementSelector />}
 
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto">
