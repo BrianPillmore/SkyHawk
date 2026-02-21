@@ -9,6 +9,7 @@ import { exportMeasurementJSON, exportMeasurementGeoJSON, exportMeasurementCSV }
 import { exportESX } from '../../utils/esxExport';
 import PitchDiagram from './PitchDiagram';
 import DamagePanel from './DamagePanel';
+import RoofViewer3D from './RoofViewer3D';
 
 export default function MeasurementsPanel() {
   const {
@@ -174,6 +175,11 @@ export default function MeasurementsPanel() {
             ))}
           </div>
         </section>
+      )}
+
+      {/* 3D Roof Model */}
+      {activeMeasurement.facets.length > 0 && (
+        <RoofViewer3D measurement={activeMeasurement} />
       )}
 
       {/* Damage Annotations */}

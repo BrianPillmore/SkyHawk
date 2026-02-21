@@ -63,10 +63,10 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Measurement data export (JSON, GeoJSON, CSV)
 - [x] Map screenshot capture for PDF reports
 - [x] Real-time measurement stats overlay
-- [ ] 3D roof model visualization (rotate, zoom, inspect)
+- [x] 3D roof model visualization (rotate, zoom, inspect)
 - [ ] Automatic pitch detection from oblique imagery
 - [ ] Walls, windows, and doors measurement
-- [ ] Full-house measurement reports
+- [x] Full-house measurement reports
 
 ### Phase 3: Insurance & Claims Workflow
 - [x] Claims management dashboard
@@ -75,7 +75,7 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Xactimate-compatible export (ESX format)
 - [x] Hail/wind damage markers
 - [x] Claim status tracking workflow
-- [ ] Adjuster assignment and scheduling
+- [x] Adjuster assignment and scheduling
 
 ### Phase 4: Advanced Analytics & AI
 - [ ] AI-powered roof feature detection from satellite imagery
