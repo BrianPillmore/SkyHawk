@@ -700,6 +700,33 @@ export default function MapView() {
         ))}
       </div>
 
+      {/* Measurement stats overlay */}
+      {activeMeasurement && activeMeasurement.facets.length > 0 && (
+        <div className="absolute top-3 left-3 bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700/50 z-10 px-3 py-2">
+          <div className="flex items-center gap-4 text-[10px]">
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Area</div>
+              <div className="text-white font-semibold text-xs">{Math.round(activeMeasurement.totalTrueAreaSqFt).toLocaleString()} sf</div>
+            </div>
+            <div className="w-px h-6 bg-gray-700" />
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Squares</div>
+              <div className="text-white font-semibold text-xs">{activeMeasurement.totalSquares.toFixed(1)}</div>
+            </div>
+            <div className="w-px h-6 bg-gray-700" />
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Pitch</div>
+              <div className="text-white font-semibold text-xs">{activeMeasurement.predominantPitch}/12</div>
+            </div>
+            <div className="w-px h-6 bg-gray-700" />
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Perimeter</div>
+              <div className="text-white font-semibold text-xs">{Math.round(activeMeasurement.totalDripEdgeLf).toLocaleString()} lf</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Drawing mode indicator */}
       {drawingMode !== 'pan' && drawingMode !== 'select' && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/90 backdrop-blur px-4 py-2 rounded-lg border border-gray-700/50 z-10">

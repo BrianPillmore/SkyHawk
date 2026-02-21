@@ -6,6 +6,7 @@ import { estimateMaterials } from './materials';
 interface ReportOptions {
   companyName: string;
   notes: string;
+  mapScreenshot?: string; // base64 data URL from html2canvas
 }
 
 export async function generateReport(
@@ -81,6 +82,27 @@ export async function generateReport(
   y += 2;
   y = addText(`Coordinates: ${property.lat.toFixed(6)}, ${property.lng.toFixed(6)}`, margin, y, 8, grayText);
   y += 8;
+
+  // ============ MAP SCREENSHOT ============
+  if (options.mapScreenshot) {
+    checkPage(110);
+    y = addText('AERIAL VIEW', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 3;
+
+    try {
+      const imgWidth = contentWidth;
+      const imgHeight = imgWidth * 0.6; // 5:3 aspect ratio
+      doc.addImage(options.mapScreenshot, 'PNG', margin, y, imgWidth, imgHeight);
+      y += imgHeight + 3;
+      y = addText('Satellite imagery with roof measurement overlay', margin, y, 7, grayText);
+      y += 6;
+    } catch {
+      // If image fails to embed, skip silently
+      y += 2;
+    }
+  }
 
   // ============ ROOF SUMMARY ============
   checkPage(60);
@@ -248,6 +270,7 @@ export async function generateReport(
       ['Step Flashing', `${materials.stepFlashingPcs} pcs`, 'Wall junctions'],
       ['Pipe Boots', `${materials.pipeBoots} pcs`, 'Est. 1 per 1,000 sq ft'],
       ['Roofing Nails', `${materials.nailsLbs} lbs`, '~1.75 lbs per square'],
+      ['Caulk', `${materials.caulkTubes} tubes`, '1 per 25 lf flashing'],
       ['Ridge Vent', `${materials.ridgeVentLf} lf`, 'Full ridge length'],
     ];
 

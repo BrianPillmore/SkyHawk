@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import type { RoofMeasurement } from '../../types';
 import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils/geometry';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
 import { estimateMaterials } from '../../utils/materials';
-import { exportMeasurementJSON } from '../../utils/exportData';
+import { exportMeasurementJSON, exportMeasurementGeoJSON, exportMeasurementCSV } from '../../utils/exportData';
 
 export default function MeasurementsPanel() {
   const {
@@ -31,13 +32,7 @@ export default function MeasurementsPanel() {
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
             Roof Summary
           </h3>
-          <button
-            onClick={() => exportMeasurementJSON(activeMeasurement)}
-            className="px-2 py-1 text-[10px] font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors border border-gray-700"
-            title="Export measurement data as JSON"
-          >
-            Export JSON
-          </button>
+          <ExportDropdown measurement={activeMeasurement} />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Total Area" value={formatArea(activeMeasurement.totalTrueAreaSqFt)} />
@@ -261,6 +256,7 @@ function MaterialEstimateTable({ measurement }: { measurement: RoofMeasurement }
     { label: 'Step Flashing', qty: materials.stepFlashingPcs, unit: 'pcs' },
     { label: 'Pipe Boots', qty: materials.pipeBoots, unit: 'pcs' },
     { label: 'Roofing Nails', qty: materials.nailsLbs, unit: 'lbs' },
+    { label: 'Caulk', qty: materials.caulkTubes, unit: 'tubes' },
     { label: 'Ridge Vent', qty: materials.ridgeVentLf, unit: 'lf' },
   ];
 
@@ -293,6 +289,41 @@ function MaterialEstimateTable({ measurement }: { measurement: RoofMeasurement }
       <div className="px-3 py-2 text-[10px] text-gray-500 border-t border-gray-700/50">
         Includes {measurement.suggestedWastePercent}% waste factor. Estimates are approximate.
       </div>
+    </div>
+  );
+}
+
+function ExportDropdown({ measurement }: { measurement: RoofMeasurement }) {
+  const [open, setOpen] = useState(false);
+
+  const exports = [
+    { label: 'JSON', fn: () => exportMeasurementJSON(measurement) },
+    { label: 'GeoJSON', fn: () => exportMeasurementGeoJSON(measurement) },
+    { label: 'CSV', fn: () => exportMeasurementCSV(measurement) },
+  ];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="px-2 py-1 text-[10px] font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors border border-gray-700"
+        title="Export measurement data"
+      >
+        Export {open ? '\u25B4' : '\u25BE'}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden min-w-[100px]">
+          {exports.map((e) => (
+            <button
+              key={e.label}
+              onClick={() => { e.fn(); setOpen(false); }}
+              className="block w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            >
+              {e.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

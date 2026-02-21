@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { generateReport } from '../../utils/reportGenerator';
+import { captureMapScreenshot } from '../../utils/mapCapture';
 
 export default function ReportPanel() {
   const { activeMeasurement, activePropertyId, properties, saveMeasurement } = useStore();
@@ -14,12 +15,18 @@ export default function ReportPanel() {
 
   const hasData = activeMeasurement.facets.length > 0;
 
+  const [includeMap, setIncludeMap] = useState(true);
+
   const handleGenerateReport = async () => {
     if (!property || !hasData) return;
     setGenerating(true);
     try {
       saveMeasurement();
-      await generateReport(property, activeMeasurement, { companyName, notes });
+      let mapScreenshot: string | undefined;
+      if (includeMap) {
+        mapScreenshot = await captureMapScreenshot();
+      }
+      await generateReport(property, activeMeasurement, { companyName, notes, mapScreenshot });
     } catch (err) {
       console.error('Report generation failed:', err);
     } finally {
@@ -70,6 +77,15 @@ export default function ReportPanel() {
             Report Contents
           </h3>
           <div className="space-y-1.5 text-xs text-gray-400">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeMap}
+                onChange={(e) => setIncludeMap(e.target.checked)}
+                className="accent-skyhawk-500"
+              />
+              <span>Aerial view screenshot</span>
+            </label>
             <div className="flex items-center gap-2">
               <span className="text-green-400">✓</span> Property overview & address
             </div>
