@@ -2,8 +2,9 @@ import { useRef, useState, useCallback } from 'react';
 import { usePlacesAutocomplete, useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { useStore } from '../../store/useStore';
 
-export default function AddressSearch() {
-  const inputRef = useRef<HTMLInputElement>(null);
+export default function AddressSearch({ searchInputRef }: { searchInputRef?: React.RefObject<HTMLInputElement | null> }) {
+  const internalRef = useRef<HTMLInputElement>(null);
+  const inputRef = searchInputRef || internalRef;
   const [address, setAddress] = useState('');
   const { apiKey } = useGoogleMaps();
   const { createProperty, startNewMeasurement } = useStore();

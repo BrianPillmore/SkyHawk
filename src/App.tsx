@@ -1,3 +1,4 @@
+import { useRef, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useStore } from './store/useStore';
 import Workspace from './pages/Workspace';
@@ -6,6 +7,11 @@ import AddressSearch from './components/map/AddressSearch';
 
 function DashboardPage() {
   const { activePropertyId } = useStore();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const focusSearch = useCallback(() => {
+    searchInputRef.current?.focus();
+  }, []);
 
   if (activePropertyId) {
     return <Navigate to="/workspace" replace />;
@@ -23,11 +29,11 @@ function DashboardPage() {
           </h1>
         </div>
         <div className="flex-1 max-w-xl">
-          <AddressSearch />
+          <AddressSearch searchInputRef={searchInputRef} />
         </div>
       </header>
       <div className="flex-1">
-        <Dashboard />
+        <Dashboard onAddProperty={focusSearch} />
       </div>
     </div>
   );

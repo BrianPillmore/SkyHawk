@@ -1,7 +1,7 @@
 import { useStore } from '../../store/useStore';
 import { formatArea, formatNumber } from '../../utils/geometry';
 
-export default function Dashboard() {
+export default function Dashboard({ onAddProperty }: { onAddProperty?: () => void }) {
   const { properties, setActiveProperty, deleteProperty } = useStore();
 
   return (
@@ -55,18 +55,32 @@ export default function Dashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">Properties</h2>
+            {onAddProperty && (
+              <button
+                onClick={onAddProperty}
+                className="flex items-center gap-2 px-4 py-2 bg-skyhawk-600 hover:bg-skyhawk-500 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Property
+              </button>
+            )}
           </div>
 
           {properties.length === 0 ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center">
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div
+              className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center cursor-pointer hover:border-skyhawk-600/50 transition-colors"
+              onClick={onAddProperty}
+            >
+              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-skyhawk-900/30">
                 <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                 </svg>
               </div>
               <h3 className="text-lg font-medium text-gray-400 mb-2">No Properties Yet</h3>
               <p className="text-sm text-gray-500 mb-6">
-                Search for an address above to start measuring your first property.
+                Click here or search for an address above to start measuring your first property.
               </p>
             </div>
           ) : (
