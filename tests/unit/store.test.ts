@@ -203,6 +203,8 @@ describe('Clear All', () => {
       activePropertyId: null,
       activeMeasurement: null,
       currentOutlineVertices: [],
+      _undoStack: [],
+      _redoStack: [],
     });
     useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
     useStore.getState().startNewMeasurement();
@@ -214,5 +216,154 @@ describe('Clear All', () => {
     expect(m.edges.length).toBe(0);
     expect(m.facets.length).toBe(0);
     expect(useStore.getState().drawingMode).toBe('outline');
+  });
+});
+
+// --- Undo/Redo ---
+
+describe('Undo/Redo', () => {
+  beforeEach(() => {
+    useStore.setState({
+      properties: [],
+      activePropertyId: null,
+      activeMeasurement: null,
+      currentOutlineVertices: [],
+      _undoStack: [],
+      _redoStack: [],
+    });
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+  });
+
+  it('should have empty undo/redo stacks initially', () => {
+    expect(useStore.getState()._undoStack.length).toBe(0);
+    expect(useStore.getState()._redoStack.length).toBe(0);
+  });
+
+  it('should push to undo stack when adding a vertex', () => {
+    useStore.getState().addVertex(40.0, -90.0);
+    expect(useStore.getState()._undoStack.length).toBe(1);
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(1);
+  });
+
+  it('should undo adding a vertex', () => {
+    useStore.getState().addVertex(40.0, -90.0);
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(1);
+
+    useStore.getState().undo();
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(0);
+    expect(useStore.getState()._undoStack.length).toBe(0);
+    expect(useStore.getState()._redoStack.length).toBe(1);
+  });
+
+  it('should redo after undo', () => {
+    useStore.getState().addVertex(40.0, -90.0);
+    useStore.getState().undo();
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(0);
+
+    useStore.getState().redo();
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(1);
+    expect(useStore.getState()._undoStack.length).toBe(1);
+    expect(useStore.getState()._redoStack.length).toBe(0);
+  });
+
+  it('should clear redo stack when new action is performed', () => {
+    useStore.getState().addVertex(40.0, -90.0);
+    useStore.getState().undo();
+    expect(useStore.getState()._redoStack.length).toBe(1);
+
+    // New action should clear redo
+    useStore.getState().addVertex(40.001, -90.001);
+    expect(useStore.getState()._redoStack.length).toBe(0);
+  });
+
+  it('should undo multiple actions in order', () => {
+    useStore.getState().addVertex(40.0, -90.0);
+    useStore.getState().addVertex(40.001, -90.001);
+    useStore.getState().addVertex(40.002, -90.002);
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(3);
+
+    useStore.getState().undo(); // remove 3rd vertex
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(2);
+
+    useStore.getState().undo(); // remove 2nd vertex
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(1);
+
+    useStore.getState().undo(); // remove 1st vertex
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(0);
+  });
+
+  it('should undo edge creation', () => {
+    const v1 = useStore.getState().addVertex(40.0, -90.0);
+    const v2 = useStore.getState().addVertex(40.001, -90.0);
+    useStore.getState().addEdge(v1, v2, 'ridge');
+    expect(useStore.getState().activeMeasurement!.edges.length).toBe(1);
+
+    useStore.getState().undo(); // undo edge creation
+    expect(useStore.getState().activeMeasurement!.edges.length).toBe(0);
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(2); // vertices still there
+  });
+
+  it('should undo edge deletion', () => {
+    const v1 = useStore.getState().addVertex(40.0, -90.0);
+    const v2 = useStore.getState().addVertex(40.001, -90.0);
+    const edgeId = useStore.getState().addEdge(v1, v2, 'ridge');
+
+    useStore.getState().deleteEdge(edgeId);
+    expect(useStore.getState().activeMeasurement!.edges.length).toBe(0);
+
+    useStore.getState().undo(); // undo deletion
+    expect(useStore.getState().activeMeasurement!.edges.length).toBe(1);
+  });
+
+  it('should undo facet pitch change', () => {
+    // Create a facet via outline
+    useStore.getState().setDrawingMode('outline');
+    useStore.getState().addOutlinePoint(40.0, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -89.999);
+    useStore.getState().finishOutline();
+
+    const facetId = useStore.getState().activeMeasurement!.facets[0].id;
+    const originalPitch = useStore.getState().activeMeasurement!.facets[0].pitch;
+
+    useStore.getState().updateFacetPitch(facetId, 12);
+    expect(useStore.getState().activeMeasurement!.facets[0].pitch).toBe(12);
+
+    useStore.getState().undo();
+    expect(useStore.getState().activeMeasurement!.facets[0].pitch).toBe(originalPitch);
+  });
+
+  it('should undo clearAll', () => {
+    useStore.getState().addVertex(40.0, -90.0);
+    useStore.getState().addVertex(40.001, -90.0);
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(2);
+
+    useStore.getState().clearAll();
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(0);
+
+    useStore.getState().undo();
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(2);
+  });
+
+  it('should do nothing when undoing with empty stack', () => {
+    const before = useStore.getState().activeMeasurement;
+    useStore.getState().undo();
+    expect(useStore.getState().activeMeasurement).toEqual(before);
+  });
+
+  it('should do nothing when redoing with empty stack', () => {
+    const before = useStore.getState().activeMeasurement;
+    useStore.getState().redo();
+    expect(useStore.getState().activeMeasurement).toEqual(before);
+  });
+
+  it('should limit undo stack size', () => {
+    // Add more than MAX_UNDO_STACK (50) actions
+    for (let i = 0; i < 55; i++) {
+      useStore.getState().addVertex(40.0 + i * 0.001, -90.0);
+    }
+    expect(useStore.getState()._undoStack.length).toBeLessThanOrEqual(50);
+    expect(useStore.getState().activeMeasurement!.vertices.length).toBe(55);
   });
 });

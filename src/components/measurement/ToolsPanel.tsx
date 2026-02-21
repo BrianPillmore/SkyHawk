@@ -4,19 +4,26 @@ import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import AutoMeasureButton from './AutoMeasureButton';
 
 const TOOLS: { mode: DrawingMode; label: string; icon: string; description: string; color?: string }[] = [
-  { mode: 'pan', label: 'Pan/Navigate', icon: '🖐️', description: 'Pan and navigate the map' },
-  { mode: 'select', label: 'Select', icon: '👆', description: 'Select and edit vertices, edges, facets' },
-  { mode: 'outline', label: 'Roof Outline', icon: '⬡', description: 'Draw roof outline polygon', color: '#f59e0b' },
-  { mode: 'ridge', label: EDGE_LABELS.ridge, icon: '━', description: 'Draw ridge lines', color: EDGE_COLORS.ridge },
-  { mode: 'hip', label: EDGE_LABELS.hip, icon: '╲', description: 'Draw hip lines', color: EDGE_COLORS.hip },
-  { mode: 'valley', label: EDGE_LABELS.valley, icon: '╱', description: 'Draw valley lines', color: EDGE_COLORS.valley },
-  { mode: 'rake', label: EDGE_LABELS.rake, icon: '│', description: 'Draw rake/gable edges', color: EDGE_COLORS.rake },
-  { mode: 'eave', label: EDGE_LABELS.eave, icon: '─', description: 'Draw eave edges', color: EDGE_COLORS.eave },
-  { mode: 'flashing', label: EDGE_LABELS.flashing, icon: '┄', description: 'Draw flashing lines', color: EDGE_COLORS.flashing },
+  { mode: 'pan', label: 'Pan/Navigate', icon: '\u{1F590}\uFE0F', description: 'Pan and navigate the map' },
+  { mode: 'select', label: 'Select', icon: '\u{1F446}', description: 'Select and edit vertices, edges, facets' },
+  { mode: 'outline', label: 'Roof Outline', icon: '\u2B21', description: 'Draw roof outline polygon', color: '#f59e0b' },
+  { mode: 'ridge', label: EDGE_LABELS.ridge, icon: '\u2501', description: 'Draw ridge lines', color: EDGE_COLORS.ridge },
+  { mode: 'hip', label: EDGE_LABELS.hip, icon: '\u2572', description: 'Draw hip lines', color: EDGE_COLORS.hip },
+  { mode: 'valley', label: EDGE_LABELS.valley, icon: '\u2571', description: 'Draw valley lines', color: EDGE_COLORS.valley },
+  { mode: 'rake', label: EDGE_LABELS.rake, icon: '\u2502', description: 'Draw rake/gable edges', color: EDGE_COLORS.rake },
+  { mode: 'eave', label: EDGE_LABELS.eave, icon: '\u2500', description: 'Draw eave edges', color: EDGE_COLORS.eave },
+  { mode: 'flashing', label: EDGE_LABELS.flashing, icon: '\u2504', description: 'Draw flashing lines', color: EDGE_COLORS.flashing },
 ];
 
 export default function ToolsPanel() {
-  const { drawingMode, setDrawingMode, clearAll, isDrawingOutline, finishOutline, cancelOutline } = useStore();
+  const {
+    drawingMode, setDrawingMode, clearAll,
+    isDrawingOutline, finishOutline, cancelOutline,
+    undo, redo, _undoStack, _redoStack,
+  } = useStore();
+
+  const canUndo = _undoStack.length > 0;
+  const canRedo = _redoStack.length > 0;
 
   return (
     <div className="p-3">
@@ -91,6 +98,33 @@ export default function ToolsPanel() {
           Actions
         </h3>
         <div className="space-y-2">
+          {/* Undo / Redo */}
+          <div className="flex gap-2">
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors border ${
+                canUndo
+                  ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
+                  : 'bg-gray-900 text-gray-600 border-gray-800 cursor-not-allowed'
+              }`}
+              title="Undo (Ctrl+Z)"
+            >
+              Undo
+            </button>
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors border ${
+                canRedo
+                  ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
+                  : 'bg-gray-900 text-gray-600 border-gray-800 cursor-not-allowed'
+              }`}
+              title="Redo (Ctrl+Shift+Z)"
+            >
+              Redo
+            </button>
+          </div>
           <button
             onClick={clearAll}
             className="w-full px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-sm rounded-lg transition-colors border border-red-900/50"
@@ -133,6 +167,14 @@ export default function ToolsPanel() {
           <div className="flex justify-between">
             <span>Cancel</span>
             <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400">Esc</kbd>
+          </div>
+          <div className="flex justify-between">
+            <span>Undo</span>
+            <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400">Ctrl+Z</kbd>
+          </div>
+          <div className="flex justify-between">
+            <span>Redo</span>
+            <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-gray-400">Ctrl+Shift+Z</kbd>
           </div>
         </div>
       </div>

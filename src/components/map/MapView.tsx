@@ -5,6 +5,9 @@ import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
 import type { DrawingMode, EdgeType, RoofVertex } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
 
+// Distance threshold in pixels for vertex snap highlight
+const SNAP_THRESHOLD_PX = 18;
+
 export default function MapView() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -14,6 +17,8 @@ export default function MapView() {
   const polygonsRef = useRef<Map<string, google.maps.Polygon>>(new Map());
   const outlinePolylineRef = useRef<google.maps.Polyline | null>(null);
   const tempLineRef = useRef<google.maps.Polyline | null>(null);
+  const previewLineRef = useRef<google.maps.Polyline | null>(null);
+  const snapHighlightRef = useRef<google.maps.Marker | null>(null);
 
   const { loaded, error, apiKey } = useGoogleMaps();
 
@@ -92,7 +97,7 @@ export default function MapView() {
           const map = mapInstanceRef.current;
           if (map) {
             const scale = Math.pow(2, map.getZoom() || 20);
-            const threshold = 20000 / scale; // threshold in degrees, adaptive to zoom
+            const threshold = 20000 / scale;
             if (Math.abs(lat - first.lat) < threshold && Math.abs(lng - first.lng) < threshold) {
               finishOutline();
               return;
@@ -354,7 +359,7 @@ export default function MapView() {
         zIndex: 200,
       });
 
-      // Render temp vertex markers for outline points (separate from vertex markers)
+      // Render temp vertex markers for outline points
       for (const v of currentOutlineVertices) {
         if (!outlineMarkersRef.current.has(v.id)) {
           const m = new google.maps.Marker({
@@ -376,13 +381,146 @@ export default function MapView() {
     }
 
     return () => {
-      // Clean up all outline markers on unmount or re-run
       for (const [id, m] of outlineMarkersRef.current) {
         m.setMap(null);
         outlineMarkersRef.current.delete(id);
       }
     };
   }, [isDrawingOutline, currentOutlineVertices]);
+
+  // Edge drawing preview line: dashed line from start vertex to cursor
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const edgeModes: DrawingMode[] = ['ridge', 'hip', 'valley', 'rake', 'eave', 'flashing'];
+    const isEdgeMode = edgeModes.includes(drawingMode);
+
+    // Clean up if not in edge mode or no start vertex
+    if (!isEdgeMode || !edgeStartVertexId || !activeMeasurement) {
+      if (previewLineRef.current) {
+        previewLineRef.current.setMap(null);
+        previewLineRef.current = null;
+      }
+      if (snapHighlightRef.current) {
+        snapHighlightRef.current.setMap(null);
+        snapHighlightRef.current = null;
+      }
+      return;
+    }
+
+    const startVertex = activeMeasurement.vertices.find((v) => v.id === edgeStartVertexId);
+    if (!startVertex) return;
+
+    const edgeColor = getEdgeColor(drawingMode as EdgeType);
+
+    // Create preview line if it doesn't exist
+    if (!previewLineRef.current) {
+      previewLineRef.current = new google.maps.Polyline({
+        path: [
+          { lat: startVertex.lat, lng: startVertex.lng },
+          { lat: startVertex.lat, lng: startVertex.lng },
+        ],
+        map,
+        strokeColor: edgeColor,
+        strokeWeight: 2,
+        strokeOpacity: 0.6,
+        icons: [
+          {
+            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, scale: 2 },
+            offset: '0',
+            repeat: '10px',
+          },
+        ],
+        zIndex: 150,
+      });
+    } else {
+      previewLineRef.current.setOptions({ strokeColor: edgeColor });
+    }
+
+    // Create snap highlight marker
+    if (!snapHighlightRef.current) {
+      snapHighlightRef.current = new google.maps.Marker({
+        position: { lat: 0, lng: 0 },
+        map: null, // hidden initially
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: edgeColor,
+          fillOpacity: 0.3,
+          strokeColor: edgeColor,
+          strokeWeight: 2,
+        },
+        zIndex: 99,
+        clickable: false,
+      });
+    }
+
+    // Mouse move handler: update preview line endpoint
+    const moveListener = map.addListener('mousemove', (e: google.maps.MapMouseEvent) => {
+      if (!e.latLng || !previewLineRef.current) return;
+
+      const mouseLatLng = e.latLng;
+
+      // Check if near any vertex for snap highlight
+      let snappedToVertex = false;
+      const vertices = useStore.getState().activeMeasurement?.vertices || [];
+      const projection = map.getProjection();
+      const zoom = map.getZoom() || 20;
+
+      if (projection) {
+        const mousePoint = projection.fromLatLngToPoint(mouseLatLng);
+        if (mousePoint) {
+          const scale = Math.pow(2, zoom);
+          for (const v of vertices) {
+            if (v.id === edgeStartVertexId) continue;
+            const vPoint = projection.fromLatLngToPoint(new google.maps.LatLng(v.lat, v.lng));
+            if (vPoint) {
+              const dx = (mousePoint.x - vPoint.x) * scale;
+              const dy = (mousePoint.y - vPoint.y) * scale;
+              const distPx = Math.sqrt(dx * dx + dy * dy);
+              if (distPx < SNAP_THRESHOLD_PX) {
+                // Snap preview line to this vertex
+                previewLineRef.current.setPath([
+                  { lat: startVertex.lat, lng: startVertex.lng },
+                  { lat: v.lat, lng: v.lng },
+                ]);
+                // Show snap highlight
+                if (snapHighlightRef.current) {
+                  snapHighlightRef.current.setPosition({ lat: v.lat, lng: v.lng });
+                  snapHighlightRef.current.setMap(map);
+                }
+                snappedToVertex = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (!snappedToVertex) {
+        previewLineRef.current.setPath([
+          { lat: startVertex.lat, lng: startVertex.lng },
+          { lat: mouseLatLng.lat(), lng: mouseLatLng.lng() },
+        ]);
+        if (snapHighlightRef.current) {
+          snapHighlightRef.current.setMap(null);
+        }
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(moveListener);
+      if (previewLineRef.current) {
+        previewLineRef.current.setMap(null);
+        previewLineRef.current = null;
+      }
+      if (snapHighlightRef.current) {
+        snapHighlightRef.current.setMap(null);
+        snapHighlightRef.current = null;
+      }
+    };
+  }, [drawingMode, edgeStartVertexId, activeMeasurement?.vertices]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -395,6 +533,8 @@ export default function MapView() {
       for (const [, polygon] of polygonsRef.current) polygon.setMap(null);
       if (outlinePolylineRef.current) outlinePolylineRef.current.setMap(null);
       if (tempLineRef.current) tempLineRef.current.setMap(null);
+      if (previewLineRef.current) previewLineRef.current.setMap(null);
+      if (snapHighlightRef.current) snapHighlightRef.current.setMap(null);
     };
   }, []);
 
