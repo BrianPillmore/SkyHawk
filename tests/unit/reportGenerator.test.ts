@@ -302,4 +302,311 @@ describe('generateReport', () => {
     );
     expect(hasCompanyName).toBe(true);
   });
+
+  // ── Damage assessment section ───────────────────────────────────
+
+  it('should include DAMAGE ASSESSMENT heading when property has damageAnnotations and includeDamage is true', async () => {
+    const property = createProperty({
+      damageAnnotations: [
+        {
+          id: 'dmg-1',
+          lat: 39.7392,
+          lng: -104.9903,
+          type: 'hail',
+          severity: 'moderate',
+          note: 'Visible dents on north slope',
+          createdAt: '2025-06-15T10:00:00Z',
+        },
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeDamage: true,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasDamageHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'DAMAGE ASSESSMENT'
+    );
+    expect(hasDamageHeading).toBe(true);
+  });
+
+  it('should NOT include DAMAGE ASSESSMENT heading when includeDamage is false', async () => {
+    const property = createProperty({
+      damageAnnotations: [
+        {
+          id: 'dmg-1',
+          lat: 39.7392,
+          lng: -104.9903,
+          type: 'wind',
+          severity: 'severe',
+          note: 'Lifted shingles on west gable',
+          createdAt: '2025-06-15T10:00:00Z',
+        },
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeDamage: false,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasDamageHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'DAMAGE ASSESSMENT'
+    );
+    expect(hasDamageHeading).toBe(false);
+  });
+
+  // ── Claims information section ──────────────────────────────────
+
+  it('should include CLAIMS INFORMATION heading when property has claims and includeClaims is true', async () => {
+    const property = createProperty({
+      claims: [
+        {
+          id: 'claim-1',
+          propertyId: 'prop-1',
+          claimNumber: 'CLM-2025-0042',
+          insuredName: 'Jane Doe',
+          dateOfLoss: '2025-05-20T00:00:00Z',
+          status: 'inspected',
+          notes: 'Hail damage claim',
+          createdAt: '2025-05-21T00:00:00Z',
+          updatedAt: '2025-05-22T00:00:00Z',
+        },
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeClaims: true,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasClaimsHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'CLAIMS INFORMATION'
+    );
+    expect(hasClaimsHeading).toBe(true);
+  });
+
+  it('should NOT include CLAIMS INFORMATION heading when includeClaims is false', async () => {
+    const property = createProperty({
+      claims: [
+        {
+          id: 'claim-1',
+          propertyId: 'prop-1',
+          claimNumber: 'CLM-2025-0042',
+          insuredName: 'Jane Doe',
+          dateOfLoss: '2025-05-20T00:00:00Z',
+          status: 'inspected',
+          notes: 'Hail damage claim',
+          createdAt: '2025-05-21T00:00:00Z',
+          updatedAt: '2025-05-22T00:00:00Z',
+        },
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeClaims: false,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasClaimsHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'CLAIMS INFORMATION'
+    );
+    expect(hasClaimsHeading).toBe(false);
+  });
+
+  // ── Multi-structure summary section ─────────────────────────────
+
+  it('should include MULTI-STRUCTURE SUMMARY heading when property has multiple measurements and includeMultiStructure is true', async () => {
+    const property = createProperty({
+      measurements: [
+        createMeasurement({ id: 'meas-1', totalSquares: 22, totalTrueAreaSqFt: 2200 }),
+        createMeasurement({ id: 'meas-2', totalSquares: 10, totalTrueAreaSqFt: 1000 }),
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeMultiStructure: true,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasMultiStructureHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'MULTI-STRUCTURE SUMMARY'
+    );
+    expect(hasMultiStructureHeading).toBe(true);
+  });
+
+  it('should NOT include MULTI-STRUCTURE SUMMARY heading when includeMultiStructure is false', async () => {
+    const property = createProperty({
+      measurements: [
+        createMeasurement({ id: 'meas-1', totalSquares: 22, totalTrueAreaSqFt: 2200 }),
+        createMeasurement({ id: 'meas-2', totalSquares: 10, totalTrueAreaSqFt: 1000 }),
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeMultiStructure: false,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasMultiStructureHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'MULTI-STRUCTURE SUMMARY'
+    );
+    expect(hasMultiStructureHeading).toBe(false);
+  });
+
+  it('should NOT include MULTI-STRUCTURE SUMMARY heading when there is only one measurement', async () => {
+    const property = createProperty({
+      measurements: [
+        createMeasurement({ id: 'meas-1', totalSquares: 22, totalTrueAreaSqFt: 2200 }),
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeMultiStructure: true,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasMultiStructureHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'MULTI-STRUCTURE SUMMARY'
+    );
+    expect(hasMultiStructureHeading).toBe(false);
+  });
+
+  // ── Full property overview section ──────────────────────────────
+
+  it('should include FULL PROPERTY OVERVIEW heading when generating a report', async () => {
+    const property = createProperty();
+    const measurement = createMeasurement();
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasOverviewHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'FULL PROPERTY OVERVIEW'
+    );
+    expect(hasOverviewHeading).toBe(true);
+  });
+
+  // ── Report with all sections ────────────────────────────────────
+
+  it('should generate without error when property has damage, claims, and multiple measurements', async () => {
+    const property = createProperty({
+      damageAnnotations: [
+        {
+          id: 'dmg-1',
+          lat: 39.7392,
+          lng: -104.9903,
+          type: 'hail',
+          severity: 'minor',
+          note: 'Small dents on south slope',
+          createdAt: '2025-06-10T08:00:00Z',
+        },
+        {
+          id: 'dmg-2',
+          lat: 39.7393,
+          lng: -104.9904,
+          type: 'wind',
+          severity: 'severe',
+          note: 'Lifted shingles near ridge',
+          createdAt: '2025-06-11T09:00:00Z',
+        },
+        {
+          id: 'dmg-3',
+          lat: 39.7394,
+          lng: -104.9905,
+          type: 'missing-shingle',
+          severity: 'moderate',
+          note: 'Two shingles missing on east face',
+          createdAt: '2025-06-12T14:00:00Z',
+        },
+      ],
+      claims: [
+        {
+          id: 'claim-1',
+          propertyId: 'prop-1',
+          claimNumber: 'CLM-2025-0100',
+          insuredName: 'John Smith',
+          dateOfLoss: '2025-06-09T00:00:00Z',
+          status: 'submitted',
+          notes: 'Storm damage claim',
+          createdAt: '2025-06-10T00:00:00Z',
+          updatedAt: '2025-06-15T00:00:00Z',
+        },
+        {
+          id: 'claim-2',
+          propertyId: 'prop-1',
+          claimNumber: 'CLM-2025-0101',
+          insuredName: 'John Smith',
+          dateOfLoss: '2025-06-09T00:00:00Z',
+          status: 'approved',
+          notes: 'Supplemental claim',
+          createdAt: '2025-06-12T00:00:00Z',
+          updatedAt: '2025-06-18T00:00:00Z',
+        },
+      ],
+      measurements: [
+        createMeasurement({ id: 'meas-1', totalSquares: 22, totalTrueAreaSqFt: 2200 }),
+        createMeasurement({ id: 'meas-2', totalSquares: 8, totalTrueAreaSqFt: 800 }),
+        createMeasurement({ id: 'meas-3', totalSquares: 5, totalTrueAreaSqFt: 500 }),
+      ],
+    });
+    const measurement = createMeasurement();
+
+    await expect(
+      generateReport(property, measurement, {
+        companyName: 'Premier Roofing & Restoration',
+        notes: 'Full property inspection completed after June 2025 hailstorm.',
+        includeDamage: true,
+        includeClaims: true,
+        includeMultiStructure: true,
+      })
+    ).resolves.not.toThrow();
+
+    // Verify all major section headings are present
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const findHeading = (heading: string) =>
+      textCalls.some(
+        (text: string | string[]) =>
+          typeof text === 'string' && text === heading
+      );
+
+    expect(findHeading('FULL PROPERTY OVERVIEW')).toBe(true);
+    expect(findHeading('DAMAGE ASSESSMENT')).toBe(true);
+    expect(findHeading('CLAIMS INFORMATION')).toBe(true);
+    expect(findHeading('MULTI-STRUCTURE SUMMARY')).toBe(true);
+    expect(findHeading('ROOF MEASUREMENT SUMMARY')).toBe(true);
+  });
 });
