@@ -8,6 +8,7 @@ import { requireAuth } from './middleware/auth.js';
 dotenv.config();
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
