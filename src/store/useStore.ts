@@ -72,6 +72,10 @@ interface AppState {
   // Roof condition assessment
   roofCondition: RoofConditionAssessment | null;
 
+  // Report view (clean wireframe without vertex markers)
+  showVertexMarkers: boolean;
+  toggleVertexMarkers: () => void;
+
   // Undo/Redo
   _undoStack: RoofMeasurement[];
   _redoStack: RoofMeasurement[];
@@ -301,6 +305,9 @@ export const useStore = create<AppState>()(
         adjusters: [],
         inspections: [],
         roofCondition: null,
+        showVertexMarkers: true,
+
+        toggleVertexMarkers: () => set((s) => ({ showVertexMarkers: !s.showVertexMarkers })),
 
         // Property actions
         createProperty: (address, city, state, zip, lat, lng) => {

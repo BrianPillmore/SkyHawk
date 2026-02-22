@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
-import type { AutoMeasureProgress, ReconstructedRoof } from '../types/solar';
+import type { AutoMeasureProgress, ReconstructedRoof, SolarRoofSegment } from '../types/solar';
 import { fetchBuildingInsights, SolarApiError } from '../services/solarApi';
 import { capturePropertyImage, detectRoofEdges } from '../services/visionApi';
 import type { EdgeType } from '../types';
+import { extractFacetsFromEdges } from '../utils/planarFaceExtraction';
 
 export function useAutoMeasure() {
   const [progress, setProgress] = useState<AutoMeasureProgress>({
@@ -20,18 +21,20 @@ export function useAutoMeasure() {
     googleApiKey: string,
   ) => {
     try {
-      // Step 1: Try Solar API for pitch data (non-blocking)
+      // Step 1: Try Solar API for pitch data + segment info (non-blocking)
       setProgress({ status: 'detecting', percent: 5, message: 'Checking Solar API for pitch data...' });
 
       let solarPitchDeg: number | null = null;
+      let solarSegments: SolarRoofSegment[] = [];
       try {
         const insights = await fetchBuildingInsights(lat, lng, googleApiKey);
         const segments = insights.solarPotential?.roofSegmentStats || [];
         if (segments.length > 0) {
+          solarSegments = segments;
           // Use the largest segment's pitch as primary
           const sorted = [...segments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2);
           solarPitchDeg = sorted[0].pitchDegrees;
-          setProgress({ status: 'detecting', percent: 15, message: `Solar pitch data found: ${solarPitchDeg.toFixed(0)}°` });
+          setProgress({ status: 'detecting', percent: 15, message: `Solar data: ${segments.length} segments, pitch ${solarPitchDeg.toFixed(0)}°` });
         }
       } catch (err) {
         // Solar API failure is non-fatal
@@ -43,9 +46,17 @@ export function useAutoMeasure() {
       setProgress({ status: 'downloading', percent: 25, message: 'Capturing satellite imagery...' });
       const { base64, bounds } = await capturePropertyImage(lat, lng, googleApiKey);
 
-      // Step 3: AI Edge Detection (PRIMARY)
+      // Step 3: AI Edge Detection (PRIMARY) — pass solar segments for context
       setProgress({ status: 'ai-fallback', percent: 40, message: 'AI analyzing roof edges...' });
-      const detected = await detectRoofEdges(base64, bounds);
+      const segmentHints = solarSegments.length > 0
+        ? solarSegments.map((s) => ({
+            center: s.center,
+            pitchDegrees: s.pitchDegrees,
+            azimuthDegrees: s.azimuthDegrees,
+            stats: { areaMeters2: s.stats.areaMeters2 },
+          }))
+        : undefined;
+      const detected = await detectRoofEdges(base64, bounds, 640, segmentHints);
 
       setProgress({ status: 'processing', percent: 70, message: `Detected ${detected.edges.length} edges, ${detected.vertices.length} vertices` });
 
@@ -53,9 +64,20 @@ export function useAutoMeasure() {
       const pitchDeg = solarPitchDeg ?? detected.estimatedPitchDegrees;
       const pitchOver12 = Math.round(Math.tan(pitchDeg * Math.PI / 180) * 12);
 
-      // Build a ReconstructedRoof from the detected edges
-      // Group edges to form facets: find closed loops of eave edges as facet boundaries
-      // For now, create a single facet from all vertices if we have enough, or skip facets
+      // Step 5: Extract individual facets using planar face algorithm
+      setProgress({ status: 'processing', percent: 80, message: 'Extracting roof facets...' });
+      let facets = extractFacetsFromEdges(
+        detected.vertices,
+        detected.edges,
+        solarSegments.length > 0 ? solarSegments : undefined,
+        pitchOver12,
+      );
+
+      // Fallback: if extraction produces 0 facets, use single-facet approach
+      if (facets.length === 0) {
+        facets = buildFallbackFacet(detected, pitchOver12);
+      }
+
       const reconstructed: ReconstructedRoof = {
         vertices: detected.vertices,
         edges: detected.edges.map(e => ({
@@ -63,17 +85,17 @@ export function useAutoMeasure() {
           endIndex: e.endIndex,
           type: e.type as 'ridge' | 'hip' | 'valley' | 'rake' | 'eave' | 'flashing',
         })),
-        facets: buildFacetsFromEdges(detected, pitchOver12),
+        facets,
         roofType: detected.roofType,
         confidence: detected.confidence >= 0.7 ? 'high' : detected.confidence >= 0.4 ? 'medium' : 'low',
       };
 
-      setProgress({ status: 'reconstructing', percent: 85, message: `${capitalize(reconstructed.roofType)} roof — applying ${reconstructed.edges.length} edges...` });
+      setProgress({ status: 'reconstructing', percent: 85, message: `${capitalize(reconstructed.roofType)} roof — ${reconstructed.facets.length} facets, ${reconstructed.edges.length} edges` });
 
-      // Step 5: Apply to store
+      // Step 6: Apply to store
       applyAutoMeasurement(reconstructed);
 
-      setProgress({ status: 'complete', percent: 100, message: `${capitalize(reconstructed.roofType)} roof detected (${reconstructed.confidence} confidence, ${reconstructed.edges.length} edges)` });
+      setProgress({ status: 'complete', percent: 100, message: `${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets (${reconstructed.confidence} confidence)` });
 
       return reconstructed;
     } catch (err) {
@@ -96,24 +118,20 @@ export function useAutoMeasure() {
 }
 
 /**
- * Build facets from detected edges by finding perimeter (eave/rake) edges
- * that form closed loops. If we can't find clean loops, create a single
- * facet from all unique eave/rake vertices.
+ * Fallback: create a single facet from perimeter edges when planar extraction fails.
  */
-function buildFacetsFromEdges(
+function buildFallbackFacet(
   detected: { vertices: { lat: number; lng: number }[]; edges: { startIndex: number; endIndex: number; type: EdgeType }[] },
   pitch: number,
 ): { vertexIndices: number[]; pitch: number; name: string }[] {
-  // Collect all perimeter (eave + rake) edges
   const perimeterEdges = detected.edges.filter(e => e.type === 'eave' || e.type === 'rake');
 
   if (perimeterEdges.length < 3) {
-    // Not enough perimeter edges to form a facet — use all vertices
     if (detected.vertices.length >= 3) {
       return [{
         vertexIndices: detected.vertices.map((_, i) => i),
         pitch,
-        name: 'Facet 1',
+        name: '#1 Roof',
       }];
     }
     return [];
@@ -128,7 +146,6 @@ function buildFacetsFromEdges(
     adjacency.get(e.endIndex)!.push(e.startIndex);
   }
 
-  // Simple loop finding: start from first vertex, follow edges
   const visited = new Set<number>();
   const loop: number[] = [];
   const startNode = perimeterEdges[0].startIndex;
@@ -148,11 +165,11 @@ function buildFacetsFromEdges(
     return [{
       vertexIndices: loop,
       pitch,
-      name: 'Facet 1',
+      name: '#1 Roof',
     }];
   }
 
-  // Fallback: collect unique vertex indices from perimeter edges
+  // Final fallback: all unique perimeter vertices
   const uniqueIndices = new Set<number>();
   for (const e of perimeterEdges) {
     uniqueIndices.add(e.startIndex);
@@ -163,7 +180,7 @@ function buildFacetsFromEdges(
     return [{
       vertexIndices: Array.from(uniqueIndices),
       pitch,
-      name: 'Facet 1',
+      name: '#1 Roof',
     }];
   }
 

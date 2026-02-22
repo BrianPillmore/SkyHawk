@@ -156,12 +156,13 @@ function createSyntheticSegment(pitchDeg: number, azimuthDeg: number): SolarRoof
 export async function detectRoofEdges(
   imageBase64: string,
   imageBounds: { north: number; south: number; east: number; west: number },
-  imageSize: number = 640
+  imageSize: number = 640,
+  solarSegments?: { center: { latitude: number; longitude: number }; pitchDegrees: number; azimuthDegrees: number; stats: { areaMeters2: number } }[],
 ): Promise<DetectedRoofEdges> {
   const response = await fetch('/api/vision/detect-edges', {
     method: 'POST',
     headers: getAuthHeaders(),
-    body: JSON.stringify({ imageBase64, imageBounds, imageSize }),
+    body: JSON.stringify({ imageBase64, imageBounds, imageSize, solarSegments }),
   });
 
   if (!response.ok) {
@@ -273,16 +274,26 @@ export async function analyzeRoofCondition(
   const result = await response.json();
   const text = result.content?.[0]?.text ?? '{}';
 
+  const defaults: RoofConditionResponse = {
+    overallScore: 50,
+    estimatedAgeYears: 15,
+    materialType: 'unknown',
+    materialConfidence: 0,
+    damages: [],
+    findings: ['Unable to parse AI analysis results'],
+  };
+
   try {
-    return JSON.parse(text);
-  } catch {
+    const parsed = JSON.parse(text);
     return {
-      overallScore: 50,
-      estimatedAgeYears: 15,
-      materialType: 'unknown',
-      materialConfidence: 0,
-      damages: [],
-      findings: ['Unable to parse AI analysis results'],
+      overallScore: parsed.overallScore ?? defaults.overallScore,
+      estimatedAgeYears: parsed.estimatedAgeYears ?? defaults.estimatedAgeYears,
+      materialType: parsed.materialType ?? defaults.materialType,
+      materialConfidence: parsed.materialConfidence ?? defaults.materialConfidence,
+      damages: parsed.damages ?? defaults.damages,
+      findings: parsed.findings ?? defaults.findings,
     };
+  } catch {
+    return defaults;
   }
 }

@@ -80,6 +80,7 @@ export default function MapView() {
     setMapCenter, setMapZoom,
     addDamageAnnotation, activeDamageType, activeDamageSeverity,
     properties, activePropertyId, selectedDamageId, selectDamage,
+    showVertexMarkers,
   } = useStore();
 
   // Initialize map
@@ -220,10 +221,19 @@ export default function MapView() {
     map.setOptions({ draggableCursor: cursorMap[drawingMode] || 'default' });
   }, [drawingMode]);
 
-  // Render vertices as markers
+  // Render vertices as markers (hidden in report view)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !activeMeasurement) return;
+
+    // In report view, hide all vertex markers
+    if (!showVertexMarkers) {
+      for (const [, marker] of markersRef.current) {
+        if ('setMap' in marker) (marker as google.maps.Marker).setMap(null);
+      }
+      markersRef.current.clear();
+      return;
+    }
 
     const existingIds = new Set(activeMeasurement.vertices.map((v) => v.id));
 
@@ -292,7 +302,7 @@ export default function MapView() {
         });
       }
     }
-  }, [activeMeasurement?.vertices, drawingMode, selectedVertexId, edgeStartVertexId]);
+  }, [activeMeasurement?.vertices, drawingMode, selectedVertexId, edgeStartVertexId, showVertexMarkers]);
 
   // Render edges as polylines
   useEffect(() => {
@@ -321,16 +331,19 @@ export default function MapView() {
       ];
 
       let line = polylinesRef.current.get(edge.id);
-      const color = getEdgeColor(edge.type);
+      const isReportView = !showVertexMarkers;
+      const color = isReportView ? '#eab308' : getEdgeColor(edge.type);
       const isSelected = selectedEdgeId === edge.id;
+      const weight = isReportView ? 3 : (isSelected ? 4 : 2.5);
+      const opacity = isReportView ? 1 : (isSelected ? 1 : 0.8);
 
       if (!line) {
         line = new google.maps.Polyline({
           path,
           map,
           strokeColor: color,
-          strokeWeight: isSelected ? 4 : 2.5,
-          strokeOpacity: isSelected ? 1 : 0.8,
+          strokeWeight: weight,
+          strokeOpacity: opacity,
           zIndex: isSelected ? 50 : 10,
         });
 
@@ -343,19 +356,19 @@ export default function MapView() {
         line.setPath(path);
         line.setOptions({
           strokeColor: color,
-          strokeWeight: isSelected ? 4 : 2.5,
-          strokeOpacity: isSelected ? 1 : 0.8,
+          strokeWeight: weight,
+          strokeOpacity: opacity,
           zIndex: isSelected ? 50 : 10,
         });
       }
     }
-  }, [activeMeasurement?.edges, activeMeasurement?.vertices, selectedEdgeId]);
+  }, [activeMeasurement?.edges, activeMeasurement?.vertices, selectedEdgeId, showVertexMarkers]);
 
-  // Render edge length labels at midpoints
+  // Render edge length labels at midpoints (hidden in report view)
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !activeMeasurement) {
-      // Clean up all labels
+    if (!map || !activeMeasurement || !showVertexMarkers) {
+      // Clean up all labels (in report view or no measurement)
       for (const [, marker] of edgeLabelsRef.current) marker.setMap(null);
       edgeLabelsRef.current.clear();
       return;
@@ -407,7 +420,7 @@ export default function MapView() {
         });
       }
     }
-  }, [activeMeasurement?.edges, activeMeasurement?.vertices]);
+  }, [activeMeasurement?.edges, activeMeasurement?.vertices, showVertexMarkers]);
 
   // Render facet area labels at centroids
   useEffect(() => {
@@ -428,8 +441,9 @@ export default function MapView() {
       }
     }
 
-    // Add/update facet labels
-    for (const facet of activeMeasurement.facets) {
+    // Add/update facet labels with numbering
+    for (let fi = 0; fi < activeMeasurement.facets.length; fi++) {
+      const facet = activeMeasurement.facets[fi];
       const vertices = facet.vertexIds
         .map((id) => activeMeasurement.vertices.find((v) => v.id === id))
         .filter((v): v is RoofVertex => v !== undefined);
@@ -437,7 +451,8 @@ export default function MapView() {
       if (vertices.length < 3) continue;
 
       const centroid = getCentroid(vertices);
-      const labelText = `${Math.round(facet.trueAreaSqFt)} sf`;
+      const facetNum = fi + 1;
+      const labelText = `#${facetNum}\n${Math.round(facet.trueAreaSqFt)} sf`;
 
       let marker = facetLabelsRef.current.get(facet.id);
       if (!marker) {
@@ -856,8 +871,13 @@ export default function MapView() {
             </div>
             <div className="w-px h-6 bg-gray-700" />
             <div className="text-center">
-              <div className="text-gray-500 uppercase tracking-wider">Perimeter</div>
-              <div className="text-white font-semibold text-xs">{Math.round(activeMeasurement.totalDripEdgeLf).toLocaleString()} lf</div>
+              <div className="text-gray-500 uppercase tracking-wider">Facets</div>
+              <div className="text-white font-semibold text-xs">{activeMeasurement.facets.length}</div>
+            </div>
+            <div className="w-px h-6 bg-gray-700" />
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Waste</div>
+              <div className="text-white font-semibold text-xs">{activeMeasurement.suggestedWastePercent}%</div>
             </div>
           </div>
         </div>

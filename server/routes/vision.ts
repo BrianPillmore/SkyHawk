@@ -156,15 +156,35 @@ Return ONLY valid JSON, no markdown.`;
  */
 router.post('/detect-edges', async (req: Request, res: Response) => {
   try {
-    const { imageBase64, imageBounds, imageSize = 640, model, max_tokens } = req.body;
+    const { imageBase64, imageBounds, imageSize = 640, model, max_tokens, solarSegments } = req.body;
 
     if (!imageBase64 || !imageBounds) {
       res.status(400).json({ error: 'imageBase64 and imageBounds are required' });
       return;
     }
 
-    const prompt = `Analyze this ${imageSize}x${imageSize} satellite image of a building roof. Identify ALL visible roof structural lines and classify each one.
+    // Build segment hints for the AI if Solar API data is available
+    let segmentHint = '';
+    if (solarSegments && Array.isArray(solarSegments) && solarSegments.length > 0) {
+      const segDetails = solarSegments.map((seg: { center: { latitude: number; longitude: number }; pitchDegrees: number; azimuthDegrees: number; stats: { areaMeters2: number } }, i: number) => {
+        // Convert segment center lat/lng to approximate pixel coordinates
+        const px = Math.round(((seg.center.longitude - imageBounds.west) / (imageBounds.east - imageBounds.west)) * imageSize);
+        const py = Math.round(((imageBounds.north - seg.center.latitude) / (imageBounds.north - imageBounds.south)) * imageSize);
+        const areaSqFt = Math.round(seg.stats.areaMeters2 * 10.7639);
+        return `  Segment ${i + 1}: center ~(${px},${py}), pitch ${seg.pitchDegrees.toFixed(0)}°, azimuth ${seg.azimuthDegrees.toFixed(0)}°, ~${areaSqFt} sqft`;
+      }).join('\n');
 
+      segmentHint = `
+IMPORTANT CONTEXT: Google's Solar API detected ${solarSegments.length} distinct roof plane segments:
+${segDetails}
+
+Your edge network MUST subdivide the roof into approximately ${solarSegments.length} enclosed regions (facets).
+Every intersection point must be shared precisely between all edges that meet there.
+`;
+    }
+
+    const prompt = `Analyze this ${imageSize}x${imageSize} satellite image of a building roof. Identify ALL visible roof structural lines and classify each one.
+${segmentHint}
 Return a JSON object with:
 1. "edges": array of detected roof edges. Each edge has:
    - "type": one of "ridge", "hip", "valley", "rake", "eave", "flashing"
@@ -182,7 +202,13 @@ Rules for edge detection:
 - "eave": horizontal edges at the bottom/perimeter of the roof
 - "flashing": lines where the roof meets a wall or chimney
 
-Trace the actual visible roof lines precisely. Include ALL edges you can see — ridges, hips, valleys, rakes, AND eaves around the full perimeter. Place endpoints exactly where lines intersect.
+CRITICAL RULES:
+- Trace the actual visible roof lines precisely.
+- Include ALL edges: ridges, hips, valleys, rakes, AND eaves around the full perimeter.
+- Place endpoints EXACTLY where lines intersect — every junction must be a shared vertex.
+- The edges must form a CONNECTED PLANAR GRAPH that divides the roof into closed polygonal regions.
+- Ensure the perimeter edges (eave + rake) form a complete closed loop around the roof.
+- Internal edges (ridge, hip, valley) must connect between perimeter vertices or other internal vertices.
 
 Return ONLY the JSON object, no other text.`;
 

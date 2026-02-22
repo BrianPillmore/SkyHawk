@@ -244,7 +244,9 @@ export async function generateReport(
       doc.setFillColor(...lightBg);
       doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
     }
-    addText(facet.name, margin + 3, rowY, 9, darkText);
+    // Show numbered facet name (e.g. "#1 South" or "Facet 1")
+    const displayName = facet.name.startsWith('#') ? facet.name : `#${i + 1} ${facet.name}`;
+    addText(displayName, margin + 3, rowY, 9, darkText);
     addText(formatPitch(facet.pitch), margin + contentWidth * 0.35, rowY, 9, darkText);
     addText(`${pitchToDegrees(facet.pitch).toFixed(1)}°`, margin + contentWidth * 0.5, rowY, 9, grayText);
     addText(formatArea(facet.areaSqFt), margin + contentWidth * 0.63, rowY, 9, grayText);
