@@ -54,22 +54,28 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Basic PDF report generation
 
 ### Phase 2: Enhanced Measurement & 3D
-- [ ] Multi-structure support (multiple buildings per property)
-- [ ] 3D roof model visualization (rotate, zoom, inspect)
+- [x] Undo/redo for all drawing operations
+- [x] Multi-structure support (multiple buildings per property)
+- [x] Material estimation calculator
+- [x] localStorage persistence
+- [x] Edge drawing preview line + vertex snapping
+- [x] Map labels (edge lengths + facet areas on map)
+- [x] Measurement data export (JSON, GeoJSON, CSV)
+- [x] Map screenshot capture for PDF reports
+- [x] Real-time measurement stats overlay
+- [x] 3D roof model visualization (rotate, zoom, inspect)
 - [ ] Automatic pitch detection from oblique imagery
 - [ ] Walls, windows, and doors measurement
-- [ ] Full-house measurement reports
-- [ ] Measurement accuracy validation tools
-- [ ] Undo/redo for all drawing operations
+- [x] Full-house measurement reports
 
 ### Phase 3: Insurance & Claims Workflow
-- [ ] Claims management dashboard
-- [ ] Before/after imagery comparison (dual-pane viewer)
-- [ ] Damage assessment annotations
-- [ ] Xactimate-compatible export (ESX format)
-- [ ] Hail/wind damage markers
-- [ ] Claim status tracking workflow
-- [ ] Adjuster assignment and scheduling
+- [x] Claims management dashboard
+- [x] Before/after imagery comparison (dual-pane viewer)
+- [x] Damage assessment annotations
+- [x] Xactimate-compatible export (ESX format)
+- [x] Hail/wind damage markers
+- [x] Claim status tracking workflow
+- [x] Adjuster assignment and scheduling
 
 ### Phase 4: Advanced Analytics & AI
 - [ ] AI-powered roof feature detection from satellite imagery
@@ -80,19 +86,19 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [ ] Material type detection (shingle, metal, tile, etc.)
 
 ### Phase 5: Solar Integration
-- [ ] Solar panel placement optimizer
+- [x] Solar panel placement optimizer
 - [ ] Shading analysis
 - [ ] Sun path simulation
-- [ ] Energy production estimates
-- [ ] Solar-ready reports
+- [x] Energy production estimates
+- [x] Solar-ready reports
 
 ### Phase 6: Enterprise & Collaboration
 - [ ] Multi-user organization accounts
-- [ ] Role-based access control (admin, adjuster, roofer, viewer)
+- [x] Role-based access control (admin, adjuster, roofer, viewer)
 - [ ] Report sharing and collaboration
-- [ ] API for third-party integrations
+- [x] API for third-party integrations
 - [ ] Webhook notifications
-- [ ] Audit trail and activity logging
+- [x] Audit trail and activity logging
 - [ ] White-label support
 
 ### Phase 7: Drone Integration

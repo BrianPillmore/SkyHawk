@@ -1,7 +1,15 @@
+import { useState } from 'react';
 import { useStore } from '../../store/useStore';
+import type { RoofMeasurement, Property } from '../../types';
 import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils/geometry';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
+import { estimateMaterials } from '../../utils/materials';
+import { exportMeasurementJSON, exportMeasurementGeoJSON, exportMeasurementCSV } from '../../utils/exportData';
+import { exportESX } from '../../utils/esxExport';
+import PitchDiagram from './PitchDiagram';
+import DamagePanel from './DamagePanel';
+import RoofViewer3D from './RoofViewer3D';
 
 export default function MeasurementsPanel() {
   const {
@@ -13,6 +21,8 @@ export default function MeasurementsPanel() {
     deleteEdge,
     selectEdge,
     selectedEdgeId,
+    properties,
+    activePropertyId,
   } = useStore();
 
   if (!activeMeasurement) return null;
@@ -24,9 +34,12 @@ export default function MeasurementsPanel() {
     <div className="p-3 space-y-4">
       {/* Summary */}
       <section>
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-          Roof Summary
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Roof Summary
+          </h3>
+          <ExportDropdown measurement={activeMeasurement} property={properties.find(p => p.id === activePropertyId)} />
+        </div>
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Total Area" value={formatArea(activeMeasurement.totalTrueAreaSqFt)} />
           <SummaryCard label="Flat Area" value={formatArea(activeMeasurement.totalAreaSqFt)} />
@@ -114,6 +127,11 @@ export default function MeasurementsPanel() {
                     </div>
                   </div>
                 </div>
+                {selectedFacetId === facet.id && (
+                  <div className="mt-2 flex justify-center border-t border-gray-700/50 pt-2">
+                    <PitchDiagram pitch={facet.pitch} width={150} height={90} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -156,6 +174,24 @@ export default function MeasurementsPanel() {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* 3D Roof Model */}
+      {activeMeasurement.facets.length > 0 && (
+        <RoofViewer3D measurement={activeMeasurement} />
+      )}
+
+      {/* Damage Annotations */}
+      <DamagePanel />
+
+      {/* Material Estimates */}
+      {activeMeasurement.totalSquares > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+            Material Estimates
+          </h3>
+          <MaterialEstimateTable measurement={activeMeasurement} />
         </section>
       )}
 
@@ -222,6 +258,92 @@ function LineSummary({ type, label, length, count }: { type: string; label: stri
         {count > 0 && <span className="text-gray-600 text-xs">({count})</span>}
       </div>
       <span className={length > 0 ? 'text-white font-medium' : 'text-gray-600'}>{formatLength(length)}</span>
+    </div>
+  );
+}
+
+function MaterialEstimateTable({ measurement }: { measurement: RoofMeasurement }) {
+  const materials = estimateMaterials(measurement);
+
+  const rows: { label: string; qty: number; unit: string }[] = [
+    { label: 'Shingle Bundles', qty: materials.shingleBundles, unit: 'bundles' },
+    { label: 'Underlayment', qty: materials.underlaymentRolls, unit: 'rolls' },
+    { label: 'Ice & Water Shield', qty: materials.iceWaterRolls, unit: 'rolls' },
+    { label: 'Starter Strip', qty: materials.starterStripLf, unit: 'lf' },
+    { label: 'Ridge Cap', qty: materials.ridgeCapLf, unit: 'lf' },
+    { label: 'Drip Edge', qty: materials.dripEdgeLf, unit: 'lf' },
+    { label: 'Step Flashing', qty: materials.stepFlashingPcs, unit: 'pcs' },
+    { label: 'Pipe Boots', qty: materials.pipeBoots, unit: 'pcs' },
+    { label: 'Roofing Nails', qty: materials.nailsLbs, unit: 'lbs' },
+    { label: 'Caulk', qty: materials.caulkTubes, unit: 'tubes' },
+    { label: 'Ridge Vent', qty: materials.ridgeVentLf, unit: 'lf' },
+  ];
+
+  // Filter out zero-quantity items
+  const activeRows = rows.filter((r) => r.qty > 0);
+
+  return (
+    <div className="bg-gray-800/50 rounded-lg overflow-hidden">
+      <table className="w-full text-xs">
+        <thead>
+          <tr className="border-b border-gray-700">
+            <th className="px-3 py-2 text-left text-gray-400">Material</th>
+            <th className="px-3 py-2 text-right text-gray-400">Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          {activeRows.map((row, i) => (
+            <tr
+              key={row.label}
+              className={`border-b border-gray-700/50 text-gray-300 ${i % 2 === 0 ? 'bg-gray-800/30' : ''}`}
+            >
+              <td className="px-3 py-1.5">{row.label}</td>
+              <td className="px-3 py-1.5 text-right font-medium text-white">
+                {row.qty} <span className="text-gray-500 font-normal">{row.unit}</span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="px-3 py-2 text-[10px] text-gray-500 border-t border-gray-700/50">
+        Includes {measurement.suggestedWastePercent}% waste factor. Estimates are approximate.
+      </div>
+    </div>
+  );
+}
+
+function ExportDropdown({ measurement, property }: { measurement: RoofMeasurement; property?: Property }) {
+  const [open, setOpen] = useState(false);
+
+  const exports = [
+    { label: 'JSON', fn: () => exportMeasurementJSON(measurement) },
+    { label: 'GeoJSON', fn: () => exportMeasurementGeoJSON(measurement) },
+    { label: 'CSV', fn: () => exportMeasurementCSV(measurement) },
+    ...(property ? [{ label: 'ESX (Xactimate)', fn: () => exportESX(property, measurement) }] : []),
+  ];
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="px-2 py-1 text-[10px] font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors border border-gray-700"
+        title="Export measurement data"
+      >
+        Export {open ? '\u25B4' : '\u25BE'}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden min-w-[100px]">
+          {exports.map((e) => (
+            <button
+              key={e.label}
+              onClick={() => { e.fn(); setOpen(false); }}
+              className="block w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+            >
+              {e.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

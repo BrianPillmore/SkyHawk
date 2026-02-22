@@ -1,10 +1,16 @@
 import jsPDF from 'jspdf';
-import type { Property, RoofMeasurement } from '../types';
+import type { Property, RoofMeasurement, DamageSeverity } from '../types';
+import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
+import { estimateMaterials } from './materials';
 
 interface ReportOptions {
   companyName: string;
   notes: string;
+  mapScreenshot?: string; // base64 data URL from html2canvas
+  includeDamage?: boolean;
+  includeClaims?: boolean;
+  includeMultiStructure?: boolean;
 }
 
 export async function generateReport(
@@ -23,6 +29,12 @@ export async function generateReport(
   const darkText: [number, number, number] = [30, 30, 30];
   const grayText: [number, number, number] = [120, 120, 120];
   const lightBg: [number, number, number] = [245, 245, 245];
+
+  const DAMAGE_SEVERITY_COLORS_RGB: Record<DamageSeverity, [number, number, number]> = {
+    minor: [245, 158, 11],
+    moderate: [249, 115, 22],
+    severe: [239, 68, 68],
+  };
 
   // Helper functions
   function addText(text: string, x: number, yPos: number, size: number, color: [number, number, number] = darkText, style: string = 'normal') {
@@ -80,6 +92,61 @@ export async function generateReport(
   y += 2;
   y = addText(`Coordinates: ${property.lat.toFixed(6)}, ${property.lng.toFixed(6)}`, margin, y, 8, grayText);
   y += 8;
+
+  // ============ FULL PROPERTY OVERVIEW ============
+  checkPage(50);
+  y = addText('FULL PROPERTY OVERVIEW', margin, y, 12, primaryColor, 'bold');
+  y += 2;
+  y = addLine(y);
+  y += 4;
+
+  const totalStructures = (property.measurements ?? []).length;
+  const totalDamageMarkers = (property.damageAnnotations ?? []).length;
+  const activeClaims = (property.claims ?? []).filter(c => c.status !== 'closed').length;
+  const propertyCreated = new Date(property.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const overviewData = [
+    ['Total Structures', String(totalStructures)],
+    ['Total Damage Markers', String(totalDamageMarkers)],
+    ['Active Claims', String(activeClaims)],
+    ['Property Created', propertyCreated],
+  ];
+
+  for (let i = 0; i < overviewData.length; i++) {
+    const rowY = y + i * 7;
+    if (i % 2 === 0) {
+      doc.setFillColor(...lightBg);
+      doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+    }
+    addText(overviewData[i][0], margin + 3, rowY, 9, grayText);
+    addText(overviewData[i][1], pageWidth - margin - 3 - doc.getTextWidth(overviewData[i][1]), rowY, 9, darkText, 'bold');
+  }
+  y += overviewData.length * 7 + 6;
+
+  // ============ MAP SCREENSHOT ============
+  if (options.mapScreenshot) {
+    checkPage(110);
+    y = addText('AERIAL VIEW', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 3;
+
+    try {
+      const imgWidth = contentWidth;
+      const imgHeight = imgWidth * 0.6; // 5:3 aspect ratio
+      doc.addImage(options.mapScreenshot, 'PNG', margin, y, imgWidth, imgHeight);
+      y += imgHeight + 3;
+      y = addText('Satellite imagery with roof measurement overlay', margin, y, 7, grayText);
+      y += 6;
+    } catch {
+      // If image fails to embed, skip silently
+      y += 2;
+    }
+  }
 
   // ============ ROOF SUMMARY ============
   checkPage(60);
@@ -222,6 +289,212 @@ export async function generateReport(
     addText(formatNumber(row.totalSquaresWithWaste, 1), margin + contentWidth * 0.75, rowY, 9, darkText, 'bold');
   }
   y += wasteTable.length * 7 + 6;
+
+  // ============ MATERIAL ESTIMATES ============
+  if (measurement.totalSquares > 0) {
+    checkPage(80);
+    y = addText('MATERIAL ESTIMATES', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 2;
+    y = addText(
+      `Based on ${measurement.suggestedWastePercent}% waste factor. Quantities are approximate and may vary by material type and installation method.`,
+      margin, y, 7, grayText
+    );
+    y += 5;
+
+    const materials = estimateMaterials(measurement);
+    const materialRows: [string, string, string][] = [
+      ['Shingle Bundles', String(materials.shingleBundles), '3 bundles per square'],
+      ['Underlayment', `${materials.underlaymentRolls} rolls`, '~4 squares per roll'],
+      ['Ice & Water Shield', `${materials.iceWaterRolls} rolls`, 'At eave edges'],
+      ['Starter Strip', `${materials.starterStripLf} lf`, 'Eave + rake perimeter'],
+      ['Ridge Cap', `${materials.ridgeCapLf} lf`, 'Ridge + hip lines'],
+      ['Drip Edge', `${materials.dripEdgeLf} lf`, 'Eave + rake edges'],
+      ['Step Flashing', `${materials.stepFlashingPcs} pcs`, 'Wall junctions'],
+      ['Pipe Boots', `${materials.pipeBoots} pcs`, 'Est. 1 per 1,000 sq ft'],
+      ['Roofing Nails', `${materials.nailsLbs} lbs`, '~1.75 lbs per square'],
+      ['Caulk', `${materials.caulkTubes} tubes`, '1 per 25 lf flashing'],
+      ['Ridge Vent', `${materials.ridgeVentLf} lf`, 'Full ridge length'],
+    ];
+
+    // Filter out zero-quantity rows
+    const activeRows = materialRows.filter((r) => !r[1].startsWith('0'));
+
+    // Table header
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('Material', margin + 3, y, 8, [255, 255, 255], 'bold');
+    addText('Quantity', margin + contentWidth * 0.45, y, 8, [255, 255, 255], 'bold');
+    addText('Basis', margin + contentWidth * 0.7, y, 8, [255, 255, 255], 'bold');
+    y += 7;
+
+    for (let i = 0; i < activeRows.length; i++) {
+      checkPage(10);
+      const rowY = y + i * 7;
+      if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(activeRows[i][0], margin + 3, rowY, 9, darkText);
+      addText(activeRows[i][1], margin + contentWidth * 0.45, rowY, 9, darkText, 'bold');
+      addText(activeRows[i][2], margin + contentWidth * 0.7, rowY, 9, grayText);
+    }
+    y += activeRows.length * 7 + 6;
+  }
+
+  // ============ DAMAGE ASSESSMENT ============
+  const damageAnnotations = property.damageAnnotations ?? [];
+  if (options.includeDamage !== false && damageAnnotations.length > 0) {
+    checkPage(60);
+    y = addText('DAMAGE ASSESSMENT', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 4;
+
+    // Table header
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('Type', margin + 3, y, 8, [255, 255, 255], 'bold');
+    addText('Severity', margin + contentWidth * 0.35, y, 8, [255, 255, 255], 'bold');
+    addText('Location', margin + contentWidth * 0.55, y, 8, [255, 255, 255], 'bold');
+    addText('Date', margin + contentWidth * 0.8, y, 8, [255, 255, 255], 'bold');
+    y += 7;
+
+    for (let i = 0; i < damageAnnotations.length; i++) {
+      checkPage(10);
+      const dmg = damageAnnotations[i];
+      const rowY = y + i * 7;
+      if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(DAMAGE_TYPE_LABELS[dmg.type] || dmg.type, margin + 3, rowY, 9, darkText);
+
+      const sevColor = DAMAGE_SEVERITY_COLORS_RGB[dmg.severity] || darkText;
+      addText(dmg.severity.charAt(0).toUpperCase() + dmg.severity.slice(1), margin + contentWidth * 0.35, rowY, 9, sevColor, 'bold');
+
+      const locationStr = `${dmg.lat.toFixed(4)}, ${dmg.lng.toFixed(4)}`;
+      addText(locationStr, margin + contentWidth * 0.55, rowY, 9, grayText);
+
+      const dmgDate = new Date(dmg.createdAt).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      addText(dmgDate, margin + contentWidth * 0.8, rowY, 9, grayText);
+    }
+    y += damageAnnotations.length * 7 + 4;
+
+    // Summary
+    checkPage(15);
+    const severityCounts = { minor: 0, moderate: 0, severe: 0 };
+    for (const dmg of damageAnnotations) {
+      severityCounts[dmg.severity] = (severityCounts[dmg.severity] || 0) + 1;
+    }
+    const summaryParts: string[] = [];
+    if (severityCounts.minor > 0) summaryParts.push(`${severityCounts.minor} minor`);
+    if (severityCounts.moderate > 0) summaryParts.push(`${severityCounts.moderate} moderate`);
+    if (severityCounts.severe > 0) summaryParts.push(`${severityCounts.severe} severe`);
+    const summaryText = `Total: ${damageAnnotations.length} damage markers (${summaryParts.join(', ')})`;
+    y = addText(summaryText, margin + 3, y, 8, grayText);
+    y += 8;
+  }
+
+  // ============ CLAIMS INFORMATION ============
+  const claims = property.claims ?? [];
+  if (options.includeClaims !== false && claims.length > 0) {
+    checkPage(60);
+    y = addText('CLAIMS INFORMATION', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 4;
+
+    // Table header
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('Claim #', margin + 3, y, 8, [255, 255, 255], 'bold');
+    addText('Insured', margin + contentWidth * 0.3, y, 8, [255, 255, 255], 'bold');
+    addText('Date of Loss', margin + contentWidth * 0.55, y, 8, [255, 255, 255], 'bold');
+    addText('Status', margin + contentWidth * 0.8, y, 8, [255, 255, 255], 'bold');
+    y += 7;
+
+    for (let i = 0; i < claims.length; i++) {
+      checkPage(10);
+      const claim = claims[i];
+      const rowY = y + i * 7;
+      if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(claim.claimNumber, margin + 3, rowY, 9, darkText);
+      addText(claim.insuredName, margin + contentWidth * 0.3, rowY, 9, darkText);
+
+      const lossDate = new Date(claim.dateOfLoss).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      addText(lossDate, margin + contentWidth * 0.55, rowY, 9, grayText);
+
+      const statusLabel = CLAIM_STATUS_LABELS[claim.status] || claim.status;
+      addText(statusLabel, margin + contentWidth * 0.8, rowY, 9, darkText, 'bold');
+    }
+    y += claims.length * 7 + 6;
+  }
+
+  // ============ MULTI-STRUCTURE SUMMARY ============
+  const measurements = property.measurements ?? [];
+  if (options.includeMultiStructure !== false && measurements.length > 1) {
+    checkPage(60);
+    y = addText('MULTI-STRUCTURE SUMMARY', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 4;
+
+    // Table header
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('Structure', margin + 3, y, 8, [255, 255, 255], 'bold');
+    addText('Facets', margin + contentWidth * 0.35, y, 8, [255, 255, 255], 'bold');
+    addText('Area', margin + contentWidth * 0.55, y, 8, [255, 255, 255], 'bold');
+    addText('Squares', margin + contentWidth * 0.8, y, 8, [255, 255, 255], 'bold');
+    y += 7;
+
+    let totalFacets = 0;
+    let totalArea = 0;
+    let totalSquares = 0;
+
+    for (let i = 0; i < measurements.length; i++) {
+      checkPage(10);
+      const m = measurements[i];
+      const rowY = y + i * 7;
+      if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      const structureName = `Structure ${i + 1}`;
+      addText(structureName, margin + 3, rowY, 9, darkText);
+      addText(String(m.facets.length), margin + contentWidth * 0.35, rowY, 9, grayText);
+      addText(formatArea(m.totalTrueAreaSqFt), margin + contentWidth * 0.55, rowY, 9, grayText);
+      addText(formatNumber(m.totalSquares, 1), margin + contentWidth * 0.8, rowY, 9, darkText, 'bold');
+
+      totalFacets += m.facets.length;
+      totalArea += m.totalTrueAreaSqFt;
+      totalSquares += m.totalSquares;
+    }
+    y += measurements.length * 7;
+
+    // Total row
+    checkPage(10);
+    doc.setFillColor(219, 234, 254); // light blue highlight
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('TOTAL', margin + 3, y, 9, primaryColor, 'bold');
+    addText(String(totalFacets), margin + contentWidth * 0.35, y, 9, primaryColor, 'bold');
+    addText(formatArea(totalArea), margin + contentWidth * 0.55, y, 9, primaryColor, 'bold');
+    addText(formatNumber(totalSquares, 1), margin + contentWidth * 0.8, y, 9, primaryColor, 'bold');
+    y += 12;
+  }
 
   // ============ NOTES ============
   if (options.notes) {

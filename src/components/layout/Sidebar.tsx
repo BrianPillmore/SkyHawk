@@ -1,10 +1,16 @@
 import { useStore } from '../../store/useStore';
 import ToolsPanel from '../measurement/ToolsPanel';
 import MeasurementsPanel from '../measurement/MeasurementsPanel';
+import MeasurementSelector from '../measurement/MeasurementSelector';
 import ReportPanel from '../reports/ReportPanel';
+import ComparisonPanel from '../comparison/ComparisonPanel';
+import ClaimsPanel from '../claims/ClaimsPanel';
+import AdjusterPanel from '../claims/AdjusterPanel';
+import SolarPanel from '../solar/SolarPanel';
+import EnterprisePanel from '../enterprise/EnterprisePanel';
 
 export default function Sidebar() {
-  const { sidebarOpen, activePanel, setActivePanel, activeMeasurement } = useStore();
+  const { sidebarOpen, activePanel, setActivePanel, activeMeasurement, activePropertyId } = useStore();
 
   if (!sidebarOpen) return null;
 
@@ -12,6 +18,11 @@ export default function Sidebar() {
     { id: 'tools' as const, label: 'Tools', icon: '✏️' },
     { id: 'measurements' as const, label: 'Data', icon: '📐' },
     { id: 'report' as const, label: 'Report', icon: '📄' },
+    { id: 'compare' as const, label: 'Compare', icon: '🔄' },
+    { id: 'claims' as const, label: 'Claims', icon: '📋' },
+    { id: 'schedule' as const, label: 'Schedule', icon: '📅' },
+    { id: 'solar' as const, label: 'Solar', icon: '☀️' },
+    { id: 'enterprise' as const, label: 'Team', icon: '👥' },
   ];
 
   return (
@@ -34,19 +45,32 @@ export default function Sidebar() {
         ))}
       </div>
 
+      {/* Measurement selector */}
+      {activePropertyId && <MeasurementSelector />}
+
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto">
-        {!activeMeasurement ? (
-          <div className="p-4 text-center text-gray-500 text-sm">
-            <p className="mb-2">No active measurement</p>
-            <p className="text-xs">Search for a property address to begin, or select an existing property from the dashboard.</p>
-          </div>
-        ) : (
-          <>
-            {activePanel === 'tools' && <ToolsPanel />}
-            {activePanel === 'measurements' && <MeasurementsPanel />}
-            {activePanel === 'report' && <ReportPanel />}
-          </>
+        {/* Claims, Compare, and Schedule work without active measurement */}
+        {activePanel === 'claims' && <ClaimsPanel />}
+        {activePanel === 'compare' && <ComparisonPanel />}
+        {activePanel === 'schedule' && <AdjusterPanel />}
+        {activePanel === 'enterprise' && <EnterprisePanel />}
+
+        {/* Other panels require active measurement */}
+        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && (
+          !activeMeasurement ? (
+            <div className="p-4 text-center text-gray-500 text-sm">
+              <p className="mb-2">No active measurement</p>
+              <p className="text-xs">Search for a property address to begin, or select an existing property from the dashboard.</p>
+            </div>
+          ) : (
+            <>
+              {activePanel === 'tools' && <ToolsPanel />}
+              {activePanel === 'measurements' && <MeasurementsPanel />}
+              {activePanel === 'report' && <ReportPanel />}
+              {activePanel === 'solar' && <SolarPanel />}
+            </>
+          )
         )}
       </div>
     </aside>

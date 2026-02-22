@@ -2,17 +2,28 @@ import { useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../../store/useStore';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
-import type { DrawingMode, EdgeType, RoofVertex } from '../../types';
+import { getMidpoint, getCentroid, formatLength, formatArea } from '../../utils/geometry';
+import type { DrawingMode, EdgeType, RoofVertex, DamageAnnotation } from '../../types';
+import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
+
+// Distance threshold in pixels for vertex snap highlight
+const SNAP_THRESHOLD_PX = 18;
 
 export default function MapView() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement | google.maps.Marker>>(new Map());
+  const outlineMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const polylinesRef = useRef<Map<string, google.maps.Polyline>>(new Map());
   const polygonsRef = useRef<Map<string, google.maps.Polygon>>(new Map());
   const outlinePolylineRef = useRef<google.maps.Polyline | null>(null);
   const tempLineRef = useRef<google.maps.Polyline | null>(null);
+  const previewLineRef = useRef<google.maps.Polyline | null>(null);
+  const snapHighlightRef = useRef<google.maps.Marker | null>(null);
+  const edgeLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const facetLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const damageMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
 
   const { loaded, error, apiKey } = useGoogleMaps();
 
@@ -25,6 +36,8 @@ export default function MapView() {
     moveVertex, selectVertex, selectEdge, selectFacet,
     selectedVertexId, selectedEdgeId, selectedFacetId,
     setMapCenter, setMapZoom,
+    addDamageAnnotation, activeDamageType, activeDamageSeverity,
+    properties, activePropertyId, selectedDamageId, selectDamage,
   } = useStore();
 
   // Initialize map
@@ -91,7 +104,7 @@ export default function MapView() {
           const map = mapInstanceRef.current;
           if (map) {
             const scale = Math.pow(2, map.getZoom() || 20);
-            const threshold = 20000 / scale; // threshold in degrees, adaptive to zoom
+            const threshold = 20000 / scale;
             if (Math.abs(lat - first.lat) < threshold && Math.abs(lng - first.lng) < threshold) {
               finishOutline();
               return;
@@ -99,9 +112,11 @@ export default function MapView() {
           }
         }
         addOutlinePoint(lat, lng);
+      } else if (drawingMode === 'damage') {
+        addDamageAnnotation(lat, lng, activeDamageType, activeDamageSeverity, '');
       }
     },
-    [drawingMode, isDrawingOutline, currentOutlineVertices, addOutlinePoint, finishOutline]
+    [drawingMode, isDrawingOutline, currentOutlineVertices, addOutlinePoint, finishOutline, addDamageAnnotation, activeDamageType, activeDamageSeverity]
   );
 
   // Register map click listener
@@ -128,6 +143,7 @@ export default function MapView() {
       eave: 'crosshair',
       flashing: 'crosshair',
       facet: 'crosshair',
+      damage: 'crosshair',
     };
 
     map.setOptions({ draggableCursor: cursorMap[drawingMode] || 'default' });
@@ -158,8 +174,8 @@ export default function MapView() {
           draggable: drawingMode === 'select',
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
-            scale: selectedVertexId === vertex.id ? 8 : 6,
-            fillColor: selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
+            scale: selectedVertexId === vertex.id || edgeStartVertexId === vertex.id ? 8 : 6,
+            fillColor: edgeStartVertexId === vertex.id ? '#22c55e' : selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
             fillOpacity: 1,
             strokeColor: '#ffffff',
             strokeWeight: 2,
@@ -197,15 +213,15 @@ export default function MapView() {
         gMarker.setDraggable(drawingMode === 'select');
         gMarker.setIcon({
           path: google.maps.SymbolPath.CIRCLE,
-          scale: selectedVertexId === vertex.id ? 8 : 6,
-          fillColor: selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
+          scale: selectedVertexId === vertex.id || edgeStartVertexId === vertex.id ? 8 : 6,
+          fillColor: edgeStartVertexId === vertex.id ? '#22c55e' : selectedVertexId === vertex.id ? '#3b96f6' : '#f59e0b',
           fillOpacity: 1,
           strokeColor: '#ffffff',
           strokeWeight: 2,
         });
       }
     }
-  }, [activeMeasurement?.vertices, drawingMode, selectedVertexId]);
+  }, [activeMeasurement?.vertices, drawingMode, selectedVertexId, edgeStartVertexId]);
 
   // Render edges as polylines
   useEffect(() => {
@@ -263,6 +279,126 @@ export default function MapView() {
       }
     }
   }, [activeMeasurement?.edges, activeMeasurement?.vertices, selectedEdgeId]);
+
+  // Render edge length labels at midpoints
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !activeMeasurement) {
+      // Clean up all labels
+      for (const [, marker] of edgeLabelsRef.current) marker.setMap(null);
+      edgeLabelsRef.current.clear();
+      return;
+    }
+
+    const existingIds = new Set(activeMeasurement.edges.map((e) => e.id));
+
+    // Remove labels for deleted edges
+    for (const [id, marker] of edgeLabelsRef.current) {
+      if (!existingIds.has(id)) {
+        marker.setMap(null);
+        edgeLabelsRef.current.delete(id);
+      }
+    }
+
+    // Add/update edge labels
+    for (const edge of activeMeasurement.edges) {
+      const startV = activeMeasurement.vertices.find((v) => v.id === edge.startVertexId);
+      const endV = activeMeasurement.vertices.find((v) => v.id === edge.endVertexId);
+      if (!startV || !endV) continue;
+
+      const mid = getMidpoint(startV, endV);
+      const labelText = `${edge.lengthFt.toFixed(1)}'`;
+      const color = getEdgeColor(edge.type);
+
+      let marker = edgeLabelsRef.current.get(edge.id);
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: mid,
+          map,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+          label: {
+            text: labelText,
+            color: '#ffffff',
+            fontSize: '10px',
+            fontWeight: 'bold',
+            className: 'edge-label',
+          },
+          clickable: false,
+          zIndex: 80,
+        });
+        edgeLabelsRef.current.set(edge.id, marker);
+      } else {
+        marker.setPosition(mid);
+        marker.setLabel({
+          text: labelText,
+          color: '#ffffff',
+          fontSize: '10px',
+          fontWeight: 'bold',
+          className: 'edge-label',
+        });
+      }
+    }
+  }, [activeMeasurement?.edges, activeMeasurement?.vertices]);
+
+  // Render facet area labels at centroids
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !activeMeasurement) {
+      for (const [, marker] of facetLabelsRef.current) marker.setMap(null);
+      facetLabelsRef.current.clear();
+      return;
+    }
+
+    const existingIds = new Set(activeMeasurement.facets.map((f) => f.id));
+
+    // Remove labels for deleted facets
+    for (const [id, marker] of facetLabelsRef.current) {
+      if (!existingIds.has(id)) {
+        marker.setMap(null);
+        facetLabelsRef.current.delete(id);
+      }
+    }
+
+    // Add/update facet labels
+    for (const facet of activeMeasurement.facets) {
+      const vertices = facet.vertexIds
+        .map((id) => activeMeasurement.vertices.find((v) => v.id === id))
+        .filter((v): v is RoofVertex => v !== undefined);
+
+      if (vertices.length < 3) continue;
+
+      const centroid = getCentroid(vertices);
+      const labelText = `${Math.round(facet.trueAreaSqFt)} sf`;
+
+      let marker = facetLabelsRef.current.get(facet.id);
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: centroid,
+          map,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 0 },
+          label: {
+            text: labelText,
+            color: '#ffffff',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            className: 'facet-label',
+          },
+          clickable: false,
+          zIndex: 75,
+        });
+        facetLabelsRef.current.set(facet.id, marker);
+      } else {
+        marker.setPosition(centroid);
+        marker.setLabel({
+          text: labelText,
+          color: '#ffffff',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          className: 'facet-label',
+        });
+      }
+    }
+  }, [activeMeasurement?.facets, activeMeasurement?.vertices]);
 
   // Render facets as polygons
   useEffect(() => {
@@ -328,6 +464,12 @@ export default function MapView() {
       outlinePolylineRef.current = null;
     }
 
+    // Clean up previous outline markers
+    for (const [id, m] of outlineMarkersRef.current) {
+      m.setMap(null);
+      outlineMarkersRef.current.delete(id);
+    }
+
     if (isDrawingOutline && currentOutlineVertices.length > 0) {
       const path = currentOutlineVertices.map((v) => ({ lat: v.lat, lng: v.lng }));
 
@@ -349,7 +491,7 @@ export default function MapView() {
 
       // Render temp vertex markers for outline points
       for (const v of currentOutlineVertices) {
-        if (!markersRef.current.has(v.id)) {
+        if (!outlineMarkersRef.current.has(v.id)) {
           const m = new google.maps.Marker({
             position: { lat: v.lat, lng: v.lng },
             map,
@@ -363,24 +505,211 @@ export default function MapView() {
             },
             zIndex: 201,
           });
-          markersRef.current.set(v.id, m);
+          outlineMarkersRef.current.set(v.id, m);
         }
       }
     }
 
     return () => {
-      // Clean up temp outline markers when outline is finished
-      if (!isDrawingOutline) {
-        for (const v of currentOutlineVertices) {
-          const m = markersRef.current.get(v.id);
-          if (m && 'setMap' in m) {
-            (m as google.maps.Marker).setMap(null);
-            markersRef.current.delete(v.id);
-          }
-        }
+      for (const [id, m] of outlineMarkersRef.current) {
+        m.setMap(null);
+        outlineMarkersRef.current.delete(id);
       }
     };
   }, [isDrawingOutline, currentOutlineVertices]);
+
+  // Edge drawing preview line: dashed line from start vertex to cursor
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const edgeModes: DrawingMode[] = ['ridge', 'hip', 'valley', 'rake', 'eave', 'flashing'];
+    const isEdgeMode = edgeModes.includes(drawingMode);
+
+    // Clean up if not in edge mode or no start vertex
+    if (!isEdgeMode || !edgeStartVertexId || !activeMeasurement) {
+      if (previewLineRef.current) {
+        previewLineRef.current.setMap(null);
+        previewLineRef.current = null;
+      }
+      if (snapHighlightRef.current) {
+        snapHighlightRef.current.setMap(null);
+        snapHighlightRef.current = null;
+      }
+      return;
+    }
+
+    const startVertex = activeMeasurement.vertices.find((v) => v.id === edgeStartVertexId);
+    if (!startVertex) return;
+
+    const edgeColor = getEdgeColor(drawingMode as EdgeType);
+
+    // Create preview line if it doesn't exist
+    if (!previewLineRef.current) {
+      previewLineRef.current = new google.maps.Polyline({
+        path: [
+          { lat: startVertex.lat, lng: startVertex.lng },
+          { lat: startVertex.lat, lng: startVertex.lng },
+        ],
+        map,
+        strokeColor: edgeColor,
+        strokeWeight: 2,
+        strokeOpacity: 0.6,
+        icons: [
+          {
+            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, scale: 2 },
+            offset: '0',
+            repeat: '10px',
+          },
+        ],
+        zIndex: 150,
+      });
+    } else {
+      previewLineRef.current.setOptions({ strokeColor: edgeColor });
+    }
+
+    // Create snap highlight marker
+    if (!snapHighlightRef.current) {
+      snapHighlightRef.current = new google.maps.Marker({
+        position: { lat: 0, lng: 0 },
+        map: null, // hidden initially
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 12,
+          fillColor: edgeColor,
+          fillOpacity: 0.3,
+          strokeColor: edgeColor,
+          strokeWeight: 2,
+        },
+        zIndex: 99,
+        clickable: false,
+      });
+    }
+
+    // Mouse move handler: update preview line endpoint
+    const moveListener = map.addListener('mousemove', (e: google.maps.MapMouseEvent) => {
+      if (!e.latLng || !previewLineRef.current) return;
+
+      const mouseLatLng = e.latLng;
+
+      // Check if near any vertex for snap highlight
+      let snappedToVertex = false;
+      const vertices = useStore.getState().activeMeasurement?.vertices || [];
+      const projection = map.getProjection();
+      const zoom = map.getZoom() || 20;
+
+      if (projection) {
+        const mousePoint = projection.fromLatLngToPoint(mouseLatLng);
+        if (mousePoint) {
+          const scale = Math.pow(2, zoom);
+          for (const v of vertices) {
+            if (v.id === edgeStartVertexId) continue;
+            const vPoint = projection.fromLatLngToPoint(new google.maps.LatLng(v.lat, v.lng));
+            if (vPoint) {
+              const dx = (mousePoint.x - vPoint.x) * scale;
+              const dy = (mousePoint.y - vPoint.y) * scale;
+              const distPx = Math.sqrt(dx * dx + dy * dy);
+              if (distPx < SNAP_THRESHOLD_PX) {
+                // Snap preview line to this vertex
+                previewLineRef.current.setPath([
+                  { lat: startVertex.lat, lng: startVertex.lng },
+                  { lat: v.lat, lng: v.lng },
+                ]);
+                // Show snap highlight
+                if (snapHighlightRef.current) {
+                  snapHighlightRef.current.setPosition({ lat: v.lat, lng: v.lng });
+                  snapHighlightRef.current.setMap(map);
+                }
+                snappedToVertex = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      if (!snappedToVertex) {
+        previewLineRef.current.setPath([
+          { lat: startVertex.lat, lng: startVertex.lng },
+          { lat: mouseLatLng.lat(), lng: mouseLatLng.lng() },
+        ]);
+        if (snapHighlightRef.current) {
+          snapHighlightRef.current.setMap(null);
+        }
+      }
+    });
+
+    return () => {
+      google.maps.event.removeListener(moveListener);
+      if (previewLineRef.current) {
+        previewLineRef.current.setMap(null);
+        previewLineRef.current = null;
+      }
+      if (snapHighlightRef.current) {
+        snapHighlightRef.current.setMap(null);
+        snapHighlightRef.current = null;
+      }
+    };
+  }, [drawingMode, edgeStartVertexId, activeMeasurement?.vertices]);
+
+  // Render damage annotation markers
+  const activeProperty = properties.find((p) => p.id === activePropertyId);
+  const damageAnnotations: DamageAnnotation[] = activeProperty?.damageAnnotations || [];
+
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    const existingIds = new Set(damageAnnotations.map((d) => d.id));
+
+    // Remove markers for deleted annotations
+    for (const [id, marker] of damageMarkersRef.current) {
+      if (!existingIds.has(id)) {
+        marker.setMap(null);
+        damageMarkersRef.current.delete(id);
+      }
+    }
+
+    // Add/update damage markers
+    for (const annotation of damageAnnotations) {
+      const color = DAMAGE_SEVERITY_COLORS[annotation.severity];
+      const isSelected = selectedDamageId === annotation.id;
+
+      let marker = damageMarkersRef.current.get(annotation.id);
+      if (!marker) {
+        marker = new google.maps.Marker({
+          position: { lat: annotation.lat, lng: annotation.lng },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: isSelected ? 10 : 7,
+            fillColor: color,
+            fillOpacity: 0.9,
+            strokeColor: isSelected ? '#ffffff' : color,
+            strokeWeight: isSelected ? 3 : 2,
+          },
+          title: `${DAMAGE_TYPE_LABELS[annotation.type]} (${annotation.severity})`,
+          zIndex: 120,
+        });
+
+        marker.addListener('click', () => {
+          selectDamage(annotation.id);
+        });
+
+        damageMarkersRef.current.set(annotation.id, marker);
+      } else {
+        marker.setPosition({ lat: annotation.lat, lng: annotation.lng });
+        marker.setIcon({
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: isSelected ? 10 : 7,
+          fillColor: color,
+          fillOpacity: 0.9,
+          strokeColor: isSelected ? '#ffffff' : color,
+          strokeWeight: isSelected ? 3 : 2,
+        });
+      }
+    }
+  }, [damageAnnotations, selectedDamageId]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -388,10 +717,16 @@ export default function MapView() {
       for (const [, marker] of markersRef.current) {
         if ('setMap' in marker) (marker as google.maps.Marker).setMap(null);
       }
+      for (const [, m] of outlineMarkersRef.current) m.setMap(null);
       for (const [, line] of polylinesRef.current) line.setMap(null);
       for (const [, polygon] of polygonsRef.current) polygon.setMap(null);
+      for (const [, m] of edgeLabelsRef.current) m.setMap(null);
+      for (const [, m] of facetLabelsRef.current) m.setMap(null);
+      for (const [, m] of damageMarkersRef.current) m.setMap(null);
       if (outlinePolylineRef.current) outlinePolylineRef.current.setMap(null);
       if (tempLineRef.current) tempLineRef.current.setMap(null);
+      if (previewLineRef.current) previewLineRef.current.setMap(null);
+      if (snapHighlightRef.current) snapHighlightRef.current.setMap(null);
     };
   }, []);
 
@@ -432,16 +767,49 @@ export default function MapView() {
         ))}
       </div>
 
+      {/* Measurement stats overlay */}
+      {activeMeasurement && activeMeasurement.facets.length > 0 && (
+        <div className="absolute top-3 left-3 bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700/50 z-10 px-3 py-2">
+          <div className="flex items-center gap-4 text-[10px]">
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Area</div>
+              <div className="text-white font-semibold text-xs">{Math.round(activeMeasurement.totalTrueAreaSqFt).toLocaleString()} sf</div>
+            </div>
+            <div className="w-px h-6 bg-gray-700" />
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Squares</div>
+              <div className="text-white font-semibold text-xs">{activeMeasurement.totalSquares.toFixed(1)}</div>
+            </div>
+            <div className="w-px h-6 bg-gray-700" />
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Pitch</div>
+              <div className="text-white font-semibold text-xs">{activeMeasurement.predominantPitch}/12</div>
+            </div>
+            <div className="w-px h-6 bg-gray-700" />
+            <div className="text-center">
+              <div className="text-gray-500 uppercase tracking-wider">Perimeter</div>
+              <div className="text-white font-semibold text-xs">{Math.round(activeMeasurement.totalDripEdgeLf).toLocaleString()} lf</div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Drawing mode indicator */}
       {drawingMode !== 'pan' && drawingMode !== 'select' && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/90 backdrop-blur px-4 py-2 rounded-lg border border-gray-700/50 z-10">
           <p className="text-sm text-gray-300">
             <span className="text-skyhawk-400 font-medium">
-              {drawingMode === 'outline' ? 'Drawing Outline' : `Drawing ${drawingMode.charAt(0).toUpperCase() + drawingMode.slice(1)}`}
+              {drawingMode === 'outline'
+                ? 'Drawing Outline'
+                : drawingMode === 'damage'
+                  ? 'Damage Assessment'
+                  : `Drawing ${drawingMode.charAt(0).toUpperCase() + drawingMode.slice(1)}`}
             </span>
             {drawingMode === 'outline'
               ? ' — Click to place points, click first point to close'
-              : ' — Click vertices to create line'}
+              : drawingMode === 'damage'
+                ? ' — Click on the map to place damage markers'
+                : ' — Click vertices to create line'}
           </p>
         </div>
       )}

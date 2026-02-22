@@ -12,6 +12,20 @@ export function useKeyboardShortcuts() {
 
       const state = useStore.getState();
 
+      // Undo/Redo (Ctrl+Z / Ctrl+Shift+Z or Ctrl+Y)
+      if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          state.undo();
+          return;
+        }
+        if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault();
+          state.redo();
+          return;
+        }
+      }
+
       switch (e.key.toLowerCase()) {
         case ' ':
           e.preventDefault();

@@ -60,6 +60,9 @@ export interface Property {
   createdAt: string;
   updatedAt: string;
   measurements: RoofMeasurement[];
+  damageAnnotations: DamageAnnotation[];
+  snapshots: ImageSnapshot[];
+  claims: Claim[];
   notes: string;
 }
 
@@ -79,9 +82,147 @@ export type DrawingMode =
   | 'eave'
   | 'flashing'
   | 'facet'
+  | 'damage'
   | 'pan';
 
 export type MapType = 'satellite' | 'hybrid' | 'roadmap';
+
+// ─── Damage Assessment Types ───────────────────────────────────────
+
+export type DamageType = 'hail' | 'wind' | 'missing-shingle' | 'crack' | 'ponding' | 'debris' | 'other';
+
+export type DamageSeverity = 'minor' | 'moderate' | 'severe';
+
+export interface DamageAnnotation {
+  id: string;
+  lat: number;
+  lng: number;
+  type: DamageType;
+  severity: DamageSeverity;
+  note: string;
+  createdAt: string;
+}
+
+export const DAMAGE_TYPE_LABELS: Record<DamageType, string> = {
+  hail: 'Hail Impact',
+  wind: 'Wind Damage',
+  'missing-shingle': 'Missing Shingle',
+  crack: 'Crack/Split',
+  ponding: 'Ponding/Water',
+  debris: 'Debris Impact',
+  other: 'Other Damage',
+};
+
+export const DAMAGE_SEVERITY_COLORS: Record<DamageSeverity, string> = {
+  minor: '#f59e0b',
+  moderate: '#f97316',
+  severe: '#ef4444',
+};
+
+// ─── Before/After Comparison Types ────────────────────────────────
+
+export interface ImageSnapshot {
+  id: string;
+  label: string;
+  dataUrl: string;
+  capturedAt: string;
+  lat: number;
+  lng: number;
+  zoom: number;
+}
+
+// ─── Claims Workflow Types ──────────────────────────────────────
+
+export type ClaimStatus = 'new' | 'inspected' | 'estimated' | 'submitted' | 'approved' | 'denied' | 'closed';
+
+export const CLAIM_STATUS_LABELS: Record<ClaimStatus, string> = {
+  new: 'New',
+  inspected: 'Inspected',
+  estimated: 'Estimated',
+  submitted: 'Submitted',
+  approved: 'Approved',
+  denied: 'Denied',
+  closed: 'Closed',
+};
+
+export const CLAIM_STATUS_COLORS: Record<ClaimStatus, string> = {
+  new: '#6b7280',
+  inspected: '#3b82f6',
+  estimated: '#8b5cf6',
+  submitted: '#f59e0b',
+  approved: '#10b981',
+  denied: '#ef4444',
+  closed: '#6b7280',
+};
+
+export interface Claim {
+  id: string;
+  propertyId: string;
+  claimNumber: string;
+  insuredName: string;
+  dateOfLoss: string;
+  status: ClaimStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ─── Adjuster Assignment & Scheduling Types ──────────────────────
+
+export interface Adjuster {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  specialty: AdjusterSpecialty;
+  status: AdjusterStatus;
+  createdAt: string;
+}
+
+export type AdjusterSpecialty = 'residential' | 'commercial' | 'catastrophe' | 'general';
+export type AdjusterStatus = 'available' | 'assigned' | 'on-site' | 'unavailable';
+
+export const ADJUSTER_SPECIALTY_LABELS: Record<AdjusterSpecialty, string> = {
+  residential: 'Residential',
+  commercial: 'Commercial',
+  catastrophe: 'Catastrophe',
+  general: 'General',
+};
+
+export const ADJUSTER_STATUS_COLORS: Record<AdjusterStatus, string> = {
+  available: '#10b981',
+  assigned: '#3b82f6',
+  'on-site': '#f59e0b',
+  unavailable: '#6b7280',
+};
+
+export interface Inspection {
+  id: string;
+  claimId: string;
+  adjusterId: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  status: InspectionStatus;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type InspectionStatus = 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+
+export const INSPECTION_STATUS_LABELS: Record<InspectionStatus, string> = {
+  scheduled: 'Scheduled',
+  'in-progress': 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+
+export const INSPECTION_STATUS_COLORS: Record<InspectionStatus, string> = {
+  scheduled: '#3b82f6',
+  'in-progress': '#f59e0b',
+  completed: '#10b981',
+  cancelled: '#6b7280',
+};
 
 export interface ReportConfig {
   includeOverview: boolean;
