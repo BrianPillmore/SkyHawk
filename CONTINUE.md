@@ -8,36 +8,116 @@ Run this prompt at the start of each new Claude session to continue building.
 
 ## IMMEDIATE NEXT STEPS
 
-### Priority 1: Deployment Setup
-SkyHawk is currently a frontend-only React SPA with no deployment configuration.
-- Set up static hosting (Vercel, Netlify, Hetzner VPS, or similar)
-- Configure environment variables for API keys (Google Maps, Anthropic)
-- Add build-and-deploy CI/CD pipeline
-- Consider server-side proxy for API keys (currently client-side VITE_ env vars)
+### Priority 1: EagleView Report Parity (Visual Gap)
+**Plan file**: `plans/eagleview-parity-improvements.md`
 
-### Priority 2: Phase 6 — Backend API
-The enterprise RBAC/audit UI exists but is frontend-only. Need actual backend:
-- Implement Express/Fastify backend server
-- Server-side API key management with authentication
+Our data richness (materials, solar, damage, claims) already exceeds EagleView Premium.
+The gap is **visual presentation** — EagleView's PDF opens with a hero wireframe overlay
+on satellite imagery. Our PDF is text-only on page 1. Closing this gap makes SkyHawk
+reports immediately competitive for contractors and adjusters.
+
+- [ ] **Phase 1: Wireframe Screenshot in PDF** (HIGH impact, LOW effort ~2-3 hrs)
+  - Capture map's Report View using `html2canvas` before PDF generation
+  - Embed as hero image on page 1 (existing `mapScreenshot` option is already wired but never populated)
+  - Files: `ReportPanel.tsx`, `reportGenerator.ts`, possibly `package.json`
+
+- [ ] **Phase 2: Labeled Wireframe Diagrams** (MEDIUM-HIGH impact, MEDIUM effort ~4-6 hrs)
+  - New `diagramRenderer.ts` — programmatic canvas rendering of wireframe
+  - Length Diagram: edges labeled with measurements in feet
+  - Area Diagram: facets labeled with `#N — XXXX sf`
+  - Pitch Diagram: facets color-coded by pitch, labeled `X/12`
+  - Embed as additional PDF pages
+
+- [ ] **Phase 3: Oblique Imagery** (MEDIUM impact, MEDIUM effort ~3-4 hrs)
+  - Capture 4-direction satellite views (N/S/E/W) via Google Maps Static API with heading offsets
+  - New `imageryApi.ts` service
+  - Embed as 2x2 grid page in PDF (like EagleView pages 2-3)
+
+- [ ] **Phase 4: Report Polish & Branding** (MEDIUM impact, LOW effort ~2-3 hrs)
+  - SkyHawk logo in header (base64 embedded)
+  - Confidence/accuracy badge ("SkyHawk Verified — High Confidence")
+  - Page reorder: hero image first, then summary, then details
+  - Facet table totals row, per-facet squares column
+  - Attribution footer ("Powered by Google Solar API + AI Vision")
+
+- [ ] **Phase 5: Interactive HTML Export** (STRETCH — LOW impact, HIGH effort ~8+ hrs)
+  - Self-contained HTML with embedded Google Maps + wireframe overlay
+  - Click-to-inspect facets, toggle diagram views
+  - Shareable companion to the PDF
+
+### Priority 1b: Accuracy Investigation
+**Flag from EagleView comparison**: SkyHawk reports 93.7 squares vs EagleView's 63.2 squares
+for 701 Kingston Dr (+48% discrepancy). Facets #5 and #6 show 17/12 pitch (55 degrees) which
+is suspiciously steep for residential and nearly doubles their projected area.
+- [ ] Investigate Solar API segment-to-facet pitch matching logic
+- [ ] Add pitch reasonableness cap (e.g., clamp residential pitch to 18/12 max)
+- [ ] Verify roof footprint boundary isn't including adjacent structures
+
+### Priority 2: PostgreSQL Database & Property Persistence
+**Plan file**: `plans/database-persistence.md`
+
+All property data currently lives in browser localStorage (Zustand persist). This limits us to
+single-device, single-browser, ~5MB max. Need PostgreSQL on the Hetzner VPS to persist all
+property data server-side.
+
+- [ ] **Phase A: DB Setup & Migrations** (MEDIUM effort ~3-4 hrs)
+  - Install PostgreSQL 16 on VPS, create `skyhawk` database
+  - Connection pool (`server/db/index.ts`) + migration runner
+  - Full schema: properties, measurements, vertices, edges, facets, damage, claims, snapshots, solar cache, audit log
+  - Migrate users from `users.json` to `users` table
+
+- [ ] **Phase B: Property CRUD API** (HIGH effort ~6-8 hrs)
+  - `server/routes/properties.ts` — CRUD for properties
+  - `server/routes/measurements.ts` — Save/load full measurement graph (vertices + edges + facets) in a transaction
+  - `server/routes/claims.ts` — Claims + inspections
+  - `server/routes/images.ts` — Image upload to filesystem, URL references in DB
+  - All endpoints enforce user ownership
+
+- [ ] **Phase C: Client Sync Layer** (HIGH effort ~6-8 hrs)
+  - `src/services/propertyApi.ts` — API client
+  - `src/hooks/useSync.ts` — Sync orchestration
+  - Dual-write: Zustand mutation + background API call (optimistic updates)
+  - Offline queue with retry on reconnect
+
+- [ ] **Phase D: Data Migration & Cleanup** (LOW effort ~2-3 hrs)
+  - One-time localStorage → server migration on first login
+  - Sync status indicator in header (green/yellow/red)
+  - Remove property data from localStorage persist whitelist
+
+### Priority 3: Phase 6 — Backend API (Remaining)
+Express backend server is deployed (Hetzner VPS at 89.167.94.69) with auth + vision proxy.
+Remaining enterprise features:
 - REST API endpoints for third-party integration (spec exists in `specs/API_SPEC.md`)
-- Database persistence (SQLite dev → PostgreSQL production)
 - Server-side RBAC enforcement
-- Persist audit logs to database (currently in-memory only)
+- Persist audit logs to database
 
-### Priority 3: Phase 6 — Remaining Enterprise Features
+### Priority 4: Phase 6 — Remaining Enterprise Features
 - Multi-user organization accounts
 - Report sharing and collaboration
 - Webhook notifications
 - White-label branding support
 
-### Priority 4: Phase 7 — Drone Integration
-- Drone flight path planning
-- Drone imagery upload and processing
-- Photogrammetry integration
-- High-res orthomosaic generation
-- Autonomous inspection workflows
+### Priority 5: Phase 7 — Drone Integration
+**Design document**: `plans/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md`
 
-### Priority 5: Phase 8 — Commercial Properties
+Comprehensive research doc covers hardware (DJI Mavic 3 Enterprise), photogrammetry pipeline
+(OpenDroneMap/WebODM), tile serving (TiTiler + COGs), API design, AI analytics layer,
+FAA Part 107 requirements, cost estimates, and 4-phase implementation roadmap.
+
+- [ ] FAA Part 107 certification + airspace authorization for Yukon
+- [ ] DJI Mavic 3 Enterprise hardware acquisition
+- [ ] Drone flight path planning (DJI Pilot 2 / DroneDeploy)
+- [ ] Photogrammetry processing pipeline (OpenDroneMap Docker on VPS or cloud compute)
+- [ ] COG storage + TiTiler tile server deployment
+- [ ] Drone imagery upload, processing, and catalog management
+- [ ] High-res orthomosaic generation (sub-1-inch GSD)
+- [ ] DSM/DTM elevation data integration
+- [ ] AI feature detection on drone imagery (roof condition, vegetation, impervious surfaces)
+- [ ] Change detection between captures
+- [ ] Integration with SkyHawk measurement engine (replace Google satellite with drone orthomosaic)
+- [ ] Autonomous inspection workflows
+
+### Priority 6: Phase 8 — Commercial Properties
 - Large commercial roof support
 - Multi-section commercial reports
 - Flat roof drainage analysis
