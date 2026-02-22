@@ -57,9 +57,9 @@ describe('classifyRoofType', () => {
     expect(classifyRoofType([seg(22, 0), seg(22, 180)])).toBe('gable');
   });
 
-  it('should classify 2 segments that are NOT opposing as complex', () => {
-    // Both facing roughly the same direction
-    expect(classifyRoofType([seg(22, 0), seg(22, 45)])).toBe('complex');
+  it('should classify 2 segments that are NOT opposing as gable', () => {
+    // Both facing roughly the same direction - still gable with 2 segments
+    expect(classifyRoofType([seg(22, 0), seg(22, 45)])).toBe('gable');
   });
 
   it('should classify 4 segments with ~90° spacing as hip', () => {

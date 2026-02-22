@@ -75,20 +75,148 @@ function getAffineFromImage(image: GeoTIFFImage): number[] {
 }
 
 /**
- * Convert pixel coordinates to lat/lng using the affine transform.
- * Affine: lng = originX + col * pixelWidth, lat = originY + row * pixelHeight
+ * Check if the affine transform uses projected coordinates (meters) rather than
+ * geographic coordinates (degrees). Google Solar API GeoTIFFs typically use UTM.
  */
-export function pixelToLatLng(col: number, row: number, affine: GeoTiffAffine): LatLng {
-  return {
-    lng: affine.originX + col * affine.pixelWidth,
-    lat: affine.originY + row * affine.pixelHeight,
-  };
+function isProjectedCRS(affine: GeoTiffAffine): boolean {
+  return Math.abs(affine.originX) > 180 || Math.abs(affine.originY) > 90;
+}
+
+/**
+ * Determine UTM zone number from a longitude value.
+ */
+function utmZoneFromLng(lng: number): number {
+  return Math.floor((lng + 180) / 6) + 1;
+}
+
+/**
+ * Convert UTM (easting, northing) to WGS84 lat/lng.
+ * Assumes northern hemisphere.
+ */
+function utmToLatLng(easting: number, northing: number, zone: number): LatLng {
+  const a = 6378137; // WGS84 semi-major axis
+  const f = 1 / 298.257223563;
+  const e = Math.sqrt(2 * f - f * f);
+  const e2 = e * e;
+  const e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+  const k0 = 0.9996;
+
+  const x = easting - 500000; // remove false easting
+  const y = northing; // northern hemisphere (no false northing)
+
+  const M = y / k0;
+  const mu = M / (a * (1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256));
+
+  const phi1 = mu
+    + (3 * e1 / 2 - 27 * e1 * e1 * e1 / 32) * Math.sin(2 * mu)
+    + (21 * e1 * e1 / 16 - 55 * e1 * e1 * e1 * e1 / 32) * Math.sin(4 * mu)
+    + (151 * e1 * e1 * e1 / 96) * Math.sin(6 * mu)
+    + (1097 * e1 * e1 * e1 * e1 / 512) * Math.sin(8 * mu);
+
+  const sinPhi1 = Math.sin(phi1);
+  const cosPhi1 = Math.cos(phi1);
+  const tanPhi1 = Math.tan(phi1);
+  const N1 = a / Math.sqrt(1 - e2 * sinPhi1 * sinPhi1);
+  const T1 = tanPhi1 * tanPhi1;
+  const C1 = (e2 / (1 - e2)) * cosPhi1 * cosPhi1;
+  const R1 = a * (1 - e2) / Math.pow(1 - e2 * sinPhi1 * sinPhi1, 1.5);
+  const D = x / (N1 * k0);
+  const ep2 = e2 / (1 - e2);
+
+  const lat = phi1 - (N1 * tanPhi1 / R1) * (
+    D * D / 2
+    - (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * ep2) * D * D * D * D / 24
+    + (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * ep2 - 3 * C1 * C1) * D * D * D * D * D * D / 720
+  );
+
+  const centralMeridian = (zone - 1) * 6 - 180 + 3;
+  const lng = centralMeridian + (180 / Math.PI) * (
+    D
+    - (1 + 2 * T1 + C1) * D * D * D / 6
+    + (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * ep2 + 24 * T1 * T1) * D * D * D * D * D / 120
+  ) / cosPhi1;
+
+  return { lat: lat * 180 / Math.PI, lng };
+}
+
+/**
+ * Convert WGS84 lat/lng to UTM (easting, northing).
+ * Assumes northern hemisphere.
+ */
+function latLngToUtm(latLng: LatLng, zone: number): { x: number; y: number } {
+  const a = 6378137;
+  const f = 1 / 298.257223563;
+  const e = Math.sqrt(2 * f - f * f);
+  const e2 = e * e;
+  const k0 = 0.9996;
+
+  const latRad = (latLng.lat * Math.PI) / 180;
+  const centralMeridian = (zone - 1) * 6 - 180 + 3;
+  const lngRad = ((latLng.lng - centralMeridian) * Math.PI) / 180;
+
+  const sinLat = Math.sin(latRad);
+  const cosLat = Math.cos(latRad);
+  const tanLat = Math.tan(latRad);
+  const ep2 = e2 / (1 - e2);
+
+  const N = a / Math.sqrt(1 - e2 * sinLat * sinLat);
+  const T = tanLat * tanLat;
+  const C = ep2 * cosLat * cosLat;
+  const A = cosLat * lngRad;
+
+  const M = a * (
+    (1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256) * latRad
+    - (3 * e2 / 8 + 3 * e2 * e2 / 32 + 45 * e2 * e2 * e2 / 1024) * Math.sin(2 * latRad)
+    + (15 * e2 * e2 / 256 + 45 * e2 * e2 * e2 / 1024) * Math.sin(4 * latRad)
+    - (35 * e2 * e2 * e2 / 3072) * Math.sin(6 * latRad)
+  );
+
+  const x = k0 * N * (
+    A
+    + (1 - T + C) * A * A * A / 6
+    + (5 - 18 * T + T * T + 72 * C - 58 * ep2) * A * A * A * A * A / 120
+  ) + 500000; // false easting
+
+  const y = k0 * (
+    M + N * tanLat * (
+      A * A / 2
+      + (5 - T + 9 * C + 4 * C * C) * A * A * A * A / 24
+      + (61 - 58 * T + T * T + 600 * C - 330 * ep2) * A * A * A * A * A * A / 720
+    )
+  );
+
+  return { x, y };
+}
+
+/**
+ * Convert pixel coordinates to lat/lng using the affine transform.
+ * Handles UTM projected GeoTIFFs (used by Google Solar API) by converting
+ * UTM easting/northing to WGS84 using the target location to determine the UTM zone.
+ */
+export function pixelToLatLng(col: number, row: number, affine: GeoTiffAffine, utmZone?: number): LatLng {
+  const x = affine.originX + col * affine.pixelWidth;
+  const y = affine.originY + row * affine.pixelHeight;
+
+  if (isProjectedCRS(affine) && utmZone) {
+    return utmToLatLng(x, y, utmZone);
+  }
+
+  return { lat: y, lng: x };
 }
 
 /**
  * Convert lat/lng to pixel coordinates.
+ * Handles UTM projected GeoTIFFs by converting WGS84 to UTM.
  */
-export function latLngToPixel(latLng: LatLng, affine: GeoTiffAffine): { col: number; row: number } {
+export function latLngToPixel(latLng: LatLng, affine: GeoTiffAffine, utmZone?: number): { col: number; row: number } {
+  if (isProjectedCRS(affine) && utmZone) {
+    const { x, y } = latLngToUtm(latLng, utmZone);
+    return {
+      col: Math.round((x - affine.originX) / affine.pixelWidth),
+      row: Math.round((y - affine.originY) / affine.pixelHeight),
+    };
+  }
+
   return {
     col: Math.round((latLng.lng - affine.originX) / affine.pixelWidth),
     row: Math.round((latLng.lat - affine.originY) / affine.pixelHeight),
@@ -376,11 +504,14 @@ export function extractBuildingOutline(
 ): LatLng[] {
   const { data, width, height, affine } = parsed;
 
+  // Determine UTM zone from target location (for projected CRS GeoTIFFs)
+  const utmZone = isProjectedCRS(affine) ? utmZoneFromLng(targetLng) : undefined;
+
   // Step 1: Connected component labeling
   const { labels } = labelConnectedComponents(data, width, height);
 
   // Step 2: Find target building component
-  const targetPixel = latLngToPixel({ lat: targetLat, lng: targetLng }, affine);
+  const targetPixel = latLngToPixel({ lat: targetLat, lng: targetLng }, affine, utmZone);
   const targetComponent = findTargetComponent(
     labels, width, height,
     Math.max(0, Math.min(width - 1, targetPixel.col)),
@@ -399,5 +530,5 @@ export function extractBuildingOutline(
   if (simplified.length < 3) return [];
 
   // Step 6: Convert to lat/lng
-  return simplified.map((p) => pixelToLatLng(p.col, p.row, affine));
+  return simplified.map((p) => pixelToLatLng(p.col, p.row, affine, utmZone));
 }
