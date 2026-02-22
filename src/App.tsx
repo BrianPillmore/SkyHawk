@@ -4,6 +4,8 @@ import { useStore } from './store/useStore';
 import Workspace from './pages/Workspace';
 import Dashboard from './components/dashboard/Dashboard';
 import AddressSearch from './components/map/AddressSearch';
+import Login from './pages/Login';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function DashboardPage() {
   const { activePropertyId } = useStore();
@@ -42,8 +44,9 @@ function DashboardPage() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<DashboardPage />} />
-      <Route path="/workspace" element={<Workspace />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

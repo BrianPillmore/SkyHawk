@@ -1,6 +1,15 @@
 import type { LatLng } from '../types';
 import type { ReconstructedRoof, SolarRoofSegment } from '../types/solar';
 import { reconstructRoof } from '../utils/roofReconstruction';
+import { useStore } from '../store/useStore';
+
+function getAuthHeaders(): Record<string, string> {
+  const token = useStore.getState().token;
+  if (token) {
+    return { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+  }
+  return { 'Content-Type': 'application/json' };
+}
 
 interface VisionRoofResponse {
   outline: { x: number; y: number }[];
@@ -62,47 +71,12 @@ export async function capturePropertyImage(
 export async function analyzeRoofImage(
   imageBase64: string,
   imageBounds: { north: number; south: number; east: number; west: number },
-  anthropicApiKey: string,
   imageSize: number = 640
 ): Promise<ReconstructedRoof> {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/vision/analyze', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': anthropicApiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
-      messages: [{
-        role: 'user',
-        content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: 'image/png',
-              data: imageBase64,
-            },
-          },
-          {
-            type: 'text',
-            text: `Analyze this satellite image of a building roof. The image is ${imageSize}x${imageSize} pixels.
-
-Return a JSON object with:
-1. "outline": array of {x, y} pixel coordinates tracing the building roof outline clockwise. Use 8-20 points to define the polygon. Each x,y should be in the range [0, ${imageSize}].
-2. "roofType": one of "flat", "shed", "gable", "hip", "complex"
-3. "ridgeDirection": angle in degrees (0=north, 90=east) of the main ridge line, if applicable
-4. "numFacets": estimated number of roof facets
-5. "estimatedPitchDegrees": estimated roof pitch in degrees (typical residential: 15-35 degrees)
-
-Return ONLY the JSON object, no other text.`,
-          },
-        ],
-      }],
-    }),
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ imageBase64, imageBounds, imageSize }),
   });
 
   if (!response.ok) {
@@ -190,48 +164,11 @@ export interface RoofConditionResponse {
 
 export async function analyzeRoofCondition(
   imageBase64: string,
-  apiKey: string,
 ): Promise<RoofConditionResponse> {
-  const prompt = `Analyze this aerial/satellite image of a roof and provide a detailed condition assessment.
-
-Return a JSON object with:
-- overallScore: number 1-100 (100=perfect, 1=failed)
-- estimatedAgeYears: estimated age in years based on visual wear
-- materialType: one of "asphalt-shingle", "metal", "tile", "slate", "wood-shake", "tpo", "epdm", "built-up", "concrete", "unknown"
-- materialConfidence: 0-1 confidence in material identification
-- damages: array of detected damage areas, each with:
-  - type: "hail", "wind", "missing-shingle", "crack", "ponding", "debris", "other"
-  - severity: "minor", "moderate", "severe"
-  - description: brief description
-  - confidence: 0-1
-- findings: array of observation strings
-
-Assess wear patterns, color fading, granule loss, curling, missing/damaged areas, debris, moss/algae growth, and structural issues.
-
-Return ONLY valid JSON, no markdown.`;
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/vision/condition', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 2048,
-      messages: [{
-        role: 'user',
-        content: [{
-          type: 'image',
-          source: { type: 'base64', media_type: 'image/png', data: imageBase64 },
-        }, {
-          type: 'text',
-          text: prompt,
-        }],
-      }],
-    }),
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ imageBase64 }),
   });
 
   if (!response.ok) {

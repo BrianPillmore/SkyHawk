@@ -254,99 +254,59 @@ describe('capturePropertyImage', () => {
 // ===========================================================================
 describe('analyzeRoofImage', () => {
   const imageBase64 = 'iVBORw0KGgo=';
-  const anthropicApiKey = 'test-anthropic-key';
-  const defaultImageSize = 640;
 
   beforeEach(() => {
     mockReconstructRoof.mockReturnValue({ ...mockRoofResult });
   });
 
   // ---- Request construction ----
-  it('should send a POST request to the Claude API endpoint', async () => {
+  it('should send a POST request to the proxy endpoint', async () => {
     const json = validRoofJson();
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     expect(mockFetch).toHaveBeenCalledTimes(1);
     const [url, options] = mockFetch.mock.calls[0];
-    expect(url).toBe('https://api.anthropic.com/v1/messages');
+    expect(url).toBe('/api/vision/analyze');
     expect(options.method).toBe('POST');
   });
 
-  it('should include the correct headers', async () => {
+  it('should include Content-Type header only (no API key headers)', async () => {
     const json = validRoofJson();
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const [, options] = mockFetch.mock.calls[0];
     const headers = options.headers;
     expect(headers['Content-Type']).toBe('application/json');
-    expect(headers['x-api-key']).toBe(anthropicApiKey);
-    expect(headers['anthropic-version']).toBe('2023-06-01');
-    expect(headers['anthropic-dangerous-direct-browser-access']).toBe('true');
+    expect(headers['x-api-key']).toBeUndefined();
+    expect(headers['anthropic-version']).toBeUndefined();
   });
 
-  it('should include the image as base64 in the request body', async () => {
+  it('should include imageBase64 and imageBounds in the request body', async () => {
     const json = validRoofJson();
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const [, options] = mockFetch.mock.calls[0];
     const body = JSON.parse(options.body);
-    const imageContent = body.messages[0].content[0];
-    expect(imageContent.type).toBe('image');
-    expect(imageContent.source.type).toBe('base64');
-    expect(imageContent.source.media_type).toBe('image/png');
-    expect(imageContent.source.data).toBe(imageBase64);
+    expect(body.imageBase64).toBe(imageBase64);
+    expect(body.imageBounds).toEqual(testBounds);
+    expect(body.imageSize).toBe(640);
   });
 
-  it('should include the image size in the prompt text', async () => {
+  it('should include custom imageSize in the request body', async () => {
     const json = validRoofJson();
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey, 512);
+    await analyzeRoofImage(imageBase64, testBounds, 512);
 
     const [, options] = mockFetch.mock.calls[0];
     const body = JSON.parse(options.body);
-    const textContent = body.messages[0].content[1];
-    expect(textContent.text).toContain('512x512');
-  });
-
-  it('should use default imageSize of 640 in the prompt', async () => {
-    const json = validRoofJson();
-    mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
-
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
-
-    const [, options] = mockFetch.mock.calls[0];
-    const body = JSON.parse(options.body);
-    const textContent = body.messages[0].content[1];
-    expect(textContent.text).toContain('640x640');
-  });
-
-  it('should set model to claude-sonnet-4-5-20250929', async () => {
-    const json = validRoofJson();
-    mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
-
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
-
-    const [, options] = mockFetch.mock.calls[0];
-    const body = JSON.parse(options.body);
-    expect(body.model).toBe('claude-sonnet-4-5-20250929');
-  });
-
-  it('should set max_tokens to 2048', async () => {
-    const json = validRoofJson();
-    mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
-
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
-
-    const [, options] = mockFetch.mock.calls[0];
-    const body = JSON.parse(options.body);
-    expect(body.max_tokens).toBe(2048);
+    expect(body.imageSize).toBe(512);
   });
 
   // ---- Response parsing ----
@@ -354,7 +314,7 @@ describe('analyzeRoofImage', () => {
     const json = validRoofJson();
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     // Should have called reconstructRoof with outline and segments
     expect(mockReconstructRoof).toHaveBeenCalledTimes(1);
@@ -365,7 +325,7 @@ describe('analyzeRoofImage', () => {
     const wrappedText = '```json\n' + json + '\n```';
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(wrappedText)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     expect(mockReconstructRoof).toHaveBeenCalledTimes(1);
   });
@@ -375,7 +335,7 @@ describe('analyzeRoofImage', () => {
     const wrappedText = 'Here is the analysis:\n' + json + '\nHope this helps!';
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(wrappedText)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     expect(mockReconstructRoof).toHaveBeenCalledTimes(1);
   });
@@ -392,7 +352,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const outline = mockReconstructRoof.mock.calls[0][0] as Array<{ lat: number; lng: number }>;
     expect(outline).toHaveLength(4);
@@ -420,7 +380,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const outline = mockReconstructRoof.mock.calls[0][0] as Array<{ lat: number; lng: number }>;
     const centerLat = (testBounds.north + testBounds.south) / 2;
@@ -438,7 +398,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<{ pitchDegrees: number; azimuthDegrees: number }>;
     expect(segments).toHaveLength(2);
@@ -457,7 +417,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<{ pitchDegrees: number; azimuthDegrees: number }>;
     expect(segments).toHaveLength(4);
@@ -477,7 +437,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<{ pitchDegrees: number; azimuthDegrees: number }>;
     expect(segments).toHaveLength(1);
@@ -495,7 +455,7 @@ describe('analyzeRoofImage', () => {
     delete parsed.ridgeDirection;
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(JSON.stringify(parsed))));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<{ pitchDegrees: number; azimuthDegrees: number }>;
     expect(segments).toHaveLength(1);
@@ -510,7 +470,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as unknown[];
     expect(segments).toHaveLength(0);
@@ -523,7 +483,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as unknown[];
     expect(segments).toHaveLength(0);
@@ -538,7 +498,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<{ pitchDegrees: number }>;
     expect(segments[0].pitchDegrees).toBe(22);
@@ -550,7 +510,7 @@ describe('analyzeRoofImage', () => {
     delete parsed.ridgeDirection;
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(JSON.stringify(parsed))));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as unknown[];
     // ridgeDirection is undefined, so the gable branch won't execute
@@ -563,7 +523,7 @@ describe('analyzeRoofImage', () => {
     delete parsed.ridgeDirection;
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(JSON.stringify(parsed))));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as unknown[];
     expect(segments).toHaveLength(0);
@@ -575,7 +535,7 @@ describe('analyzeRoofImage', () => {
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
     mockReconstructRoof.mockReturnValue({ ...mockRoofResult, confidence: 'high' });
 
-    const result = await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    const result = await analyzeRoofImage(imageBase64, testBounds);
 
     expect(result.confidence).toBe('low');
   });
@@ -589,7 +549,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<Record<string, unknown>>;
     const seg = segments[0] as Record<string, unknown>;
@@ -616,7 +576,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey, 512);
+    await analyzeRoofImage(imageBase64, testBounds, 512);
 
     const outline = mockReconstructRoof.mock.calls[0][0] as Array<{ lat: number; lng: number }>;
     const centerLat = (testBounds.north + testBounds.south) / 2;
@@ -639,7 +599,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     expect(mockReconstructRoof).toHaveBeenCalledTimes(1);
     const [outline, segments] = mockReconstructRoof.mock.calls[0] as [
@@ -661,7 +621,7 @@ describe('analyzeRoofImage', () => {
     );
 
     await expect(
-      analyzeRoofImage(imageBase64, testBounds, anthropicApiKey),
+      analyzeRoofImage(imageBase64, testBounds),
     ).rejects.toThrow('Claude API error: 401');
   });
 
@@ -672,7 +632,7 @@ describe('analyzeRoofImage', () => {
     );
 
     await expect(
-      analyzeRoofImage(imageBase64, testBounds, anthropicApiKey),
+      analyzeRoofImage(imageBase64, testBounds),
     ).rejects.toThrow(errorBody);
   });
 
@@ -682,7 +642,7 @@ describe('analyzeRoofImage', () => {
     );
 
     await expect(
-      analyzeRoofImage(imageBase64, testBounds, anthropicApiKey),
+      analyzeRoofImage(imageBase64, testBounds),
     ).rejects.toThrow('Could not parse roof analysis response from AI');
   });
 
@@ -692,7 +652,7 @@ describe('analyzeRoofImage', () => {
     );
 
     await expect(
-      analyzeRoofImage(imageBase64, testBounds, anthropicApiKey),
+      analyzeRoofImage(imageBase64, testBounds),
     ).rejects.toThrow('Could not parse roof analysis response from AI');
   });
 
@@ -702,7 +662,7 @@ describe('analyzeRoofImage', () => {
     );
 
     await expect(
-      analyzeRoofImage(imageBase64, testBounds, anthropicApiKey),
+      analyzeRoofImage(imageBase64, testBounds),
     ).rejects.toThrow('Could not parse roof analysis response from AI');
   });
 
@@ -715,7 +675,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<{ azimuthDegrees: number }>;
     expect(segments[0].azimuthDegrees).toBe(270);
@@ -731,7 +691,7 @@ describe('analyzeRoofImage', () => {
     });
     mockFetch.mockResolvedValueOnce(mockResponse(claudeResponse(json)));
 
-    await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    await analyzeRoofImage(imageBase64, testBounds);
 
     const segments = mockReconstructRoof.mock.calls[0][1] as Array<{ azimuthDegrees: number }>;
     expect(segments[0].azimuthDegrees).toBe(350);
@@ -753,7 +713,7 @@ describe('analyzeRoofImage', () => {
     };
     mockReconstructRoof.mockReturnValue(customResult);
 
-    const result = await analyzeRoofImage(imageBase64, testBounds, anthropicApiKey);
+    const result = await analyzeRoofImage(imageBase64, testBounds);
 
     // confidence is overridden to 'low'
     expect(result.vertices).toEqual(customResult.vertices);

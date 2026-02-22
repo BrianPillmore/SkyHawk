@@ -4,27 +4,59 @@ import { degreesToPitch, toRadians, getCentroid, latLngToLocalFt } from './geome
 import { localFtToLatLng, bearing, findLinePolygonIntersections } from './geometryHelpers';
 
 /**
+ * Filter to dominant roof segments.
+ * The Solar API often returns many small segments (edges, dormers, chimneys).
+ * We keep segments that represent significant portions of the roof area.
+ */
+export function filterDominantSegments(segments: SolarRoofSegment[]): SolarRoofSegment[] {
+  if (segments.length <= 4) return segments;
+
+  const totalArea = segments.reduce((sum, s) => sum + s.stats.areaMeters2, 0);
+
+  // Keep segments that are at least 5% of total roof area AND have reasonable pitch (< 70 degrees)
+  const dominant = segments.filter(
+    (s) => s.stats.areaMeters2 >= totalArea * 0.05 && s.pitchDegrees < 70
+  );
+
+  // If we filtered too aggressively, take the top 4 by area
+  if (dominant.length === 0) {
+    return [...segments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2).slice(0, 4);
+  }
+
+  return dominant;
+}
+
+/**
  * Classify roof type from Solar API roof segments.
+ * Filters to dominant segments first to avoid misclassifying complex roofs
+ * that have many small segments from dormers, chimneys, etc.
  */
 export function classifyRoofType(segments: SolarRoofSegment[]): RoofType {
   if (segments.length === 0) return 'flat';
 
-  // Check if all segments are essentially flat (pitch < 5 degrees)
-  const allFlat = segments.every((s) => s.pitchDegrees < 5);
+  // Filter to dominant segments for classification
+  const dominant = filterDominantSegments(segments);
+
+  // Check if all dominant segments are essentially flat (pitch < 5 degrees)
+  const allFlat = dominant.every((s) => s.pitchDegrees < 5);
   if (allFlat) return 'flat';
 
-  if (segments.length === 1) return 'shed';
+  // Filter out flat segments for slope-based classification
+  const slopedSegments = dominant.filter((s) => s.pitchDegrees >= 5);
 
-  if (segments.length === 2) {
+  if (slopedSegments.length === 0) return 'flat';
+  if (slopedSegments.length === 1) return 'shed';
+
+  if (slopedSegments.length === 2) {
     // Check if opposing azimuths (~180 deg apart) -> gable
-    const azDiff = Math.abs(segments[0].azimuthDegrees - segments[1].azimuthDegrees);
+    const azDiff = Math.abs(slopedSegments[0].azimuthDegrees - slopedSegments[1].azimuthDegrees);
     const normalizedDiff = Math.min(azDiff, 360 - azDiff);
     if (normalizedDiff > 150 && normalizedDiff < 210) return 'gable';
   }
 
-  if (segments.length === 4) {
+  if (slopedSegments.length === 4) {
     // Sort azimuths and check for ~90 degree spacing -> hip
-    const azimuths = segments.map((s) => s.azimuthDegrees).sort((a, b) => a - b);
+    const azimuths = slopedSegments.map((s) => s.azimuthDegrees).sort((a, b) => a - b);
     const diffs = [];
     for (let i = 0; i < azimuths.length; i++) {
       const next = azimuths[(i + 1) % azimuths.length];
@@ -36,10 +68,13 @@ export function classifyRoofType(segments: SolarRoofSegment[]): RoofType {
   }
 
   // Check for cross-gable: 2 pairs of opposing azimuths
-  if (segments.length === 4 || segments.length === 3) {
-    const pairs = findOpposingPairs(segments);
+  if (slopedSegments.length >= 3 && slopedSegments.length <= 4) {
+    const pairs = findOpposingPairs(slopedSegments);
     if (pairs >= 2) return 'cross-gable';
   }
+
+  // For 2 sloped segments that aren't opposing, still classify as gable
+  if (slopedSegments.length === 2) return 'gable';
 
   return 'complex';
 }
@@ -390,24 +425,28 @@ export function reconstructComplexRoof(
 /**
  * Main reconstruction entry point.
  * Delegates to the appropriate reconstruction function based on roof type.
+ * Filters segments to dominant ones before classification and reconstruction.
  */
 export function reconstructRoof(
   outline: LatLng[],
   segments: SolarRoofSegment[]
 ): ReconstructedRoof {
   const roofType = classifyRoofType(segments);
+  const dominant = filterDominantSegments(segments);
+  // For reconstruction, use sloped dominant segments where applicable
+  const sloped = dominant.filter((s) => s.pitchDegrees >= 5);
 
   switch (roofType) {
     case 'flat':
     case 'shed':
-      return reconstructSimpleRoof(outline, segments);
+      return reconstructSimpleRoof(outline, dominant);
     case 'gable':
-      return reconstructGableRoof(outline, segments);
+      return reconstructGableRoof(outline, sloped.length >= 2 ? sloped : dominant);
     case 'hip':
-      return reconstructHipRoof(outline, segments);
+      return reconstructHipRoof(outline, sloped.length >= 4 ? sloped : dominant);
     case 'cross-gable':
     case 'complex':
     default:
-      return reconstructComplexRoof(outline, segments);
+      return reconstructComplexRoof(outline, dominant);
   }
 }

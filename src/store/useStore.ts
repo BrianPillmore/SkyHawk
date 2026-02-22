@@ -36,6 +36,14 @@ import {
 const MAX_UNDO_STACK = 50;
 
 interface AppState {
+  // Auth
+  token: string | null;
+  username: string | null;
+  isAuthenticated: boolean;
+  login: (username: string, password: string) => Promise<void>;
+  logout: () => void;
+  checkAuth: () => Promise<void>;
+
   // Properties
   properties: Property[];
   activePropertyId: string | null;
@@ -203,6 +211,50 @@ export const useStore = create<AppState>()(
       };
 
       return {
+        // Auth state
+        token: null,
+        username: null,
+        isAuthenticated: false,
+
+        login: async (username: string, password: string) => {
+          const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({ error: 'Login failed' }));
+            throw new Error(body.error || 'Login failed');
+          }
+          const data = await res.json();
+          set({ token: data.token, username: data.username, isAuthenticated: true });
+        },
+
+        logout: () => {
+          set({ token: null, username: null, isAuthenticated: false });
+        },
+
+        checkAuth: async () => {
+          const { token } = get();
+          if (!token) {
+            set({ isAuthenticated: false });
+            return;
+          }
+          try {
+            const res = await fetch('/api/auth/me', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              set({ username: data.username, isAuthenticated: true });
+            } else {
+              set({ token: null, username: null, isAuthenticated: false });
+            }
+          } catch {
+            set({ token: null, username: null, isAuthenticated: false });
+          }
+        },
+
         // Initial state
         properties: [],
         activePropertyId: null,
@@ -1063,6 +1115,9 @@ export const useStore = create<AppState>()(
       name: 'skyhawk-storage',
       version: 1,
       partialize: (state) => ({
+        token: state.token,
+        username: state.username,
+        isAuthenticated: state.isAuthenticated,
         properties: state.properties,
         activePropertyId: state.activePropertyId,
         activeMeasurement: state.activeMeasurement,

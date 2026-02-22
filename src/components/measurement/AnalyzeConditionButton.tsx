@@ -15,15 +15,14 @@ export default function AnalyzeConditionButton() {
   const { activePropertyId, properties, setRoofCondition, setActivePanel } = useStore();
 
   const activeProperty = properties.find((p) => p.id === activePropertyId);
-  const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
 
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isDisabled = !activeProperty || !apiKey || !anthropicApiKey || isAnalyzing;
+  const isDisabled = !activeProperty || !apiKey || isAnalyzing;
 
   const handleClick = async () => {
-    if (!activeProperty || !apiKey || !anthropicApiKey) return;
+    if (!activeProperty || !apiKey) return;
 
     setIsAnalyzing(true);
     setError(null);
@@ -39,7 +38,7 @@ export default function AnalyzeConditionButton() {
       );
 
       // Analyze roof condition
-      const response = await analyzeRoofCondition(base64, anthropicApiKey);
+      const response = await analyzeRoofCondition(base64);
 
       // Build assessment
       const materialType = response.materialType as RoofMaterialType;
@@ -137,11 +136,6 @@ export default function AnalyzeConditionButton() {
         </p>
       )}
 
-      {!anthropicApiKey && activeProperty && (
-        <p className="text-xs text-gray-500 mt-2">
-          Add VITE_ANTHROPIC_API_KEY to enable AI analysis.
-        </p>
-      )}
     </div>
   );
 }

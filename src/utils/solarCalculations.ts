@@ -106,9 +106,7 @@ export function calculateSolarAccessFactor(
   const azimuthDeviation = Math.abs(azimuth - 180);
   // Smooth cosine-based falloff from south to north
   // At 0 deviation (south): 1.0, at 90 (east/west): ~0.75, at 180 (north): ~0.4
-  const azimuthFactor = 0.4 + 0.6 * Math.cos((azimuthDeviation / 180) * Math.PI) * 0.5 + 0.3 * Math.max(0, 1 - azimuthDeviation / 180);
-
-  // Simplified: use a piecewise approach for clarity
+  // Piecewise approach for clarity
   let azFactor: number;
   if (azimuthDeviation <= 20) {
     // Near south: excellent

@@ -31,7 +31,6 @@ export default function PitchDiagram({ pitch, width = 160, height = 100 }: Pitch
   const degrees = pitchToDegrees(pitch);
 
   // Scale to fit in the SVG
-  const hypotenuse = Math.sqrt(144 + displayPitch * displayPitch);
   const scale = Math.min(innerW / 12, innerH / displayPitch);
   const runPx = 12 * scale;
   const risePx = displayPitch * scale;

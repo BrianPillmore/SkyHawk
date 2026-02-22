@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import { useStore } from '../../store/useStore';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
-import { getMidpoint, getCentroid, formatLength, formatArea } from '../../utils/geometry';
+import { getMidpoint, getCentroid } from '../../utils/geometry';
 import type { DrawingMode, EdgeType, RoofVertex, DamageAnnotation } from '../../types';
 import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
@@ -103,11 +103,21 @@ export default function MapView() {
           const first = currentOutlineVertices[0];
           const map = mapInstanceRef.current;
           if (map) {
-            const scale = Math.pow(2, map.getZoom() || 20);
-            const threshold = 20000 / scale;
-            if (Math.abs(lat - first.lat) < threshold && Math.abs(lng - first.lng) < threshold) {
-              finishOutline();
-              return;
+            const projection = map.getProjection();
+            const zoom = map.getZoom() || 20;
+            if (projection) {
+              const clickPoint = projection.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
+              const firstPoint = projection.fromLatLngToPoint(new google.maps.LatLng(first.lat, first.lng));
+              if (clickPoint && firstPoint) {
+                const scale = Math.pow(2, zoom);
+                const dx = (clickPoint.x - firstPoint.x) * scale;
+                const dy = (clickPoint.y - firstPoint.y) * scale;
+                const distPx = Math.sqrt(dx * dx + dy * dy);
+                if (distPx < SNAP_THRESHOLD_PX) {
+                  finishOutline();
+                  return;
+                }
+              }
             }
           }
         }
@@ -308,8 +318,6 @@ export default function MapView() {
 
       const mid = getMidpoint(startV, endV);
       const labelText = `${edge.lengthFt.toFixed(1)}'`;
-      const color = getEdgeColor(edge.type);
-
       let marker = edgeLabelsRef.current.get(edge.id);
       if (!marker) {
         marker = new google.maps.Marker({

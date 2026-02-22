@@ -1,4 +1,4 @@
-import type { RoofMeasurement, Property, DamageAnnotation } from '../types';
+import type { RoofMeasurement, Property } from '../types';
 import { EDGE_LABELS } from './colors';
 import { estimateMaterials } from './materials';
 import { formatPitch } from './geometry';

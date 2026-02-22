@@ -9,7 +9,6 @@ export default function AutoMeasureButton() {
   const properties = useStore((s) => s.properties);
 
   const activeProperty = properties.find((p) => p.id === activePropertyId);
-  const anthropicApiKey = import.meta.env.VITE_ANTHROPIC_API_KEY || '';
 
   const isRunning = progress.status !== 'idle' && progress.status !== 'complete' && progress.status !== 'error';
   const isDisabled = !activeProperty || !apiKey || isRunning;
@@ -18,7 +17,7 @@ export default function AutoMeasureButton() {
     if (!activeProperty || !apiKey) return;
 
     try {
-      await detect(activeProperty.lat, activeProperty.lng, apiKey, anthropicApiKey || undefined);
+      await detect(activeProperty.lat, activeProperty.lng, apiKey);
     } catch {
       // Error is handled in progress state
     }

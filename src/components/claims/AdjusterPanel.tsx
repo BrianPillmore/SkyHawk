@@ -13,7 +13,6 @@ const SPECIALTY_OPTIONS: AdjusterSpecialty[] = ['residential', 'commercial', 'ca
 export default function AdjusterPanel() {
   const {
     properties,
-    activePropertyId,
     adjusters,
     inspections,
     addAdjuster,

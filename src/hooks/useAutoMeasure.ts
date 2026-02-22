@@ -19,7 +19,6 @@ export function useAutoMeasure() {
     lat: number,
     lng: number,
     googleApiKey: string,
-    anthropicApiKey?: string
   ) => {
     try {
       // Step 1: Fetch building insights
@@ -29,9 +28,9 @@ export function useAutoMeasure() {
       try {
         insights = await fetchBuildingInsights(lat, lng, googleApiKey);
       } catch (err) {
-        if (err instanceof SolarApiError && err.statusCode === 404 && anthropicApiKey) {
+        if (err instanceof SolarApiError && err.statusCode === 404) {
           // No Solar data, try AI Vision fallback
-          return await runAiFallback(lat, lng, googleApiKey, anthropicApiKey);
+          return await runAiFallback(lat, lng, googleApiKey);
         }
         throw err;
       }
@@ -56,17 +55,36 @@ export function useAutoMeasure() {
 
         const parsed = await parseMaskGeoTiff(maskBuffer);
         outline = extractBuildingOutline(parsed, lat, lng);
-      } catch {
-        // If mask processing fails, fall back to bounding box from insights
+      } catch (maskErr) {
+        console.warn('GeoTIFF mask processing failed, using segment bounds:', maskErr);
+
+        // Build outline from the union of all segment bounding boxes
         setProgress({ status: 'processing', percent: 55, message: 'Using building bounds as outline...' });
 
-        const bb = insights.boundingBox;
-        outline = [
-          { lat: bb.sw.latitude, lng: bb.sw.longitude },
-          { lat: bb.sw.latitude, lng: bb.ne.longitude },
-          { lat: bb.ne.latitude, lng: bb.ne.longitude },
-          { lat: bb.ne.latitude, lng: bb.sw.longitude },
-        ];
+        if (segments.length > 0) {
+          // Compute the union bounding box of all segments
+          let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+          for (const seg of segments) {
+            minLat = Math.min(minLat, seg.boundingBox.sw.latitude);
+            maxLat = Math.max(maxLat, seg.boundingBox.ne.latitude);
+            minLng = Math.min(minLng, seg.boundingBox.sw.longitude);
+            maxLng = Math.max(maxLng, seg.boundingBox.ne.longitude);
+          }
+          outline = [
+            { lat: minLat, lng: minLng },
+            { lat: minLat, lng: maxLng },
+            { lat: maxLat, lng: maxLng },
+            { lat: maxLat, lng: minLng },
+          ];
+        } else {
+          const bb = insights.boundingBox;
+          outline = [
+            { lat: bb.sw.latitude, lng: bb.sw.longitude },
+            { lat: bb.sw.latitude, lng: bb.ne.longitude },
+            { lat: bb.ne.latitude, lng: bb.ne.longitude },
+            { lat: bb.ne.latitude, lng: bb.sw.longitude },
+          ];
+        }
       }
 
       if (outline.length < 3) {
@@ -104,7 +122,6 @@ export function useAutoMeasure() {
     lat: number,
     lng: number,
     googleApiKey: string,
-    anthropicApiKey: string
   ): Promise<ReconstructedRoof> => {
     setProgress({ status: 'ai-fallback', percent: 30, message: 'No LIDAR data. Using AI Vision fallback...' });
 
@@ -114,7 +131,7 @@ export function useAutoMeasure() {
     setProgress({ status: 'ai-fallback', percent: 50, message: 'Analyzing satellite image with AI...' });
 
     // Analyze with Claude
-    const reconstructed = await analyzeRoofImage(base64, bounds, anthropicApiKey);
+    const reconstructed = await analyzeRoofImage(base64, bounds);
 
     setProgress({ status: 'ai-fallback', percent: 85, message: 'AI analysis complete. Applying...' });
 
