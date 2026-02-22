@@ -234,3 +234,38 @@ export interface ReportConfig {
   companyLogo?: string;
   notes: string;
 }
+
+// ─── AI Analysis Types ─────────────────────────────────────────────
+
+export type RoofMaterialType = 'asphalt-shingle' | 'metal' | 'tile' | 'slate' | 'wood-shake' | 'tpo' | 'epdm' | 'built-up' | 'concrete' | 'unknown';
+
+export const ROOF_MATERIAL_LABELS: Record<RoofMaterialType, string> = {
+  'asphalt-shingle': 'Asphalt Shingle',
+  'metal': 'Standing Seam Metal',
+  'tile': 'Clay/Concrete Tile',
+  'slate': 'Natural Slate',
+  'wood-shake': 'Wood Shake/Shingle',
+  'tpo': 'TPO Membrane',
+  'epdm': 'EPDM Rubber',
+  'built-up': 'Built-Up (BUR)',
+  'concrete': 'Concrete',
+  'unknown': 'Unknown',
+};
+
+export interface RoofConditionAssessment {
+  overallScore: number;         // 1-100
+  category: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+  estimatedAgeYears: number;
+  estimatedRemainingLifeYears: number;
+  materialType: RoofMaterialType;
+  materialConfidence: number;   // 0-1
+  findings: string[];
+  recommendations: string[];
+  damageDetected: {
+    type: DamageType;
+    severity: DamageSeverity;
+    description: string;
+    confidence: number;
+  }[];
+  assessedAt: string;
+}

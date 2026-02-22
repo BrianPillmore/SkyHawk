@@ -3,6 +3,8 @@ import type { Property, RoofMeasurement, DamageSeverity } from '../types';
 import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
 import { estimateMaterials } from './materials';
+import { analyzeSolarPotential, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
+import type { SolarSystemSummary } from './solarCalculations';
 
 interface ReportOptions {
   companyName: string;
@@ -11,6 +13,8 @@ interface ReportOptions {
   includeDamage?: boolean;
   includeClaims?: boolean;
   includeMultiStructure?: boolean;
+  includeSolar?: boolean;
+  latitude?: number;
 }
 
 export async function generateReport(
@@ -494,6 +498,136 @@ export async function generateReport(
     addText(formatArea(totalArea), margin + contentWidth * 0.55, y, 9, primaryColor, 'bold');
     addText(formatNumber(totalSquares, 1), margin + contentWidth * 0.8, y, 9, primaryColor, 'bold');
     y += 12;
+  }
+
+  // ============ SOLAR ANALYSIS ============
+  if (options.includeSolar && options.latitude !== undefined && measurement.facets.length > 0) {
+    const solar: SolarSystemSummary = analyzeSolarPotential(
+      measurement,
+      DEFAULT_SOLAR_CONFIG,
+      options.latitude,
+    );
+
+    if (solar.totalPanels > 0) {
+      checkPage(80);
+      y = addText('SOLAR POTENTIAL ANALYSIS', margin, y, 12, primaryColor, 'bold');
+      y += 2;
+      y = addLine(y);
+      y += 4;
+
+      // System summary table
+      const solarSummary = [
+        ['Total Panels', String(solar.totalPanels)],
+        ['System Capacity', `${solar.totalCapacityKw} kW`],
+        ['Annual Production', `${solar.annualProductionKwh.toLocaleString()} kWh`],
+        ['System Cost', `$${solar.systemCost.toLocaleString()}`],
+        ['Federal Tax Credit (30%)', `-$${solar.federalTaxCredit.toLocaleString()}`],
+        ['Net Cost', `$${solar.netCost.toLocaleString()}`],
+        ['Annual Savings', `$${solar.annualSavings.toLocaleString()}`],
+        ['Payback Period', `${solar.paybackYears} years`],
+        ['25-Year Net Savings', `$${solar.twentyFiveYearSavings.toLocaleString()}`],
+      ];
+
+      for (let i = 0; i < solarSummary.length; i++) {
+        checkPage(10);
+        const rowY = y + i * 7;
+        if (i % 2 === 0) {
+          doc.setFillColor(...lightBg);
+          doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+        }
+        addText(solarSummary[i][0], margin + 3, rowY, 9, grayText);
+        addText(solarSummary[i][1], pageWidth - margin - 3 - doc.getTextWidth(solarSummary[i][1]), rowY, 9, darkText, 'bold');
+      }
+      y += solarSummary.length * 7 + 6;
+
+      // Environmental impact
+      checkPage(30);
+      y = addText('Environmental Impact (Annual)', margin, y, 10, primaryColor, 'bold');
+      y += 4;
+
+      const envData = [
+        ['CO2 Offset', `${solar.carbonOffsetLbs.toLocaleString()} lbs`],
+        ['Trees Equivalent', `${solar.treesEquivalent} trees`],
+      ];
+
+      for (let i = 0; i < envData.length; i++) {
+        const rowY = y + i * 7;
+        if (i % 2 === 0) {
+          doc.setFillColor(...lightBg);
+          doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+        }
+        addText(envData[i][0], margin + 3, rowY, 9, grayText);
+        addText(envData[i][1], pageWidth - margin - 3 - doc.getTextWidth(envData[i][1]), rowY, 9, darkText, 'bold');
+      }
+      y += envData.length * 7 + 6;
+
+      // Per-facet solar breakdown
+      if (solar.facetAnalyses.length > 0) {
+        checkPage(40);
+        y = addText('Solar Analysis by Facet', margin, y, 10, primaryColor, 'bold');
+        y += 4;
+
+        // Table header
+        doc.setFillColor(...primaryColor);
+        doc.rect(margin, y - 4, contentWidth, 7, 'F');
+        addText('Facet', margin + 3, y, 8, [255, 255, 255], 'bold');
+        addText('Panels', margin + contentWidth * 0.35, y, 8, [255, 255, 255], 'bold');
+        addText('Capacity', margin + contentWidth * 0.5, y, 8, [255, 255, 255], 'bold');
+        addText('Production', margin + contentWidth * 0.68, y, 8, [255, 255, 255], 'bold');
+        addText('Rating', margin + contentWidth * 0.87, y, 8, [255, 255, 255], 'bold');
+        y += 7;
+
+        const ratingColors: Record<string, [number, number, number]> = {
+          excellent: [22, 163, 74],
+          good: [37, 120, 235],
+          fair: [245, 158, 11],
+          poor: [239, 68, 68],
+        };
+
+        for (let i = 0; i < solar.facetAnalyses.length; i++) {
+          checkPage(10);
+          const fa = solar.facetAnalyses[i];
+          const rowY = y + i * 7;
+          if (i % 2 === 0) {
+            doc.setFillColor(...lightBg);
+            doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+          }
+          addText(fa.facetName, margin + 3, rowY, 9, darkText);
+          addText(String(fa.panelCount), margin + contentWidth * 0.35, rowY, 9, grayText);
+          addText(`${fa.panelCapacityKw} kW`, margin + contentWidth * 0.5, rowY, 9, grayText);
+          addText(`${fa.annualProductionKwh.toLocaleString()} kWh`, margin + contentWidth * 0.68, rowY, 9, darkText, 'bold');
+          const rColor = ratingColors[fa.rating] || darkText;
+          addText(fa.rating.charAt(0).toUpperCase() + fa.rating.slice(1), margin + contentWidth * 0.87, rowY, 9, rColor, 'bold');
+        }
+        y += solar.facetAnalyses.length * 7 + 4;
+      }
+
+      // Monthly production chart (text-based)
+      checkPage(30);
+      y = addText('Estimated Monthly Production (kWh)', margin, y, 10, primaryColor, 'bold');
+      y += 4;
+
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const maxMonthly = Math.max(...solar.monthlyProductionKwh);
+
+      for (let i = 0; i < 12; i++) {
+        checkPage(8);
+        const rowY = y + i * 6;
+        addText(monthNames[i], margin + 3, rowY, 8, grayText);
+        // Bar chart
+        const barWidth = maxMonthly > 0 ? (solar.monthlyProductionKwh[i] / maxMonthly) * (contentWidth * 0.5) : 0;
+        doc.setFillColor(37, 120, 235);
+        doc.rect(margin + 25, rowY - 3.5, barWidth, 4, 'F');
+        addText(String(solar.monthlyProductionKwh[i]), margin + 30 + contentWidth * 0.5, rowY, 8, grayText);
+      }
+      y += 12 * 6 + 6;
+
+      y = addText(
+        'Solar estimates based on roof orientation, pitch, and latitude. Actual production may vary based on local conditions, shading, and equipment.',
+        margin, y, 7, grayText
+      );
+      y += 6;
+    }
   }
 
   // ============ NOTES ============

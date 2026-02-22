@@ -1,5 +1,7 @@
 # SkyHawk API Specification
 
+> **Status: SPECIFICATION ONLY — No backend server has been implemented yet. These endpoints are planned for future development.**
+
 ## Version: 1.0 (Planned - Backend)
 
 ## Base URL

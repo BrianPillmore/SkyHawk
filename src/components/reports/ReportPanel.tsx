@@ -12,6 +12,7 @@ export default function ReportPanel() {
   const [includeDamage, setIncludeDamage] = useState(true);
   const [includeClaims, setIncludeClaims] = useState(true);
   const [includeMultiStructure, setIncludeMultiStructure] = useState(true);
+  const [includeSolar, setIncludeSolar] = useState(true);
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
 
@@ -39,6 +40,8 @@ export default function ReportPanel() {
         includeDamage,
         includeClaims,
         includeMultiStructure,
+        includeSolar,
+        latitude: property.lat,
       });
     } catch (err) {
       console.error('Report generation failed:', err);
@@ -158,6 +161,15 @@ export default function ReportPanel() {
                   <span className="text-gray-500 ml-1">({structureCount} structure{structureCount !== 1 ? 's' : ''})</span>
                 )}
               </span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeSolar}
+                onChange={(e) => setIncludeSolar(e.target.checked)}
+                className="accent-skyhawk-500"
+              />
+              <span>Solar potential analysis</span>
             </label>
           </div>
         </section>

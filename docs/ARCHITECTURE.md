@@ -1,14 +1,35 @@
 # SkyHawk Architecture
 
+## Technology Stack
+
+### Frontend (Implemented)
+- **React 19** - UI framework
+- **TypeScript 5.9** - Type-safe development
+- **Vite 7** - Build tool and dev server
+- **Tailwind CSS v4** - Utility-first styling
+- **Three.js + React Three Fiber** - 3D rendering engine for visualization
+- **Zustand 5** - State management
+- **Google Maps API** - Satellite imagery and geocoding
+- **Google Solar API** - Solar panel potential analysis
+- **Anthropic Claude Vision API** - AI-powered roof damage detection
+- **jsPDF** - PDF report generation
+- **html2canvas** - Map screenshot capture
+- **geotiff** - Solar data layer processing
+
+### Backend (PLANNED - Not Yet Implemented)
+- **Express.js** - REST API server
+- **PostgreSQL or SQLite** - Database
+- **JWT** - Authentication
+
 ## System Overview
 
 ```
 ┌──────────────────────────────────────────────────────┐
 │                    Browser Client                     │
 ├──────────────┬────────────────┬───────────────────────┤
-│   React UI   │  State (Zustand)│  Google Maps API     │
+│   React 19   │  State (Zustand)│  Google Maps API     │
 │   Router     │  Store          │  Places, Geocoding   │
-│   Tailwind   │  Actions        │  Satellite Imagery   │
+│  Tailwind v4 │  Actions        │  Satellite Imagery   │
 ├──────────────┴────────────────┴───────────────────────┤
 │            Measurement Engine (TypeScript)             │
 │  ┌─────────┐ ┌──────────┐ ┌────────────┐ ┌─────────┐│
@@ -16,11 +37,21 @@
 │  │  Calc   │ │  Area    │ │ Adjustment │ │  Factor ││
 │  └─────────┘ └──────────┘ └────────────┘ └─────────┘│
 ├──────────────────────────────────────────────────────┤
-│               Report Generator (jsPDF)                │
+│          3D Rendering Engine (Three.js/R3F)           │
 ├──────────────────────────────────────────────────────┤
-│              REST API (Express) [Planned]             │
+│         Solar API Integration (Google Solar)          │
 ├──────────────────────────────────────────────────────┤
-│           Database (SQLite/Postgres) [Planned]        │
+│    AI Vision Analysis (Anthropic Claude Vision API)   │
+├──────────────────────────────────────────────────────┤
+│              Claims Workflow + Damage Detection       │
+├──────────────────────────────────────────────────────┤
+│    Report Generator (jsPDF + html2canvas + geotiff)   │
+├──────────────────────────────────────────────────────┤
+│          Enterprise/RBAC Module [Planned]             │
+├──────────────────────────────────────────────────────┤
+│         REST API (Express) [PLANNED - Not Built]      │
+├──────────────────────────────────────────────────────┤
+│      Database (PostgreSQL/SQLite) [PLANNED - Not Built]│
 └──────────────────────────────────────────────────────┘
 ```
 

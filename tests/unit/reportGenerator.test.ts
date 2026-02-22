@@ -501,6 +501,203 @@ describe('generateReport', () => {
     expect(hasMultiStructureHeading).toBe(false);
   });
 
+  // ── Solar analysis section ─────────────────────────────────────
+
+  it('should include SOLAR POTENTIAL ANALYSIS heading when includeSolar is true and facets exist', async () => {
+    const property = createProperty();
+    const measurement = createMeasurement({
+      facets: [
+        {
+          id: 'facet-1',
+          name: 'South Slope',
+          vertexIds: ['v1', 'v2', 'v3'],
+          areaSqFt: 1000,
+          trueAreaSqFt: 1100,
+          pitch: 6,
+          color: '#ff0000',
+        },
+      ],
+    });
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeSolar: true,
+      latitude: 39.7392,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasSolarHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'SOLAR POTENTIAL ANALYSIS'
+    );
+    expect(hasSolarHeading).toBe(true);
+  });
+
+  it('should NOT include SOLAR POTENTIAL ANALYSIS heading when includeSolar is false', async () => {
+    const property = createProperty();
+    const measurement = createMeasurement({
+      facets: [
+        {
+          id: 'facet-1',
+          name: 'South Slope',
+          vertexIds: ['v1', 'v2', 'v3'],
+          areaSqFt: 1000,
+          trueAreaSqFt: 1100,
+          pitch: 6,
+          color: '#ff0000',
+        },
+      ],
+    });
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeSolar: false,
+      latitude: 39.7392,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasSolarHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'SOLAR POTENTIAL ANALYSIS'
+    );
+    expect(hasSolarHeading).toBe(false);
+  });
+
+  it('should NOT include SOLAR POTENTIAL ANALYSIS heading when no facets exist', async () => {
+    const property = createProperty();
+    const measurement = createMeasurement({ facets: [] });
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeSolar: true,
+      latitude: 39.7392,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const hasSolarHeading = textCalls.some(
+      (text: string | string[]) =>
+        typeof text === 'string' && text === 'SOLAR POTENTIAL ANALYSIS'
+    );
+    expect(hasSolarHeading).toBe(false);
+  });
+
+  it('should include environmental impact and facet breakdown in solar section', async () => {
+    const property = createProperty();
+    const measurement = createMeasurement({
+      facets: [
+        {
+          id: 'facet-1',
+          name: 'South Slope',
+          vertexIds: ['v1', 'v2', 'v3'],
+          areaSqFt: 1500,
+          trueAreaSqFt: 1650,
+          pitch: 6,
+          color: '#ff0000',
+        },
+        {
+          id: 'facet-2',
+          name: 'North Slope',
+          vertexIds: ['v3', 'v4', 'v5'],
+          areaSqFt: 800,
+          trueAreaSqFt: 880,
+          pitch: 6,
+          color: '#00ff00',
+        },
+      ],
+    });
+
+    await generateReport(property, measurement, {
+      companyName: 'Acme Roofing',
+      notes: '',
+      includeSolar: true,
+      latitude: 39.7392,
+    });
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const findText = (search: string) =>
+      textCalls.some(
+        (text: string | string[]) =>
+          typeof text === 'string' && text.includes(search)
+      );
+
+    expect(findText('Environmental Impact')).toBe(true);
+    expect(findText('Solar Analysis by Facet')).toBe(true);
+    expect(findText('Monthly Production')).toBe(true);
+  });
+
+  it('should generate without error when all sections including solar are enabled', async () => {
+    const property = createProperty({
+      damageAnnotations: [
+        {
+          id: 'dmg-1',
+          lat: 39.7392,
+          lng: -104.9903,
+          type: 'hail',
+          severity: 'minor',
+          note: '',
+          createdAt: '2025-06-10T08:00:00Z',
+        },
+      ],
+      claims: [
+        {
+          id: 'claim-1',
+          propertyId: 'prop-1',
+          claimNumber: 'CLM-2025-0200',
+          insuredName: 'Test User',
+          dateOfLoss: '2025-06-09T00:00:00Z',
+          status: 'new',
+          notes: '',
+          createdAt: '2025-06-10T00:00:00Z',
+          updatedAt: '2025-06-10T00:00:00Z',
+        },
+      ],
+      measurements: [
+        createMeasurement({ id: 'meas-1', totalSquares: 22, totalTrueAreaSqFt: 2200 }),
+        createMeasurement({ id: 'meas-2', totalSquares: 10, totalTrueAreaSqFt: 1000 }),
+      ],
+    });
+    const measurement = createMeasurement({
+      facets: [
+        {
+          id: 'facet-1',
+          name: 'South Slope',
+          vertexIds: ['v1', 'v2', 'v3'],
+          areaSqFt: 1200,
+          trueAreaSqFt: 1320,
+          pitch: 6,
+          color: '#ff0000',
+        },
+      ],
+    });
+
+    await expect(
+      generateReport(property, measurement, {
+        companyName: 'Full Report Roofing',
+        notes: 'Complete inspection with solar analysis.',
+        includeDamage: true,
+        includeClaims: true,
+        includeMultiStructure: true,
+        includeSolar: true,
+        latitude: 39.7392,
+      })
+    ).resolves.not.toThrow();
+
+    const textCalls = mockText.mock.calls.map((call) => call[0]);
+    const findHeading = (heading: string) =>
+      textCalls.some(
+        (text: string | string[]) =>
+          typeof text === 'string' && text === heading
+      );
+
+    expect(findHeading('SOLAR POTENTIAL ANALYSIS')).toBe(true);
+    expect(findHeading('DAMAGE ASSESSMENT')).toBe(true);
+    expect(findHeading('CLAIMS INFORMATION')).toBe(true);
+    expect(findHeading('MULTI-STRUCTURE SUMMARY')).toBe(true);
+  });
+
   // ── Full property overview section ──────────────────────────────
 
   it('should include FULL PROPERTY OVERVIEW heading when generating a report', async () => {

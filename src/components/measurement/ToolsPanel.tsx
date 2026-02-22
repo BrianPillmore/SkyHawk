@@ -3,6 +3,7 @@ import type { DrawingMode, DamageType, DamageSeverity } from '../../types';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import AutoMeasureButton from './AutoMeasureButton';
+import AnalyzeConditionButton from './AnalyzeConditionButton';
 
 const TOOLS: { mode: DrawingMode; label: string; icon: string; description: string; color?: string }[] = [
   { mode: 'pan', label: 'Pan/Navigate', icon: '\u{1F590}\uFE0F', description: 'Pan and navigate the map' },
@@ -33,6 +34,9 @@ export default function ToolsPanel() {
     <div className="p-3">
       {/* Auto Detect */}
       <AutoMeasureButton />
+
+      {/* AI Condition Analysis */}
+      <AnalyzeConditionButton />
 
       <div className="mb-4 border-t border-gray-800" />
 

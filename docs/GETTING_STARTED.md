@@ -2,7 +2,9 @@
 
 ## Prerequisites
 - Node.js 18+ and npm
-- A Google Maps API key (optional but recommended)
+- A Google Maps API key (required for satellite imagery and geocoding)
+- A Google Solar API key (optional, for solar panel analysis)
+- An Anthropic Claude API key (optional, for AI-powered damage detection)
 
 ## Installation
 
@@ -19,7 +21,9 @@ cp .env.example .env
 # Edit .env and add your Google Maps API key
 ```
 
-## Google Maps API Setup
+## API Keys Setup
+
+### Google Maps API
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
@@ -33,6 +37,26 @@ cp .env.example .env
    ```
    VITE_GOOGLE_MAPS_API_KEY=your_key_here
    ```
+
+### Google Solar API (Optional)
+
+1. In the same Google Cloud project, enable:
+   - **Solar API** - For solar panel potential analysis
+2. Use the same API key or create a separate one
+3. Add to `.env`:
+   ```
+   VITE_GOOGLE_SOLAR_API_KEY=your_key_here
+   ```
+
+### Anthropic Claude API (Optional)
+
+1. Go to [Anthropic Console](https://console.anthropic.com/)
+2. Create an API key
+3. Add to `.env`:
+   ```
+   VITE_ANTHROPIC_API_KEY=your_key_here
+   ```
+   This enables AI-powered roof damage detection via Claude Vision API.
 
 ## Running the Application
 
@@ -96,9 +120,46 @@ Open http://localhost:5173 in your browser.
 | Escape | Cancel/Deselect |
 | Delete | Delete selected item |
 
-## Without Google Maps API Key
-The application works without an API key but shows a placeholder
-instead of satellite imagery. You can still:
-- Create properties with manual coordinates
-- Use all measurement tools (once map integration is connected)
-- Generate reports
+## Available Features
+
+### Core Measurement Features (Implemented)
+- **Address Search**: Google Places autocomplete for property lookup
+- **Roof Outline Tool**: Draw polygon outlines directly on satellite imagery
+- **Multi-Facet Support**: Create and measure multiple roof facets with independent pitch values
+- **Multi-Structure Support**: Manage multiple properties and multiple measurements per property
+- **Edge Measurements**: Draw and measure ridge, hip, valley, rake, eave, flashing, and step-flashing lines
+- **Pitch Adjustment**: Set pitch (0-24/12) per facet with automatic true area calculation
+- **Waste Factor**: Automatic waste calculation (5-25%) based on roof complexity
+- **Material Estimation**: Calculate roofing squares with waste factored in
+- **Drip Edge Calculation**: Automatic calculation of rake + eave totals
+- **3D Visualization**: Three.js/React Three Fiber rendering of roof structures
+- **PDF Reports**: Comprehensive measurement reports with:
+  - Property information and coordinates
+  - Measurement summary (area, squares, pitch, facets)
+  - Edge measurements by type
+  - Facet details with pitch and area
+  - Waste factor table (5-25%)
+  - Map screenshots via html2canvas
+  - Claims/damage information (if available)
+  - Custom notes and branding
+- **Data Export**: JSON format for measurement data
+- **Keyboard Shortcuts**: Fast tool switching (Space, V, O, R, H, Y, K, E, F)
+
+### Advanced Features (Implemented)
+- **Solar Analysis**: Google Solar API integration for solar panel potential (data fetch implemented, PDF integration pending)
+- **AI Damage Detection**: Anthropic Claude Vision API for automated roof damage assessment
+- **Claims Workflow**: Damage annotation, photo upload, claims tracking
+
+### Enterprise Features (Planned)
+- **User Authentication**: JWT-based login/registration
+- **Role-Based Access Control (RBAC)**: Team collaboration with permissions
+- **Backend Persistence**: Property and measurement storage in database
+- **Multi-user Collaboration**: Shared properties and measurements
+
+## Without API Keys
+The application requires the Google Maps API key for core functionality. Without it:
+- A placeholder map is shown instead of satellite imagery
+- Address autocomplete and geocoding will not work
+- You can still explore the UI and understand the workflow
+
+Solar and AI features are optional enhancements that work independently.

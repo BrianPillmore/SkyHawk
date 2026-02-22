@@ -21,6 +21,7 @@ import type {
   AdjusterStatus,
   Inspection,
   InspectionStatus,
+  RoofConditionAssessment,
 } from '../types';
 import type { ReconstructedRoof } from '../types/solar';
 import {
@@ -58,7 +59,10 @@ interface AppState {
 
   // UI state
   sidebarOpen: boolean;
-  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'enterprise';
+  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls';
+
+  // Roof condition assessment
+  roofCondition: RoofConditionAssessment | null;
 
   // Undo/Redo
   _undoStack: RoofMeasurement[];
@@ -104,7 +108,11 @@ interface AppState {
 
   // Actions - UI
   toggleSidebar: () => void;
-  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'enterprise') => void;
+  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls') => void;
+
+  // Actions - Roof Condition
+  setRoofCondition: (assessment: RoofConditionAssessment) => void;
+  clearRoofCondition: () => void;
 
   // Actions - Recalculate
   recalculateMeasurements: () => void;
@@ -218,6 +226,7 @@ export const useStore = create<AppState>()(
         activeDamageSeverity: 'moderate' as DamageSeverity,
         adjusters: [],
         inspections: [],
+        roofCondition: null,
 
         // Property actions
         createProperty: (address, city, state, zip, lat, lng) => {
@@ -1044,6 +1053,10 @@ export const useStore = create<AppState>()(
             drawingMode: 'outline',
           });
         },
+
+        // Roof condition
+        setRoofCondition: (assessment) => set({ roofCondition: assessment }),
+        clearRoofCondition: () => set({ roofCondition: null }),
       };
     },
     {

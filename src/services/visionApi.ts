@@ -173,3 +173,84 @@ function createSyntheticSegment(pitchDeg: number, azimuthDeg: number): SolarRoof
     planeHeightAtCenterMeters: 5,
   };
 }
+
+export interface RoofConditionResponse {
+  overallScore: number;
+  estimatedAgeYears: number;
+  materialType: string;
+  materialConfidence: number;
+  damages: {
+    type: string;
+    severity: string;
+    description: string;
+    confidence: number;
+  }[];
+  findings: string[];
+}
+
+export async function analyzeRoofCondition(
+  imageBase64: string,
+  apiKey: string,
+): Promise<RoofConditionResponse> {
+  const prompt = `Analyze this aerial/satellite image of a roof and provide a detailed condition assessment.
+
+Return a JSON object with:
+- overallScore: number 1-100 (100=perfect, 1=failed)
+- estimatedAgeYears: estimated age in years based on visual wear
+- materialType: one of "asphalt-shingle", "metal", "tile", "slate", "wood-shake", "tpo", "epdm", "built-up", "concrete", "unknown"
+- materialConfidence: 0-1 confidence in material identification
+- damages: array of detected damage areas, each with:
+  - type: "hail", "wind", "missing-shingle", "crack", "ponding", "debris", "other"
+  - severity: "minor", "moderate", "severe"
+  - description: brief description
+  - confidence: 0-1
+- findings: array of observation strings
+
+Assess wear patterns, color fading, granule loss, curling, missing/damaged areas, debris, moss/algae growth, and structural issues.
+
+Return ONLY valid JSON, no markdown.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: [{
+          type: 'image',
+          source: { type: 'base64', media_type: 'image/png', data: imageBase64 },
+        }, {
+          type: 'text',
+          text: prompt,
+        }],
+      }],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Vision API error: ${response.status}`);
+  }
+
+  const result = await response.json();
+  const text = result.content?.[0]?.text ?? '{}';
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      overallScore: 50,
+      estimatedAgeYears: 15,
+      materialType: 'unknown',
+      materialConfidence: 0,
+      damages: [],
+      findings: ['Unable to parse AI analysis results'],
+    };
+  }
+}

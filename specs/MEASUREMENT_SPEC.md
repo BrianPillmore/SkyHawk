@@ -2,6 +2,18 @@
 
 ## Version: 1.0
 
+## Implementation Status
+**Current Implementation Includes:**
+- Area calculation using Shoelace formula on Haversine-projected coordinates
+- Pitch adjustment with pitch factor multiplication
+- Waste factor calculation with heuristic algorithm (5-25%)
+- Material estimation (roofing squares with waste)
+- Edge measurements (ridge, hip, valley, rake, eave, flashing, step-flashing)
+- Multi-facet support with independent pitch per facet
+- Multi-structure support (multiple properties with multiple measurements each)
+- Data export formats (PDF reports, JSON data structures)
+- Drip edge calculation (rake + eave totals)
+
 ## 1. Coordinate System
 - All geographic coordinates use WGS84 (latitude/longitude)
 - Internal calculations convert to local Cartesian feet using Haversine-based projection

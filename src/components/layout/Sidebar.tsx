@@ -7,7 +7,10 @@ import ComparisonPanel from '../comparison/ComparisonPanel';
 import ClaimsPanel from '../claims/ClaimsPanel';
 import AdjusterPanel from '../claims/AdjusterPanel';
 import SolarPanel from '../solar/SolarPanel';
+import ShadingPanel from '../solar/ShadingPanel';
 import EnterprisePanel from '../enterprise/EnterprisePanel';
+import ConditionPanel from '../measurement/ConditionPanel';
+import WallsPanel from '../measurement/WallsPanel';
 
 export default function Sidebar() {
   const { sidebarOpen, activePanel, setActivePanel, activeMeasurement, activePropertyId } = useStore();
@@ -17,11 +20,14 @@ export default function Sidebar() {
   const tabs = [
     { id: 'tools' as const, label: 'Tools', icon: '✏️' },
     { id: 'measurements' as const, label: 'Data', icon: '📐' },
+    { id: 'walls' as const, label: 'Walls', icon: '🏠' },
+    { id: 'condition' as const, label: 'Condition', icon: '🔍' },
     { id: 'report' as const, label: 'Report', icon: '📄' },
     { id: 'compare' as const, label: 'Compare', icon: '🔄' },
     { id: 'claims' as const, label: 'Claims', icon: '📋' },
     { id: 'schedule' as const, label: 'Schedule', icon: '📅' },
     { id: 'solar' as const, label: 'Solar', icon: '☀️' },
+    { id: 'shading' as const, label: 'Shading', icon: '🌤️' },
     { id: 'enterprise' as const, label: 'Team', icon: '👥' },
   ];
 
@@ -50,14 +56,17 @@ export default function Sidebar() {
 
       {/* Panel content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Claims, Compare, and Schedule work without active measurement */}
+        {/* Claims, Compare, Schedule, Condition, Walls, and Shading work without active measurement */}
         {activePanel === 'claims' && <ClaimsPanel />}
         {activePanel === 'compare' && <ComparisonPanel />}
         {activePanel === 'schedule' && <AdjusterPanel />}
         {activePanel === 'enterprise' && <EnterprisePanel />}
+        {activePanel === 'condition' && <ConditionPanel />}
+        {activePanel === 'walls' && <WallsPanel />}
+        {activePanel === 'shading' && <ShadingPanel />}
 
         {/* Other panels require active measurement */}
-        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && (
+        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && activePanel !== 'condition' && activePanel !== 'walls' && activePanel !== 'shading' && (
           !activeMeasurement ? (
             <div className="p-4 text-center text-gray-500 text-sm">
               <p className="mb-2">No active measurement</p>

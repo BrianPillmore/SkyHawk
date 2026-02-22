@@ -8,16 +8,20 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 ## Architecture Overview
 
 ### Technology Stack
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript 5.9 + Vite 7
 - **UI Framework**: Tailwind CSS + Headless UI
 - **Maps**: Google Maps JavaScript API (satellite imagery, places autocomplete)
-- **3D Rendering**: Three.js (3D roof visualization)
+- **3D Rendering**: Three.js + React Three Fiber (3D roof visualization)
 - **Canvas Drawing**: Custom polygon editor on Google Maps overlay
 - **PDF Generation**: jsPDF + html2canvas
-- **Backend**: Node.js + Express + TypeScript
-- **Database**: SQLite (dev) → PostgreSQL (production)
-- **Auth**: JWT + bcrypt
-- **File Storage**: Local filesystem → S3-compatible (production)
+- **GeoTIFF Parsing**: geotiff (for satellite imagery processing)
+- **AI Integration**: Anthropic Claude API (vision analysis), Google Solar API
+- **Solar Analysis**: Shading analysis + Sun path simulation
+- **State Management**: Zustand 5 with localStorage persistence
+- **Testing**: Vitest (892 tests across 24 files)
+- **Backend**: Planned (Node.js + Express + TypeScript)
+- **Database**: Planned (SQLite dev → PostgreSQL production)
+- **Auth**: Planned (JWT + bcrypt)
 
 ### System Architecture
 ```
@@ -64,8 +68,8 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Map screenshot capture for PDF reports
 - [x] Real-time measurement stats overlay
 - [x] 3D roof model visualization (rotate, zoom, inspect)
-- [ ] Automatic pitch detection from oblique imagery
-- [ ] Walls, windows, and doors measurement
+- [x] Automatic pitch detection from oblique imagery
+- [x] Walls, windows, and doors measurement
 - [x] Full-house measurement reports
 
 ### Phase 3: Insurance & Claims Workflow
@@ -78,17 +82,17 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Adjuster assignment and scheduling
 
 ### Phase 4: Advanced Analytics & AI
-- [ ] AI-powered roof feature detection from satellite imagery
-- [ ] Automatic roof outline extraction
-- [ ] Damage severity classification
-- [ ] Roof condition scoring
-- [ ] Age estimation from imagery
-- [ ] Material type detection (shingle, metal, tile, etc.)
+- [x] AI-powered roof feature detection from satellite imagery
+- [x] Automatic roof outline extraction
+- [x] Damage severity classification
+- [x] Roof condition scoring
+- [x] Age estimation from imagery
+- [x] Material type detection (shingle, metal, tile, etc.)
 
 ### Phase 5: Solar Integration
 - [x] Solar panel placement optimizer
-- [ ] Shading analysis
-- [ ] Sun path simulation
+- [x] Shading analysis
+- [x] Sun path simulation
 - [x] Energy production estimates
 - [x] Solar-ready reports
 
@@ -96,7 +100,7 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [ ] Multi-user organization accounts
 - [x] Role-based access control (admin, adjuster, roofer, viewer)
 - [ ] Report sharing and collaboration
-- [x] API for third-party integrations
+- [ ] API for third-party integrations
 - [ ] Webhook notifications
 - [x] Audit trail and activity logging
 - [ ] White-label support

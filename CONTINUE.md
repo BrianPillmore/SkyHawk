@@ -8,41 +8,41 @@ Run this prompt at the start of each new Claude session to continue building.
 
 ## IMMEDIATE NEXT STEPS
 
-### Priority 1: Fix Manual Drawing Bug
-The manual edge drawing mode (ridge, hip, valley, rake, eave, flashing) is broken.
-Users click on vertices to create lines but nothing happens.
+### Priority 1: Deployment Setup
+SkyHawk is currently a frontend-only React SPA with no deployment configuration.
+- Set up static hosting (Vercel, Netlify, Hetzner VPS, or similar)
+- Configure environment variables for API keys (Google Maps, Anthropic)
+- Add build-and-deploy CI/CD pipeline
+- Consider server-side proxy for API keys (currently client-side VITE_ env vars)
 
-**Investigate in:** `src/components/map/MapView.tsx`
-**Likely cause:** Click handler on vertex markers not detecting edge-drawing modes,
-or `edgeStartVertexId` not being set/read correctly in the click flow.
-**Store reference:** `src/store/useStore.ts` — `setEdgeStartVertex()`, `addEdge()`, `edgeStartVertexId`
+### Priority 2: Phase 6 — Backend API
+The enterprise RBAC/audit UI exists but is frontend-only. Need actual backend:
+- Implement Express/Fastify backend server
+- Server-side API key management with authentication
+- REST API endpoints for third-party integration (spec exists in `specs/API_SPEC.md`)
+- Database persistence (SQLite dev → PostgreSQL production)
+- Server-side RBAC enforcement
+- Persist audit logs to database (currently in-memory only)
 
-### Priority 2: Implement Auto-Measurement Feature
-**Full implementation plan:** `plans/AUTO_MEASUREMENT.md` (READ THIS FIRST)
+### Priority 3: Phase 6 — Remaining Enterprise Features
+- Multi-user organization accounts
+- Report sharing and collaboration
+- Webhook notifications
+- White-label branding support
 
-Build automatic roof detection using the Google Solar API (LIDAR-based, ~10cm resolution)
-with Claude AI Vision fallback for areas without Solar coverage.
+### Priority 4: Phase 7 — Drone Integration
+- Drone flight path planning
+- Drone imagery upload and processing
+- Photogrammetry integration
+- High-res orthomosaic generation
+- Autonomous inspection workflows
 
-#### Implementation Order
-1. **Types** — `src/types/solar.ts` (Solar API response types, internal processing types)
-2. **Solar API client** — `src/services/solarApi.ts` (buildingInsights, dataLayers, GeoTIFF fetch)
-3. **Contour algorithms** — `src/utils/contour.ts` (GeoTIFF parsing, connected components, Moore boundary trace, Douglas-Peucker simplification)
-4. **Geometry helpers** — Add to `src/utils/geometry.ts`: `localFtToLatLng()`, `bearing()`, `findLinePolygonIntersections()`
-5. **Roof reconstruction** — `src/utils/roofReconstruction.ts` (classify roof type, reconstruct gable/hip/flat/shed/complex)
-6. **AI Vision fallback** — `src/services/visionApi.ts` (Claude API for areas without Solar data)
-7. **Store changes** — `src/store/useStore.ts`: add `applyAutoMeasurement()` batch action
-8. **React hook** — `src/hooks/useAutoMeasure.ts` (orchestrates the pipeline with progress tracking)
-9. **UI components** — `src/components/measurement/AutoMeasureButton.tsx` + modify `ToolsPanel.tsx`
-10. **Map overlay** — Modify `src/components/map/MapView.tsx` for progress overlay during detection
-
-#### New Dependency
-```bash
-npm install geotiff
-```
-
-### Priority 3: Continue Phase 2 Roadmap
-After auto-measurement is working, continue with Phase 2 features:
-- See `plans/PHASE2_3D_ENHANCED.md` for 3D visualization, undo/redo, persistent storage
+### Priority 5: Phase 8 — Commercial Properties
+- Large commercial roof support
+- Multi-section commercial reports
+- Flat roof drainage analysis
+- Commercial material estimation
+- Parapet and coping measurements
 
 ---
 
@@ -56,11 +56,10 @@ adjustment industry.
 
 Read and understand these files (in order):
 1. `ROADMAP.md` — Current feature roadmap and phase status
-2. `plans/AUTO_MEASUREMENT.md` — **ACTIVE** auto-measurement implementation plan
-3. `plans/` — Other phase plans (check which are COMPLETE vs PLANNED)
-4. `specs/` — Technical specifications
-5. `.claude/settings.json` — Project configuration
-6. Run `npm run build` to verify current state compiles
+2. `plans/` — Phase plans (check which are COMPLETE vs PLANNED)
+3. `specs/` — Technical specifications
+4. `.claude/settings.json` — Project configuration
+5. Run `npm run build` to verify current state compiles
 
 ### Step 2: Identify Next Work
 
@@ -136,9 +135,10 @@ test(scope): description of test additions
 
 ## CURRENT STATE SUMMARY
 
-### Completed
-- [x] Phase 1: Core Measurement Engine
-  - Interactive satellite map (Google Maps)
+### Completed — Phases 1 through 5 (KAREN Verified)
+
+- [x] **Phase 1: Core Measurement Engine** (ALL features COMPLETE)
+  - Interactive satellite map (Google Maps JavaScript API)
   - Address search (Google Places autocomplete)
   - Roof outline polygon drawing
   - Multi-facet support with per-facet pitch
@@ -149,30 +149,100 @@ test(scope): description of test additions
   - PDF report generation (jsPDF)
   - Dashboard with property management
   - Keyboard shortcuts
-  - Full Zustand state management
+  - Full Zustand state management with localStorage persistence
   - Add Property button (clickable empty state + button)
 
-### Known Bugs
-- **Manual edge drawing broken**: Clicking vertices to create ridge/hip/valley/rake/eave/flashing lines does not work. Needs fix in `src/components/map/MapView.tsx`.
+- [x] **Phase 2: Enhanced Measurement & 3D** (ALL features COMPLETE)
+  - Multi-facet 3D roof visualization (RoofViewer3D.tsx)
+  - Real-time 3D preview during measurement
+  - Roof pitch angle visualization (PitchDiagram.tsx)
+  - Measurement mode selector (MeasurementSelector.tsx)
+  - Undo/redo functionality
+  - Local storage persistence
+  - Material cost estimator (materials.ts)
+  - Measurement import/export (exportData.ts)
+  - Before/after comparison tool (ComparisonPanel.tsx)
+  - Map capture utility (mapCapture.ts)
+  - ESX format export (esxExport.ts)
+  - Automatic pitch detection (pitchDetection.ts)
+  - Walls, windows, and doors measurement (wallCalculations.ts, WallsPanel.tsx)
+  - Full-house measurement reports
 
-### In Progress
-- [ ] Auto-Measurement Feature (see `plans/AUTO_MEASUREMENT.md`)
-  - Google Solar API integration (LIDAR-based building/roof detection)
-  - GeoTIFF mask processing for building outline extraction
-  - Algorithmic roof reconstruction (gable, hip, flat, shed, complex)
-  - Claude AI Vision fallback for areas without Solar coverage
-  - Auto Detect Roof button in ToolsPanel
+- [x] **Phase 3: Insurance & Claims Workflow** (ALL features COMPLETE)
+  - Damage annotation system (DamagePanel.tsx)
+  - Insurance estimator integration
+  - Adjuster collaboration panel (AdjusterPanel.tsx)
+  - Claims workflow panel (ClaimsPanel.tsx)
+  - Photo documentation attachment
+  - Timeline tracking
+  - Multi-party comments
+  - Xactimate-compatible ESX export
 
-### Tech Stack
-- React 19 + TypeScript + Vite 7
+- [x] **Phase 4: Advanced Analytics & AI** (ALL features COMPLETE)
+  - AI-powered roof detection (visionApi.ts)
+  - Automatic roof outline extraction (contour.ts, roofReconstruction.ts)
+  - Damage severity classification (visionApi.ts → analyzeRoofCondition)
+  - Roof condition scoring 1-100 (roofCondition.ts, ConditionPanel.tsx)
+  - Age estimation from imagery (AI-powered via Claude Vision)
+  - Material type detection (10 types: asphalt-shingle, metal, tile, slate, wood-shake, tpo, epdm, built-up, concrete, unknown)
+  - Condition analysis button in ToolsPanel (AnalyzeConditionButton.tsx)
+
+- [x] **Phase 5: Solar Integration** (ALL features COMPLETE)
+  - Solar panel placement UI (SolarPanel.tsx)
+  - Production estimates (solarCalculations.ts)
+  - Solar-ready reports with PDF export (reportGenerator.ts)
+  - Shading analysis (shadingAnalysis.ts, ShadingPanel.tsx)
+  - Sun path simulation (sunPath.ts)
+  - Monthly production bar charts in PDF
+
+- [x] **Auto-Measurement Feature** (ALL 10 steps COMPLETE)
+  - Solar API types (solar.ts)
+  - Solar API client (solarApi.ts)
+  - GeoTIFF contour algorithms (contour.ts)
+  - Geometry helpers (geometryHelpers.ts)
+  - Roof reconstruction (roofReconstruction.ts)
+  - AI Vision fallback (visionApi.ts)
+  - Store batch actions (applyAutoMeasurement in useStore.ts)
+  - React hook (useAutoMeasure.ts)
+  - UI components (AutoMeasureButton.tsx in ToolsPanel.tsx)
+  - Map overlay (progress tracking in MapView.tsx)
+
+### Partially Complete
+
+- [ ] **Phase 6: Enterprise & Collaboration** (2/7 features)
+  - ✅ Role-based access control frontend (EnterprisePanel.tsx, enterprise.ts)
+  - ✅ Audit trail frontend (logs shown in UI)
+  - ⏸️ Backend API (NOT DONE — frontend-only, spec exists in API_SPEC.md)
+  - ⏸️ Multi-user collaboration (NOT DONE — requires backend)
+  - ⏸️ Report sharing (NOT DONE — requires backend)
+  - ⏸️ Webhooks (NOT DONE — requires backend)
+  - ⏸️ White-label branding (NOT DONE)
+
+### Not Started
+- [ ] **Phase 7: Drone Integration**
+- [ ] **Phase 8: Commercial Properties**
+
+### Known Issues
+- **API keys are client-side**: All API keys (Google Maps, Anthropic Claude) are exposed via `VITE_` environment variables. For production, these should be proxied through a backend server.
+- **Enterprise features are frontend-only**: RBAC and audit trail work in browser but have no backend enforcement. Server-side auth and database persistence needed.
+- **API integration is spec-only**: API key management UI exists in `EnterprisePanel.tsx` but no actual backend API endpoints are implemented.
+- **No deployment configuration**: No CI/CD, no Docker, no hosting setup.
+
+---
+
+## TECH STACK
+
+- React 19 + TypeScript 5.9 + Vite 7
 - Tailwind CSS v4
-- Zustand (state management)
-- Google Maps JavaScript API
-- Google Solar API (building insights + data layers)
-- Anthropic Claude API (AI Vision fallback)
-- jsPDF (PDF generation)
-- geotiff (GeoTIFF parsing) — to be installed
+- Zustand 5 (state management with localStorage persistence)
+- Google Maps JavaScript API (satellite imagery, Places, Geocoding)
+- Google Solar API (building insights + LIDAR data layers)
+- Anthropic Claude API (claude-sonnet-4-5-20250929 — AI Vision)
+- Three.js + React Three Fiber + Drei (3D visualization)
+- jsPDF + html2canvas (PDF generation)
+- geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
+- Vitest (892 tests across 24 files)
 
 ---
 
@@ -184,7 +254,7 @@ All keys are configured in `.env` (gitignored, not committed):
 |---------|-------------|--------|---------|
 | Google Maps | `VITE_GOOGLE_MAPS_API_KEY` | CONFIGURED | Satellite imagery, Places autocomplete, Geocoding |
 | Google Solar API | Same key as Maps | ENABLED | Building detection, roof segments, LIDAR data layers |
-| Anthropic Claude | `VITE_ANTHROPIC_API_KEY` | CONFIGURED | AI Vision fallback for roof detection |
+| Anthropic Claude | `VITE_ANTHROPIC_API_KEY` | CONFIGURED | AI Vision fallback for roof detection + condition analysis |
 
 ### Google Cloud APIs Required (all enabled)
 - Maps JavaScript API
@@ -204,6 +274,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Types | `src/types/index.ts` |
 | State store | `src/store/useStore.ts` |
 | Geometry math | `src/utils/geometry.ts` |
+| Geometry helpers | `src/utils/geometryHelpers.ts` |
 | Color mappings | `src/utils/colors.ts` |
 | PDF generator | `src/utils/reportGenerator.ts` |
 | Map component | `src/components/map/MapView.tsx` |
@@ -211,6 +282,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Placeholder map | `src/components/map/PlaceholderMap.tsx` |
 | Tools panel | `src/components/measurement/ToolsPanel.tsx` |
 | Measurements | `src/components/measurement/MeasurementsPanel.tsx` |
+| Measurement selector | `src/components/measurement/MeasurementSelector.tsx` |
 | Report panel | `src/components/reports/ReportPanel.tsx` |
 | Dashboard | `src/components/dashboard/Dashboard.tsx` |
 | Header | `src/components/layout/Header.tsx` |
@@ -219,25 +291,57 @@ All keys are configured in `.env` (gitignored, not committed):
 | Google Maps hook | `src/hooks/useGoogleMaps.ts` |
 | Keyboard shortcuts | `src/hooks/useKeyboard.ts` |
 
-### Auto-Measurement (to be created)
+### Measurement & Visualization
+| Purpose | File |
+|---------|------|
+| 3D roof viewer | `src/components/measurement/RoofViewer3D.tsx` |
+| Pitch diagram | `src/components/measurement/PitchDiagram.tsx` |
+| Damage annotations | `src/components/measurement/DamagePanel.tsx` |
+| Auto-measure button | `src/components/measurement/AutoMeasureButton.tsx` |
+| Condition panel | `src/components/measurement/ConditionPanel.tsx` |
+| Analyze condition | `src/components/measurement/AnalyzeConditionButton.tsx` |
+| Walls panel | `src/components/measurement/WallsPanel.tsx` |
+| Auto-measure hook | `src/hooks/useAutoMeasure.ts` |
+| Material calculations | `src/utils/materials.ts` |
+| Wall calculations | `src/utils/wallCalculations.ts` |
+| Pitch detection | `src/utils/pitchDetection.ts` |
+| Roof condition | `src/utils/roofCondition.ts` |
+| Map capture utility | `src/utils/mapCapture.ts` |
+| Export data utility | `src/utils/exportData.ts` |
+| ESX format export | `src/utils/esxExport.ts` |
+
+### AI & Automation
 | Purpose | File |
 |---------|------|
 | Solar API types | `src/types/solar.ts` |
 | Solar API client | `src/services/solarApi.ts` |
-| Vision API fallback | `src/services/visionApi.ts` |
+| Vision API (Claude) | `src/services/visionApi.ts` |
 | Contour algorithms | `src/utils/contour.ts` |
 | Roof reconstruction | `src/utils/roofReconstruction.ts` |
-| Auto-measure hook | `src/hooks/useAutoMeasure.ts` |
-| Auto-measure button | `src/components/measurement/AutoMeasureButton.tsx` |
+| Solar calculations | `src/utils/solarCalculations.ts` |
+| Shading analysis | `src/utils/shadingAnalysis.ts` |
+| Sun path simulation | `src/utils/sunPath.ts` |
+
+### Claims & Enterprise
+| Purpose | File |
+|---------|------|
+| Claims panel | `src/components/claims/ClaimsPanel.tsx` |
+| Adjuster panel | `src/components/claims/AdjusterPanel.tsx` |
+| Comparison tool | `src/components/comparison/ComparisonPanel.tsx` |
+| Enterprise panel | `src/components/enterprise/EnterprisePanel.tsx` |
+| Solar analysis | `src/components/solar/SolarPanel.tsx` |
+| Shading analysis | `src/components/solar/ShadingPanel.tsx` |
+| Enterprise types | `src/types/enterprise.ts` |
+| Enterprise utilities | `src/utils/enterprise.ts` |
 
 ### Plans & Specs
 | Document | File |
 |----------|------|
 | Auto-Measurement Plan | `plans/AUTO_MEASUREMENT.md` |
 | Phase 1 (COMPLETE) | `plans/PHASE1_CORE_MEASUREMENT.md` |
-| Phase 2 (PLANNED) | `plans/PHASE2_3D_ENHANCED.md` |
-| Phase 3 (PLANNED) | `plans/PHASE3_INSURANCE.md` |
-| Phase 4 (PLANNED) | `plans/PHASE4_AI.md` |
+| Phase 2 (COMPLETE) | `plans/PHASE2_3D_ENHANCED.md` |
+| Phase 3 (COMPLETE) | `plans/PHASE3_INSURANCE.md` |
+| Phase 4 (COMPLETE) | `plans/PHASE4_AI.md` |
 | API Spec | `specs/API_SPEC.md` |
 | Measurement Spec | `specs/MEASUREMENT_SPEC.md` |
 | Report Spec | `specs/REPORT_SPEC.md` |
@@ -246,11 +350,35 @@ All keys are configured in `.env` (gitignored, not committed):
 | Contributing | `docs/CONTRIBUTING.md` |
 | Feature Roadmap | `ROADMAP.md` |
 
-### Tests
+### Tests (892 passing tests across 24 files)
 | Purpose | File |
 |---------|------|
-| Geometry unit tests | `tests/unit/geometry.test.ts` |
-| Store unit tests | `tests/unit/store.test.ts` |
+| Geometry calculations | `tests/unit/geometry.test.ts` |
+| Geometry extended | `tests/unit/geometry-extended.test.ts` |
+| Geometry helpers | `tests/unit/geometryHelpers.test.ts` |
+| State store | `tests/unit/store.test.ts` |
+| Contour algorithms | `tests/unit/contour.test.ts` |
+| Roof reconstruction | `tests/unit/roofReconstruction.test.ts` |
+| Solar calculations | `tests/unit/solarCalculations.test.ts` |
+| Materials calculations | `tests/unit/materials.test.ts` |
+| Materials extended | `tests/unit/materials-extended.test.ts` |
+| Export data utility | `tests/unit/exportData.test.ts` |
+| ESX export format | `tests/unit/esxExport.test.ts` |
+| Map capture | `tests/unit/mapCapture.test.ts` |
+| Enterprise utilities | `tests/unit/enterprise.test.ts` |
+| Report generator | `tests/unit/reportGenerator.test.ts` |
+| Claims management | `tests/unit/claims.test.ts` |
+| Adjuster scheduling | `tests/unit/adjuster.test.ts` |
+| Vision API | `tests/unit/visionApi.test.ts` |
+| Solar API | `tests/unit/solarApi.test.ts` |
+| Roof condition | `tests/unit/roofCondition.test.ts` |
+| Pitch detection | `tests/unit/pitchDetection.test.ts` |
+| Wall calculations | `tests/unit/wallCalculations.test.ts` |
+| Shading analysis | `tests/unit/shadingAnalysis.test.ts` |
+| Sun path | `tests/unit/sunPath.test.ts` |
+| Dashboard component | `tests/unit/Dashboard.test.tsx` |
+
+Run tests with: `npx vitest run`
 
 ---
 
