@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, type StateStorage } from 'zustand/middleware';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   Property,
@@ -99,6 +99,7 @@ interface AppState {
 
   // Actions - Edges
   addEdge: (startVertexId: string, endVertexId: string, type: EdgeType) => string;
+  updateEdgeType: (id: string, type: EdgeType) => void;
   deleteEdge: (id: string) => void;
   selectEdge: (id: string | null) => void;
   setEdgeStartVertex: (id: string | null) => void;
@@ -193,6 +194,27 @@ function createEmptyMeasurement(propertyId: string): RoofMeasurement {
     totalFlashingLf: 0,
     totalDripEdgeLf: 0,
     suggestedWastePercent: 10,
+  };
+}
+
+function safeLocalStorage(): StateStorage {
+  try {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      return {
+        getItem: (name) => window.localStorage.getItem(name),
+        setItem: (name, value) => window.localStorage.setItem(name, value),
+        removeItem: (name) => window.localStorage.removeItem(name),
+      };
+    }
+  } catch {
+    // localStorage not available
+  }
+  // In-memory fallback (tests, SSR)
+  const store = new Map<string, string>();
+  return {
+    getItem: (name) => store.get(name) ?? null,
+    setItem: (name, value) => { store.set(name, value); },
+    removeItem: (name) => { store.delete(name); },
   };
 }
 
@@ -535,6 +557,23 @@ export const useStore = create<AppState>()(
 
           get().recalculateMeasurements();
           return id;
+        },
+
+        updateEdgeType: (id, type) => {
+          pushUndo();
+          set((s) => {
+            if (!s.activeMeasurement) return s;
+            return {
+              activeMeasurement: {
+                ...s.activeMeasurement,
+                edges: s.activeMeasurement.edges.map((e) =>
+                  e.id === id ? { ...e, type } : e
+                ),
+                updatedAt: new Date().toISOString(),
+              },
+            };
+          });
+          get().recalculateMeasurements();
         },
 
         deleteEdge: (id) => {
@@ -1114,6 +1153,7 @@ export const useStore = create<AppState>()(
     {
       name: 'skyhawk-storage',
       version: 1,
+      storage: safeLocalStorage(),
       partialize: (state) => ({
         token: state.token,
         username: state.username,

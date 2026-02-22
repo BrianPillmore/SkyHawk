@@ -1,5 +1,5 @@
-import type { LatLng } from '../types';
-import type { ReconstructedRoof, SolarRoofSegment } from '../types/solar';
+import type { LatLng, EdgeType } from '../types';
+import type { ReconstructedRoof, SolarRoofSegment, DetectedRoofEdges, RoofType } from '../types/solar';
 import { reconstructRoof } from '../utils/roofReconstruction';
 import { useStore } from '../store/useStore';
 
@@ -145,6 +145,101 @@ function createSyntheticSegment(pitchDeg: number, azimuthDeg: number): SolarRoof
       ne: { latitude: 0, longitude: 0 },
     },
     planeHeightAtCenterMeters: 5,
+  };
+}
+
+/**
+ * AI Edge Detection: Send satellite image to Claude and get back
+ * individual roof edges with types + pixel coordinates.
+ * Converts pixel coords to lat/lng and deduplicates vertices.
+ */
+export async function detectRoofEdges(
+  imageBase64: string,
+  imageBounds: { north: number; south: number; east: number; west: number },
+  imageSize: number = 640
+): Promise<DetectedRoofEdges> {
+  const response = await fetch('/api/vision/detect-edges', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ imageBase64, imageBounds, imageSize }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Edge detection API error: ${response.status} - ${body}`);
+  }
+
+  const data = await response.json();
+  const text = data.content?.[0]?.text || '';
+
+  // Parse JSON from response (handle potential markdown wrapping)
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Could not parse edge detection response from AI');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]) as {
+    edges: { type: string; start: { x: number; y: number }; end: { x: number; y: number } }[];
+    roofType: string;
+    estimatedPitchDegrees: number;
+    confidence: number;
+  };
+
+  if (!parsed.edges || !Array.isArray(parsed.edges) || parsed.edges.length === 0) {
+    throw new Error('AI detected no roof edges in the image');
+  }
+
+  // Convert pixel coordinates to lat/lng
+  const latRange = imageBounds.north - imageBounds.south;
+  const lngRange = imageBounds.east - imageBounds.west;
+
+  function pixelToLatLng(px: { x: number; y: number }): LatLng {
+    return {
+      lat: imageBounds.north - (px.y / imageSize) * latRange,
+      lng: imageBounds.west + (px.x / imageSize) * lngRange,
+    };
+  }
+
+  // Collect all endpoints and deduplicate within tolerance
+  const DEDUP_TOLERANCE_PX = 3; // pixels
+  const DEDUP_TOLERANCE_LAT = (DEDUP_TOLERANCE_PX / imageSize) * latRange;
+  const DEDUP_TOLERANCE_LNG = (DEDUP_TOLERANCE_PX / imageSize) * lngRange;
+
+  const vertices: LatLng[] = [];
+  const edgeIndices: { startIndex: number; endIndex: number; type: EdgeType }[] = [];
+
+  function findOrAddVertex(point: { x: number; y: number }): number {
+    const ll = pixelToLatLng(point);
+    // Check if close to an existing vertex
+    for (let i = 0; i < vertices.length; i++) {
+      if (
+        Math.abs(vertices[i].lat - ll.lat) < DEDUP_TOLERANCE_LAT &&
+        Math.abs(vertices[i].lng - ll.lng) < DEDUP_TOLERANCE_LNG
+      ) {
+        return i;
+      }
+    }
+    vertices.push(ll);
+    return vertices.length - 1;
+  }
+
+  const validTypes: EdgeType[] = ['ridge', 'hip', 'valley', 'rake', 'eave', 'flashing'];
+
+  for (const edge of parsed.edges) {
+    const type = (validTypes.includes(edge.type as EdgeType) ? edge.type : 'eave') as EdgeType;
+    const startIdx = findOrAddVertex(edge.start);
+    const endIdx = findOrAddVertex(edge.end);
+    if (startIdx !== endIdx) {
+      edgeIndices.push({ startIndex: startIdx, endIndex: endIdx, type });
+    }
+  }
+
+  return {
+    vertices,
+    edges: edgeIndices,
+    roofType: (parsed.roofType || 'complex') as RoofType,
+    estimatedPitchDegrees: parsed.estimatedPitchDegrees || 22,
+    confidence: parsed.confidence || 0.5,
   };
 }
 

@@ -101,6 +101,20 @@ export interface ReconstructedRoof {
   confidence: 'high' | 'medium' | 'low';
 }
 
+export interface DetectedRoofEdge {
+  startIndex: number;
+  endIndex: number;
+  type: 'ridge' | 'hip' | 'valley' | 'rake' | 'eave' | 'flashing';
+}
+
+export interface DetectedRoofEdges {
+  vertices: LatLng[];
+  edges: DetectedRoofEdge[];
+  roofType: RoofType;
+  estimatedPitchDegrees: number;
+  confidence: number;
+}
+
 export type AutoMeasureStatus =
   | 'idle'
   | 'detecting'

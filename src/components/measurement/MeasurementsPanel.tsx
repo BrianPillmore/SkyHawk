@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../../store/useStore';
-import type { RoofMeasurement, Property } from '../../types';
+import type { RoofMeasurement, Property, EdgeType } from '../../types';
 import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils/geometry';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
@@ -11,6 +11,8 @@ import PitchDiagram from './PitchDiagram';
 import DamagePanel from './DamagePanel';
 import RoofViewer3D from './RoofViewer3D';
 
+const EDGE_TYPE_OPTIONS: EdgeType[] = ['ridge', 'hip', 'valley', 'rake', 'eave', 'flashing', 'step-flashing'];
+
 export default function MeasurementsPanel() {
   const {
     activeMeasurement,
@@ -19,6 +21,7 @@ export default function MeasurementsPanel() {
     updateFacetPitch,
     deleteFacet,
     deleteEdge,
+    updateEdgeType,
     selectEdge,
     selectedEdgeId,
     properties,
@@ -146,31 +149,47 @@ export default function MeasurementsPanel() {
           </h3>
           <div className="space-y-1 max-h-48 overflow-y-auto">
             {edges.map((edge) => (
-              <div
-                key={edge.id}
-                onClick={() => selectEdge(edge.id)}
-                className={`flex items-center justify-between px-2 py-1.5 rounded text-xs cursor-pointer transition-all ${
-                  selectedEdgeId === edge.id
-                    ? 'bg-gray-700 ring-1 ring-gray-500'
-                    : 'hover:bg-gray-800'
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2.5 h-2.5 rounded-full"
-                    style={{ backgroundColor: EDGE_COLORS[edge.type] || '#fff' }}
-                  />
-                  <span className="text-gray-400">{EDGE_LABELS[edge.type]}</span>
+              <div key={edge.id}>
+                <div
+                  onClick={() => selectEdge(edge.id)}
+                  className={`flex items-center justify-between px-2 py-1.5 rounded text-xs cursor-pointer transition-all ${
+                    selectedEdgeId === edge.id
+                      ? 'bg-gray-700 ring-1 ring-gray-500'
+                      : 'hover:bg-gray-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: EDGE_COLORS[edge.type] || '#fff' }}
+                    />
+                    <span className="text-gray-400">{EDGE_LABELS[edge.type]}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-300">{formatLength(edge.lengthFt)}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); deleteEdge(edge.id); }}
+                      className="text-red-400/60 hover:text-red-400 ml-1"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-gray-300">{formatLength(edge.lengthFt)}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); deleteEdge(edge.id); }}
-                    className="text-red-400/60 hover:text-red-400 ml-1"
-                  >
-                    ×
-                  </button>
-                </div>
+                {selectedEdgeId === edge.id && (
+                  <div className="px-2 py-1.5 bg-gray-800/50 rounded-b flex items-center gap-2">
+                    <span className="text-[10px] text-gray-500 uppercase">Type:</span>
+                    <select
+                      value={edge.type}
+                      onChange={(e) => { e.stopPropagation(); updateEdgeType(edge.id, e.target.value as EdgeType); }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex-1 bg-gray-800 border border-gray-700 rounded px-1.5 py-1 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                    >
+                      {EDGE_TYPE_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{EDGE_LABELS[t]}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             ))}
           </div>

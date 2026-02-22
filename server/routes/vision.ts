@@ -148,4 +148,86 @@ Return ONLY valid JSON, no markdown.`;
   }
 });
 
+/**
+ * POST /api/vision/detect-edges
+ * AI-powered roof edge detection from satellite imagery.
+ * Body: { imageBase64, imageBounds, imageSize? }
+ * Returns individual edges with types + pixel coordinates.
+ */
+router.post('/detect-edges', async (req: Request, res: Response) => {
+  try {
+    const { imageBase64, imageBounds, imageSize = 640, model, max_tokens } = req.body;
+
+    if (!imageBase64 || !imageBounds) {
+      res.status(400).json({ error: 'imageBase64 and imageBounds are required' });
+      return;
+    }
+
+    const prompt = `Analyze this ${imageSize}x${imageSize} satellite image of a building roof. Identify ALL visible roof structural lines and classify each one.
+
+Return a JSON object with:
+1. "edges": array of detected roof edges. Each edge has:
+   - "type": one of "ridge", "hip", "valley", "rake", "eave", "flashing"
+   - "start": {x, y} pixel coordinates of the edge start point (0-${imageSize})
+   - "end": {x, y} pixel coordinates of the edge end point (0-${imageSize})
+2. "roofType": one of "flat", "shed", "gable", "hip", "cross-gable", "complex"
+3. "estimatedPitchDegrees": estimated roof pitch in degrees (typical residential: 15-35)
+4. "confidence": 0-1 confidence score for the overall detection
+
+Rules for edge detection:
+- "ridge": the peak line at the top of the roof where two slopes meet
+- "hip": diagonal lines running from a ridge end down to an eave corner
+- "valley": interior lines where two roof planes meet going downward
+- "rake": sloped edges at the gable end of a roof
+- "eave": horizontal edges at the bottom/perimeter of the roof
+- "flashing": lines where the roof meets a wall or chimney
+
+Trace the actual visible roof lines precisely. Include ALL edges you can see — ridges, hips, valleys, rakes, AND eaves around the full perimeter. Place endpoints exactly where lines intersect.
+
+Return ONLY the JSON object, no other text.`;
+
+    const anthropicRes = await fetch(ANTHROPIC_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getApiKey(),
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: model || 'claude-sonnet-4-5-20250929',
+        max_tokens: max_tokens || 4096,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: 'image/png',
+                data: imageBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: prompt,
+            },
+          ],
+        }],
+      }),
+    });
+
+    if (!anthropicRes.ok) {
+      const body = await anthropicRes.text();
+      res.status(anthropicRes.status).json({ error: `Anthropic API error: ${anthropicRes.status}`, details: body });
+      return;
+    }
+
+    const data = await anthropicRes.json();
+    res.json(data);
+  } catch (err) {
+    console.error('Vision detect-edges error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 export { router as visionRouter };

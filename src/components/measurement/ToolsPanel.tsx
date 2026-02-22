@@ -95,7 +95,7 @@ export default function ToolsPanel() {
       {['ridge', 'hip', 'valley', 'rake', 'eave', 'flashing'].includes(drawingMode) && (
         <div className="mt-4 p-3 bg-blue-900/30 border border-blue-700/50 rounded-lg">
           <p className="text-xs text-blue-300">
-            Click on a vertex to start a line, then click another vertex to complete the {drawingMode} line.
+            Click anywhere to start a {drawingMode} line, then click to complete it. Snaps to existing points when close.
           </p>
         </div>
       )}
