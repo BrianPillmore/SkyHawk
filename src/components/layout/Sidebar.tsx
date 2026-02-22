@@ -6,6 +6,8 @@ import ReportPanel from '../reports/ReportPanel';
 import ComparisonPanel from '../comparison/ComparisonPanel';
 import ClaimsPanel from '../claims/ClaimsPanel';
 import AdjusterPanel from '../claims/AdjusterPanel';
+import SolarPanel from '../solar/SolarPanel';
+import EnterprisePanel from '../enterprise/EnterprisePanel';
 
 export default function Sidebar() {
   const { sidebarOpen, activePanel, setActivePanel, activeMeasurement, activePropertyId } = useStore();
@@ -19,6 +21,8 @@ export default function Sidebar() {
     { id: 'compare' as const, label: 'Compare', icon: '🔄' },
     { id: 'claims' as const, label: 'Claims', icon: '📋' },
     { id: 'schedule' as const, label: 'Schedule', icon: '📅' },
+    { id: 'solar' as const, label: 'Solar', icon: '☀️' },
+    { id: 'enterprise' as const, label: 'Team', icon: '👥' },
   ];
 
   return (
@@ -50,9 +54,10 @@ export default function Sidebar() {
         {activePanel === 'claims' && <ClaimsPanel />}
         {activePanel === 'compare' && <ComparisonPanel />}
         {activePanel === 'schedule' && <AdjusterPanel />}
+        {activePanel === 'enterprise' && <EnterprisePanel />}
 
         {/* Other panels require active measurement */}
-        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && (
+        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && (
           !activeMeasurement ? (
             <div className="p-4 text-center text-gray-500 text-sm">
               <p className="mb-2">No active measurement</p>
@@ -63,6 +68,7 @@ export default function Sidebar() {
               {activePanel === 'tools' && <ToolsPanel />}
               {activePanel === 'measurements' && <MeasurementsPanel />}
               {activePanel === 'report' && <ReportPanel />}
+              {activePanel === 'solar' && <SolarPanel />}
             </>
           )
         )}

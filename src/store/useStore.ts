@@ -58,7 +58,7 @@ interface AppState {
 
   // UI state
   sidebarOpen: boolean;
-  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule';
+  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'enterprise';
 
   // Undo/Redo
   _undoStack: RoofMeasurement[];
@@ -104,7 +104,7 @@ interface AppState {
 
   // Actions - UI
   toggleSidebar: () => void;
-  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule') => void;
+  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'enterprise') => void;
 
   // Actions - Recalculate
   recalculateMeasurements: () => void;

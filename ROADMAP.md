@@ -86,19 +86,19 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [ ] Material type detection (shingle, metal, tile, etc.)
 
 ### Phase 5: Solar Integration
-- [ ] Solar panel placement optimizer
+- [x] Solar panel placement optimizer
 - [ ] Shading analysis
 - [ ] Sun path simulation
-- [ ] Energy production estimates
-- [ ] Solar-ready reports
+- [x] Energy production estimates
+- [x] Solar-ready reports
 
 ### Phase 6: Enterprise & Collaboration
 - [ ] Multi-user organization accounts
-- [ ] Role-based access control (admin, adjuster, roofer, viewer)
+- [x] Role-based access control (admin, adjuster, roofer, viewer)
 - [ ] Report sharing and collaboration
-- [ ] API for third-party integrations
+- [x] API for third-party integrations
 - [ ] Webhook notifications
-- [ ] Audit trail and activity logging
+- [x] Audit trail and activity logging
 - [ ] White-label support
 
 ### Phase 7: Drone Integration
