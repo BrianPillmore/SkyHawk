@@ -74,29 +74,38 @@ All property data currently lives in browser localStorage (Zustand persist). Thi
 single-device, single-browser, ~5MB max. Need PostgreSQL on the Hetzner VPS to persist all
 property data server-side.
 
-- [ ] **Phase A: DB Setup & Migrations** (MEDIUM effort ~3-4 hrs)
-  - Install PostgreSQL 16 on VPS, create `skyhawk` database
-  - Connection pool (`server/db/index.ts`) + migration runner
-  - Full schema: properties, measurements, vertices, edges, facets, damage, claims, snapshots, solar cache, audit log
-  - Migrate users from `users.json` to `users` table
+- [x] **Phase A: DB Setup & Migrations** (COMPLETE)
+  - `server/db/index.ts` — Connection pool (`pg.Pool`) with query helper, transaction wrapper, slow query logging
+  - `server/db/migrations/001_initial_schema.sql` — Full schema: 18 tables (users, properties, measurements, vertices, edges, facets, facet_vertices, facet_edges, damage_annotations, image_snapshots, claims, adjusters, inspections, roof_condition_assessments, solar_api_cache, organizations, organization_members, audit_log, api_keys, _migrations)
+  - `server/db/migrate.ts` — Migration runner script (reads SQL files, tracks applied migrations)
+  - `server/middleware/validate.ts` — Request validation (requireFields, requireUuidParam, parseNumericQuery)
+  - Auth updated to support both PostgreSQL and flat-file fallback, with on-the-fly user migration
+  - Registration endpoint added (`POST /api/auth/register`)
+  - 10 tests in `tests/unit/dbIndex.test.ts`
 
-- [ ] **Phase B: Property CRUD API** (HIGH effort ~6-8 hrs)
-  - `server/routes/properties.ts` — CRUD for properties
-  - `server/routes/measurements.ts` — Save/load full measurement graph (vertices + edges + facets) in a transaction
-  - `server/routes/claims.ts` — Claims + inspections
-  - `server/routes/images.ts` — Image upload to filesystem, URL references in DB
-  - All endpoints enforce user ownership
+- [x] **Phase B: Property CRUD API** (COMPLETE)
+  - `server/routes/properties.ts` — Full CRUD + damage annotations (list, get, create, update, delete)
+  - `server/routes/measurements.ts` — Full measurement graph save (transactional: measurement + vertices + edges + facets + junction tables) and load (assembled with vertex/edge ID mappings)
+  - `server/routes/claims.ts` — Claims CRUD + inspection scheduling + inspection updates
+  - All endpoints enforce user ownership via JOIN against users table
+  - All params use Express 5 safe extraction (handles `string | string[]`)
+  - Server entry point updated to mount all new routes with auth middleware
+  - DB connection initialized on startup (graceful fallback if DATABASE_URL not set)
+  - 11 tests in `tests/unit/serverRoutes.test.ts`, 16 tests in `tests/unit/validate.test.ts`
 
-- [ ] **Phase C: Client Sync Layer** (HIGH effort ~6-8 hrs)
-  - `src/services/propertyApi.ts` — API client
-  - `src/hooks/useSync.ts` — Sync orchestration
-  - Dual-write: Zustand mutation + background API call (optimistic updates)
-  - Offline queue with retry on reconnect
+- [x] **Phase C: Client Sync Layer** (COMPLETE)
+  - `src/services/propertyApi.ts` — Full typed API client (properties, measurements, claims, damage, health check)
+  - `src/hooks/useSync.ts` — Sync orchestration with optimistic updates, offline queue, exponential backoff retry
+  - `pullFromServer()` — Fetch server properties and merge into local Zustand store
+  - `pushToServer()` — Push all localStorage properties to server (migration helper)
+  - Health check on mount to detect online/offline status
+  - 14 tests in `tests/unit/propertyApi.test.ts`
 
 - [ ] **Phase D: Data Migration & Cleanup** (LOW effort ~2-3 hrs)
   - One-time localStorage → server migration on first login
   - Sync status indicator in header (green/yellow/red)
   - Remove property data from localStorage persist whitelist
+  - **VPS setup required**: Install PostgreSQL 16, create database, set DATABASE_URL
 
 ### Priority 3: Phase 6 — Backend API (Remaining)
 Express backend server is deployed (Hetzner VPS at 89.167.94.69) with auth + vision proxy.
@@ -388,8 +397,11 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - [x] Vision API proxy (Claude edge detection)
 - [x] Nginx reverse proxy with SSL
 - [x] Trust proxy configuration
-- [ ] Property CRUD API — NOT DONE
-- [ ] Database persistence — NOT DONE
+- [x] Property CRUD API (server/routes/properties.ts, measurements.ts, claims.ts)
+- [x] Database schema + migration runner (server/db/)
+- [x] Client-side API layer + sync hook (src/services/propertyApi.ts, src/hooks/useSync.ts)
+- [ ] PostgreSQL installation on VPS — NOT DONE (requires SSH access)
+- [ ] Data migration from localStorage — NOT DONE (Phase D)
 
 ### API Cost Per Property (~$0.05-0.06 beyond free tier)
 | API | Cost/Call | Free/Month |
@@ -420,7 +432,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1435 tests across 51 files)
+- Vitest (1486 tests across 55 files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -504,6 +516,19 @@ All keys are configured in `.env` (gitignored, not committed):
 | Sun path simulation | `src/utils/sunPath.ts` |
 | DSM analysis | `src/utils/dsmAnalysis.ts` |
 
+### Database & API
+| Purpose | File |
+|---------|------|
+| DB connection pool | `server/db/index.ts` |
+| Schema migration SQL | `server/db/migrations/001_initial_schema.sql` |
+| Migration runner | `server/db/migrate.ts` |
+| Validation middleware | `server/middleware/validate.ts` |
+| Property CRUD routes | `server/routes/properties.ts` |
+| Measurement CRUD routes | `server/routes/measurements.ts` |
+| Claims CRUD routes | `server/routes/claims.ts` |
+| Client API service | `src/services/propertyApi.ts` |
+| Sync orchestration | `src/hooks/useSync.ts` |
+
 ### Claims & Enterprise
 | Purpose | File |
 |---------|------|
@@ -527,7 +552,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | EagleView Calibration | `plans/completed/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
 | GotRuf Marketing Site | `plans/active/gotruf-marketing-site.md` | Phase 1 COMPLETE |
 | EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | Phases 1-4 COMPLETE |
-| Database Persistence | `plans/active/database-persistence.md` | NOT STARTED |
+| Database Persistence | `plans/active/database-persistence.md` | Phases A-C COMPLETE |
 | Google Solar API Deep Dive | `plans/active/google-solar-api-deep-dive.md` | NEW |
 | Drone Integration | `plans/research/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
 | API Spec | `specs/API_SPEC.md` | |
@@ -573,6 +598,10 @@ All keys are configured in `.env` (gitignored, not committed):
 | DSM analysis | `tests/unit/dsmAnalysis.test.ts` |
 | Diagram renderer | `tests/unit/diagramRenderer.test.ts` |
 | Imagery API | `tests/unit/imageryApi.test.ts` |
+| DB connection pool | `tests/unit/dbIndex.test.ts` |
+| Validation middleware | `tests/unit/validate.test.ts` |
+| Property API client | `tests/unit/propertyApi.test.ts` |
+| Server route patterns | `tests/unit/serverRoutes.test.ts` |
 | Dashboard component | `tests/unit/Dashboard.test.tsx` |
 
 Run tests with: `npx vitest run`

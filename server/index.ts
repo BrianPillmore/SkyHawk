@@ -3,7 +3,11 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { visionRouter } from './routes/vision.js';
 import { authRouter } from './routes/auth.js';
+import { propertiesRouter } from './routes/properties.js';
+import { measurementsRouter } from './routes/measurements.js';
+import { claimsRouter } from './routes/claims.js';
 import { requireAuth } from './middleware/auth.js';
+import { initDb } from './db/index.js';
 
 dotenv.config();
 
@@ -26,6 +30,34 @@ app.use('/api/auth', authRouter);
 // Vision API proxy routes (protected)
 app.use('/api/vision', requireAuth, visionRouter);
 
-app.listen(PORT, () => {
-  console.log(`SkyHawk API server listening on port ${PORT}`);
+// Property CRUD routes (protected)
+app.use('/api/properties', requireAuth, propertiesRouter);
+
+// Measurement routes (nested under properties, protected)
+app.use('/api/properties/:propertyId/measurements', requireAuth, measurementsRouter);
+
+// Claims routes (nested under properties, protected)
+app.use('/api/properties/:propertyId/claims', requireAuth, claimsRouter);
+
+// Start server
+async function start() {
+  // Try to connect to database (non-fatal if DATABASE_URL not set)
+  if (process.env.DATABASE_URL) {
+    try {
+      await initDb();
+    } catch (err) {
+      console.warn('Database connection failed — running without persistence:', err);
+    }
+  } else {
+    console.warn('DATABASE_URL not set — running without database persistence');
+  }
+
+  app.listen(PORT, () => {
+    console.log(`SkyHawk API server listening on port ${PORT}`);
+  });
+}
+
+start().catch((err) => {
+  console.error('Server startup failed:', err);
+  process.exit(1);
 });
