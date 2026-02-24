@@ -182,8 +182,8 @@ Phase 2 — Remaining:
 
 ### Priority 8: Mobile-Friendly Responsive Design
 Make all views responsive and mobile-friendly for field use:
-- [ ] **Phase A: Responsive Layout** — Sidebar/panel collapse on mobile, full-width map
-- [ ] **Phase B: Touch-Optimized Controls** — Larger touch targets, swipe gestures for panels
+- [x] **Phase A: Responsive Layout** (COMPLETE) — Sidebar renders as bottom sheet overlay on mobile (<md), fixed w-80 on desktop. Header with compact h-12 on mobile, address hidden/truncated. Tab bar scrollable with icon-only on small screens, auto-opens sidebar on tab click. MapView stats overlay hides Facets/Waste on mobile, compact map type selector. Drawing mode and edge start indicators positioned above bottom sheet on mobile with shorter text.
+- [x] **Phase B: Touch-Optimized Controls** (COMPLETE) — All interactive elements have min-h-[44px] tap targets (Apple HIG minimum). ToolsPanel uses 2-column grid on mobile, list on desktop. Undo/redo/clear buttons with active states for touch feedback. MeasurementSelector with larger tap targets. Export dropdown with 40px minimum row height. Keyboard shortcuts section hidden on mobile (no keyboard). Active states (`active:bg-*`) added for touch feedback throughout.
 - [ ] **Phase C: Mobile Measurement UX** — Simplified toolbar for mobile, pinch-to-zoom map
 - [ ] **Phase D: Field-Ready PWA** — Service worker for offline, installable app, camera integration
 - [ ] **Phase E: Tablet Layout** — Split-view optimized for iPad/Android tablet landscape mode
