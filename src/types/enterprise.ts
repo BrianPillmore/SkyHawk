@@ -68,7 +68,7 @@ export interface OrganizationMember {
   organizationId: string;
   userId: string;
   userName: string;
-  username: string;
+  username?: string;
   email: string;
   role: UserRole;
   joinedAt: string;

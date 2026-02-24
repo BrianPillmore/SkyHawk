@@ -367,6 +367,26 @@ export default function ReportPanel() {
         >
           {generating ? 'Generating...' : 'Generate PDF Report'}
         </button>
+
+        {includeHtmlExport && (
+          <div className="relative">
+            <button
+              onClick={handleExportHtml}
+              disabled={!hasData || exportingHtml}
+              onMouseEnter={() => setHtmlTooltipVisible(true)}
+              onMouseLeave={() => setHtmlTooltipVisible(false)}
+              className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportingHtml ? 'Exporting...' : 'Export Interactive HTML'}
+            </button>
+            {htmlTooltipVisible && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg whitespace-nowrap z-10">
+                Self-contained HTML file with interactive map
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 rotate-45" />
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {!hasData && (
