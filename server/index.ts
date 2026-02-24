@@ -6,7 +6,12 @@ import { authRouter } from './routes/auth.js';
 import { propertiesRouter } from './routes/properties.js';
 import { measurementsRouter } from './routes/measurements.js';
 import { claimsRouter } from './routes/claims.js';
+import { apiKeysRouter } from './routes/apiKeys.js';
+import { reportsRouter } from './routes/reports.js';
+import { auditRouter } from './routes/audit.js';
 import { requireAuth } from './middleware/auth.js';
+import { apiKeyAuth } from './middleware/apiKeyAuth.js';
+import { auditLogger } from './middleware/auditLog.js';
 import { initDb } from './db/index.js';
 
 dotenv.config();
@@ -18,6 +23,13 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:5173';
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json({ limit: '10mb' }));
+
+// Audit logging middleware — logs all mutating /api/ requests
+app.use('/api', auditLogger);
+
+// API key authentication — checks X-API-Key header before JWT auth
+// Falls through to JWT auth if no API key header present
+app.use('/api', apiKeyAuth);
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -38,6 +50,15 @@ app.use('/api/properties/:propertyId/measurements', requireAuth, measurementsRou
 
 // Claims routes (nested under properties, protected)
 app.use('/api/properties/:propertyId/claims', requireAuth, claimsRouter);
+
+// API key management routes (protected)
+app.use('/api/api-keys', requireAuth, apiKeysRouter);
+
+// Report generation routes (protected)
+app.use('/api/reports', requireAuth, reportsRouter);
+
+// Audit log query routes (protected, RBAC enforced inside the router)
+app.use('/api/audit-log', requireAuth, auditRouter);
 
 // Start server
 async function start() {

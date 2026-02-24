@@ -238,6 +238,82 @@ export interface DetectedRoofEdges {
   confidence: number;
 }
 
+// --- Flux / Shade Analysis Types ---
+
+export interface FluxPixelData {
+  lat: number;
+  lng: number;
+  annualFluxKwhPerKwPerYear: number;
+  monthlyFlux: number[]; // 12 values
+}
+
+export interface ParsedFluxMap {
+  /** Float32 annual flux data in kWh/kW/year (row-major) */
+  data: Float32Array;
+  width: number;
+  height: number;
+  affine: GeoTiffAffine;
+  noDataValue: number;
+}
+
+export interface ParsedMonthlyFlux {
+  /** 12 Float32Arrays, one per month (row-major) */
+  bands: Float32Array[];
+  width: number;
+  height: number;
+  affine: GeoTiffAffine;
+  noDataValue: number;
+}
+
+export interface FacetFluxAnalysis {
+  facetIndex: number;
+  meanAnnualFlux: number;
+  minAnnualFlux: number;
+  maxAnnualFlux: number;
+  fluxUniformity: number; // 0-1, higher = more uniform
+  monthlyMeanFlux: number[]; // 12 values
+  shadedPixelPercent: number; // % pixels below shade threshold
+  bestMonth: number; // 0-11
+  worstMonth: number; // 0-11
+  seasonalVariation: number; // ratio of best/worst month
+}
+
+export interface FluxMapAnalysis {
+  totalRoofPixels: number;
+  meanRoofFlux: number;
+  facetAnalyses: FacetFluxAnalysis[];
+  shadeThresholdKwh: number;
+  overallShadingPercent: number;
+}
+
+export interface ShadeAnalysisResult {
+  hourlyShading: Map<number, number>; // hour -> % shaded
+  seasonalShading: { summer: number; winter: number; spring: number; fall: number };
+  annualShadingPercent: number;
+}
+
+// --- Pitch Verification Types ---
+
+export interface PitchVerificationResult {
+  facetIndex: number;
+  solarApiPitch: number; // x/12 format
+  dsmPitch: number; // x/12 format
+  pitchDifference: number; // absolute difference
+  confidence: 'high' | 'medium' | 'low';
+  sampleCount: number;
+  rSquared: number; // plane fit quality
+  recommendation: 'accept-solar' | 'accept-dsm' | 'manual-review';
+}
+
+export interface BuildingHeightResult {
+  heightFt: number;
+  ridgeHeightFt: number;
+  estimatedStories: number;
+  groundElevationFt: number;
+  roofElevationFt: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
 export type AutoMeasureStatus =
   | 'idle'
   | 'detecting'

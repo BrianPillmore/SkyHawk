@@ -1,9 +1,11 @@
 import { useStore } from '../../store/useStore';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import type { DrawingMode, DamageType, DamageSeverity } from '../../types';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import AutoMeasureButton from './AutoMeasureButton';
 import AnalyzeConditionButton from './AnalyzeConditionButton';
+import MobileToolbar from './MobileToolbar';
 
 const TOOLS: { mode: DrawingMode; label: string; icon: string; description: string; color?: string }[] = [
   { mode: 'pan', label: 'Pan/Navigate', icon: '\u{1F590}\uFE0F', description: 'Pan and navigate the map' },
@@ -19,6 +21,7 @@ const TOOLS: { mode: DrawingMode; label: string; icon: string; description: stri
 ];
 
 export default function ToolsPanel() {
+  const isMobile = useIsMobile();
   const {
     drawingMode, setDrawingMode, clearAll,
     isDrawingOutline, finishOutline, cancelOutline,
@@ -30,6 +33,11 @@ export default function ToolsPanel() {
 
   const canUndo = _undoStack.length > 0;
   const canRedo = _redoStack.length > 0;
+
+  // On mobile, render the compact floating toolbar instead
+  if (isMobile) {
+    return <MobileToolbar />;
+  }
 
   return (
     <div className="p-3">

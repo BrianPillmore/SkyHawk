@@ -1,12 +1,23 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
+import { useIsMobile } from '../../hooks/useMediaQuery';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
 import { getMidpoint, getCentroid } from '../../utils/geometry';
 import { computePanelLayout, getPanelColor } from '../../utils/solarPanelLayout';
 import type { DrawingMode, EdgeType, RoofVertex, DamageAnnotation } from '../../types';
 import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
+
+/** Duration in ms a touch must be held to trigger a long-press vertex drop */
+const LONG_PRESS_DURATION = 500;
+
+/** Trigger haptic feedback if available */
+function hapticFeedback(duration = 15) {
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(duration);
+  }
+}
 
 // Distance threshold in pixels for vertex snap highlight
 const SNAP_THRESHOLD_PX = 18;
@@ -68,6 +79,11 @@ export default function MapView() {
   const facetLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const damageMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const solarPanelPolygonsRef = useRef<google.maps.Polygon[]>([]);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTouchRef = useRef<{ x: number; y: number } | null>(null);
+
+  const isMobile = useIsMobile();
+  const [locatingUser, setLocatingUser] = useState(false);
 
   const { loaded, error, apiKey } = useGoogleMaps();
 
@@ -168,6 +184,7 @@ export default function MapView() {
           }
         }
         addOutlinePoint(lat, lng);
+        hapticFeedback();
       } else if (EDGE_MODES.includes(drawingMode) && activeMeasurement) {
         // Free-form edge drawing: click anywhere to place/snap endpoints
         const map = mapInstanceRef.current;
@@ -180,6 +197,7 @@ export default function MapView() {
 
         // Get or create vertex ID for this click
         const vertexId = snappedId || addVertex(lat, lng);
+        hapticFeedback();
 
         const startId = useStore.getState().edgeStartVertexId;
         if (!startId) {
@@ -189,6 +207,7 @@ export default function MapView() {
         }
       } else if (drawingMode === 'damage') {
         addDamageAnnotation(lat, lng, activeDamageType, activeDamageSeverity, '');
+        hapticFeedback();
       }
     },
     [drawingMode, isDrawingOutline, currentOutlineVertices, activeMeasurement, addOutlinePoint, finishOutline, addVertex, addEdge, setEdgeStartVertex, addDamageAnnotation, activeDamageType, activeDamageSeverity]
@@ -201,6 +220,100 @@ export default function MapView() {
     const listener = map.addListener('click', handleMapClick);
     return () => google.maps.event.removeListener(listener);
   }, [handleMapClick]);
+
+  // Long-press to drop vertex on mobile (alternative to click)
+  useEffect(() => {
+    const container = mapContainerRef.current;
+    if (!container || !isMobile) return;
+
+    const MOVE_THRESHOLD = 10; // px — if finger moves more than this, cancel
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      longPressTouchRef.current = { x: touch.clientX, y: touch.clientY };
+
+      longPressTimerRef.current = setTimeout(() => {
+        const map = mapInstanceRef.current;
+        if (!map) return;
+        const mode = useStore.getState().drawingMode;
+        const isDrawing = mode === 'outline' || EDGE_MODES.includes(mode) || mode === 'damage';
+        if (!isDrawing) return;
+
+        // Convert touch point to lat/lng through the map's overlay projection
+        const rect = container.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+
+        // Use the OverlayView projection via bounds and pixel math
+        const bounds = map.getBounds();
+        const ne = bounds?.getNorthEast();
+        const sw = bounds?.getSouthWest();
+        if (!ne || !sw) return;
+
+        const lat = ne.lat() - (y / rect.height) * (ne.lat() - sw.lat());
+        const lng = sw.lng() + (x / rect.width) * (ne.lng() - sw.lng());
+
+        // Simulate a map click at this location
+        hapticFeedback(30);
+        handleMapClick({
+          latLng: new google.maps.LatLng(lat, lng),
+          stop: () => {},
+          domEvent: e,
+        } as unknown as google.maps.MapMouseEvent);
+      }, LONG_PRESS_DURATION);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!longPressTouchRef.current || !longPressTimerRef.current) return;
+      const touch = e.touches[0];
+      const dx = touch.clientX - longPressTouchRef.current.x;
+      const dy = touch.clientY - longPressTouchRef.current.y;
+      if (Math.sqrt(dx * dx + dy * dy) > MOVE_THRESHOLD) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+      longPressTouchRef.current = null;
+    };
+
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
+      if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+    };
+  }, [isMobile, handleMapClick]);
+
+  // "Locate me" handler — pan map to user's GPS position
+  const handleLocateMe = useCallback(() => {
+    if (!navigator.geolocation) return;
+    setLocatingUser(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setMapCenter({ lat: latitude, lng: longitude });
+        setMapZoom(20);
+        setLocatingUser(false);
+      },
+      () => {
+        setLocatingUser(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }, [setMapCenter, setMapZoom]);
 
   // Set cursor based on drawing mode
   useEffect(() => {
@@ -862,9 +975,44 @@ export default function MapView() {
     );
   }
 
+  const isDrawingMode = drawingMode !== 'pan' && drawingMode !== 'select';
+
   return (
     <div className="flex-1 relative">
       <div ref={mapContainerRef} className="absolute inset-0" />
+
+      {/* Floating crosshair indicator for mobile drawing mode */}
+      {isMobile && isDrawingMode && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+          <svg width="32" height="32" viewBox="0 0 32 32" className="opacity-60">
+            <line x1="16" y1="4" x2="16" y2="14" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="16" y1="18" x2="16" y2="28" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="4" y1="16" x2="14" y2="16" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+            <line x1="18" y1="16" x2="28" y2="16" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="16" cy="16" r="2" fill="none" stroke="white" strokeWidth="1.5" />
+          </svg>
+        </div>
+      )}
+
+      {/* Locate me (GPS) button — mobile only */}
+      {isMobile && (
+        <button
+          onClick={handleLocateMe}
+          disabled={locatingUser}
+          className="absolute bottom-32 right-2 z-10 w-11 h-11 rounded-full bg-gray-900/90 backdrop-blur
+                     border border-gray-700/50 flex items-center justify-center
+                     text-gray-300 active:bg-gray-800 transition-colors disabled:opacity-50"
+          aria-label="Locate me"
+        >
+          {locatingUser ? (
+            <div className="w-5 h-5 border-2 border-gotruf-400 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2v2m0 16v2M2 12h2m16 0h2m-5.636-5.636l-1.414 1.414M8.464 15.536l-1.414 1.414m10.586 0l-1.414-1.414M8.464 8.464L7.05 7.05M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          )}
+        </button>
+      )}
 
       {/* Map type selector */}
       <div className="absolute top-2 right-2 md:top-3 md:right-3 bg-gray-900/90 backdrop-blur rounded-lg overflow-hidden flex border border-gray-700/50 z-10">
