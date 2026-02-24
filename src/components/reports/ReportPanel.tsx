@@ -4,6 +4,8 @@ import { generateReport } from '../../utils/reportGenerator';
 import { captureMapScreenshot } from '../../utils/mapCapture';
 import { renderLengthDiagram, renderAreaDiagram, renderPitchDiagram } from '../../utils/diagramRenderer';
 import { captureObliqueViews } from '../../services/imageryApi';
+import { downloadHtmlReport } from '../../utils/htmlReportExporter';
+import type { HtmlReportData } from '../../utils/htmlReportExporter';
 
 export default function ReportPanel() {
   const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights } = useStore();
@@ -20,6 +22,9 @@ export default function ReportPanel() {
   const [includePitchDiagram, setIncludePitchDiagram] = useState(true);
   const [includeObliqueViews, setIncludeObliqueViews] = useState(false);
   const [includeSolarPanelLayout, setIncludeSolarPanelLayout] = useState(true);
+  const [includeHtmlExport, setIncludeHtmlExport] = useState(true);
+  const [exportingHtml, setExportingHtml] = useState(false);
+  const [htmlTooltipVisible, setHtmlTooltipVisible] = useState(false);
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
   const hasSolarPanels = !!(solarInsights?.solarPotential?.solarPanels?.length);
@@ -93,6 +98,61 @@ export default function ReportPanel() {
       console.error('Report generation failed:', err);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleExportHtml = () => {
+    if (!property || !hasData || !activeMeasurement) return;
+    setExportingHtml(true);
+    try {
+      saveMeasurement();
+
+      const dataSourceLabel = activeMeasurement.dataSource === 'lidar-mask' ? 'LIDAR + Solar API'
+        : activeMeasurement.dataSource === 'hybrid' ? 'Solar API + AI Vision'
+        : activeMeasurement.dataSource === 'ai-vision' ? 'AI Vision'
+        : 'Manual Measurement';
+      const confidenceLevel = activeMeasurement.dataSource === 'lidar-mask' ? 'High'
+        : activeMeasurement.dataSource === 'hybrid' ? 'High'
+        : activeMeasurement.dataSource === 'ai-vision' ? 'Medium'
+        : 'Standard';
+
+      const reportData: HtmlReportData = {
+        property: {
+          address: `${property.address}, ${property.city}, ${property.state} ${property.zip}`,
+          lat: property.lat,
+          lng: property.lng,
+        },
+        measurement: {
+          vertices: activeMeasurement.vertices.map((v) => ({ id: v.id, lat: v.lat, lng: v.lng })),
+          edges: activeMeasurement.edges.map((e) => ({
+            id: e.id,
+            startVertexId: e.startVertexId,
+            endVertexId: e.endVertexId,
+            type: e.type,
+            lengthFt: e.lengthFt,
+          })),
+          facets: activeMeasurement.facets.map((f) => ({
+            id: f.id,
+            name: f.name,
+            pitch: f.pitch,
+            areaSqFt: f.areaSqFt,
+            trueAreaSqFt: f.trueAreaSqFt,
+            vertexIds: f.vertexIds,
+          })),
+          totalArea: activeMeasurement.totalAreaSqFt,
+          totalTrueArea: activeMeasurement.totalTrueAreaSqFt,
+          suggestedWaste: activeMeasurement.suggestedWastePercent,
+        },
+        generatedAt: new Date().toISOString(),
+        confidence: confidenceLevel,
+        dataSource: dataSourceLabel,
+      };
+
+      downloadHtmlReport(reportData);
+    } catch (err) {
+      console.error('HTML export failed:', err);
+    } finally {
+      setExportingHtml(false);
     }
   };
 
@@ -273,6 +333,19 @@ export default function ReportPanel() {
                 <span>Solar panel layout diagram</span>
               </label>
             )}
+
+            <div className="mt-2 pt-2 border-t border-gray-700/50">
+              <span className="text-gray-500 text-[10px] uppercase tracking-wider">Export Formats</span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeHtmlExport}
+                onChange={(e) => setIncludeHtmlExport(e.target.checked)}
+                className="accent-gotruf-500"
+              />
+              <span>Interactive HTML export</span>
+            </label>
           </div>
         </section>
       )}

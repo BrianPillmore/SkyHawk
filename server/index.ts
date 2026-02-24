@@ -9,6 +9,7 @@ import { claimsRouter } from './routes/claims.js';
 import { apiKeysRouter } from './routes/apiKeys.js';
 import { reportsRouter } from './routes/reports.js';
 import { auditRouter } from './routes/audit.js';
+import { checkoutRouter } from './routes/checkout.js';
 import { requireAuth } from './middleware/auth.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import { auditLogger } from './middleware/auditLog.js';
@@ -38,6 +39,11 @@ app.get('/api/health', (_req, res) => {
 
 // Auth routes (public)
 app.use('/api/auth', authRouter);
+
+// Checkout & billing routes (auth handled inside router per-endpoint)
+app.use('/api/checkout', checkoutRouter);
+app.use('/api/webhooks/stripe', checkoutRouter);
+app.use('/api/user', checkoutRouter);
 
 // Vision API proxy routes (protected)
 app.use('/api/vision', requireAuth, visionRouter);

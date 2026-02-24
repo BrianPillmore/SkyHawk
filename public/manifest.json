@@ -1,0 +1,14 @@
+{
+  "name": "SkyHawk - Aerial Property Intelligence",
+  "short_name": "SkyHawk",
+  "description": "Professional roof measurement and property analysis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#3b82f6",
+  "orientation": "any",
+  "icons": [
+    { "src": "/skyhawk-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/skyhawk-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

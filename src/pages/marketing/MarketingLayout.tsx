@@ -1,7 +1,9 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../../store/useStore';
 import LoginModal from '../../components/LoginModal';
+import { updateDocumentMeta, setStructuredData, getOrganizationSchema } from '../../utils/seo';
+import { initAnalytics, trackPageView } from '../../utils/analytics';
 
 function Logo() {
   return (
@@ -63,9 +65,96 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
+/** Page-specific SEO defaults based on the current route. */
+function usePageSEO() {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+
+    // Each marketing page sets its own detailed SEO in its component,
+    // but we provide sensible defaults here as a fallback.
+    const defaults: Record<string, { title: string; description: string }> = {
+      '/': {
+        title: 'GotRuf \u2014 Professional Roof Measurements, Affordable Prices',
+        description:
+          'Instant roof measurements powered by satellite imagery and AI. Starting at $9.99. First report free. The affordable EagleView alternative.',
+      },
+      '/contractors': {
+        title: 'For Roofing Contractors',
+        description:
+          'Professional roof measurement reports for contractors. Fast, accurate, and affordable. Replace EagleView at a fraction of the cost.',
+      },
+      '/adjusters': {
+        title: 'For Insurance Adjusters',
+        description:
+          'Roof measurement and damage assessment reports for insurance adjusters. Xactimate-ready ESX exports included.',
+      },
+      '/agents': {
+        title: 'For Insurance Agents',
+        description:
+          'Pre-inspection roof condition reports for insurance agents. AI condition scoring and risk assessment included.',
+      },
+      '/homeowners': {
+        title: 'For Homeowners',
+        description:
+          'Know your roof before calling a contractor. Get an instant roof measurement report for just $9.99. First one free.',
+      },
+      '/pricing': {
+        title: 'Pricing',
+        description:
+          'GotRuf roof measurement reports starting at $9.99. First report free. Pro plan $99/mo for 25 reports.',
+      },
+      '/signup': {
+        title: 'Sign Up \u2014 Get Your Free Report',
+        description:
+          'Create a free GotRuf account and get your first roof measurement report at no cost. No credit card required.',
+      },
+    };
+
+    const page = defaults[path];
+    if (page) {
+      updateDocumentMeta({
+        title: page.title,
+        description: page.description,
+        canonical: `https://gotruf.com${path === '/' ? '' : path}`,
+        ogImage: 'https://gotruf.com/og-default.png',
+        keywords: [
+          'roof measurements',
+          'roof report',
+          'eagleview alternative',
+          'satellite roof measurement',
+          'AI roof analysis',
+        ],
+      });
+    }
+  }, [location.pathname]);
+}
+
+/** Track page views on route change. */
+function usePageTracking() {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+}
+
 export default function MarketingLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const setShowLoginModal = useStore((s) => s.setShowLoginModal);
+
+  // Initialize analytics once on layout mount
+  useEffect(() => {
+    initAnalytics();
+
+    // Set organization structured data
+    setStructuredData('organization', getOrganizationSchema());
+  }, []);
+
+  // SEO and analytics hooks
+  usePageSEO();
+  usePageTracking();
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
