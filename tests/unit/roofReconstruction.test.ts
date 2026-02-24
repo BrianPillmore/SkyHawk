@@ -225,8 +225,7 @@ describe('reconstructHipRoof', () => {
 // --- reconstructComplexRoof ---
 
 describe('reconstructComplexRoof', () => {
-  it('should create multiple facets when segments have different centers', () => {
-    // Two segments with centers near different outline vertices
+  it('should create one facet per segment', () => {
     const segments = [
       { ...seg(22, 0), center: { latitude: 40.0000, longitude: -90.0000 } },
       { ...seg(22, 180), center: { latitude: 40.0003, longitude: -90.0000 } },
@@ -234,12 +233,15 @@ describe('reconstructComplexRoof', () => {
     const result = reconstructComplexRoof(RECT_OUTLINE, segments);
     expect(result.facets.length).toBe(2);
     expect(result.roofType).toBe('complex');
+    expect(result.facets[0].name).toBe('Facet 1');
+    expect(result.facets[1].name).toBe('Facet 2');
   });
 
-  it('should add ridge/hip/valley edges between adjacent segments', () => {
+  it('should add ridge/hip/valley edges between proximate segments', () => {
+    // Centers within 100ft of each other → adjacency detected
     const segments = [
-      { ...seg(22, 0), center: { latitude: 40.0000, longitude: -90.0000 } },
-      { ...seg(22, 180), center: { latitude: 40.0003, longitude: -90.0000 } },
+      { ...seg(22, 0), center: { latitude: 40.0001, longitude: -90.0001 } },
+      { ...seg(22, 180), center: { latitude: 40.0002, longitude: -90.0001 } },
     ];
     const result = reconstructComplexRoof(RECT_OUTLINE, segments);
     const interiorEdges = result.edges.filter(e => e.type === 'ridge' || e.type === 'hip' || e.type === 'valley');
@@ -254,6 +256,7 @@ describe('reconstructComplexRoof', () => {
     const result = reconstructComplexRoof(RECT_OUTLINE, segments);
     expect(result.confidence).toBe('medium');
     expect(result.roofType).toBe('complex');
+    expect(result.facets.length).toBe(5);
   });
 
   it('should have low confidence for fewer than 4 segments', () => {
@@ -265,12 +268,27 @@ describe('reconstructComplexRoof', () => {
     expect(result.confidence).toBe('low');
   });
 
-  it('should fall back to single facet when all segments share same center', () => {
-    // All same center → all vertices go to segment 0, others get < 2 vertices
+  it('should create one facet per segment even when all share same center', () => {
     const segments = [seg(20, 0), seg(30, 72), seg(25, 144)];
     const result = reconstructComplexRoof(RECT_OUTLINE, segments);
-    expect(result.facets.length).toBeGreaterThanOrEqual(1);
-    expect(result.facets[0].pitch).toBeGreaterThan(0);
+    expect(result.facets.length).toBe(3);
+    for (const facet of result.facets) {
+      expect(facet.pitch).toBeGreaterThan(0);
+      expect(facet.trueArea3DSqFt).toBeGreaterThan(0);
+    }
+  });
+
+  it('should set trueArea3DSqFt from Solar API area data', () => {
+    const areaM2 = 100; // 100 sqm
+    const segments = [
+      { ...seg(22, 0, areaM2), center: { latitude: 40.0001, longitude: -90.0001 } },
+      { ...seg(22, 180, areaM2), center: { latitude: 40.0002, longitude: -90.0001 } },
+    ];
+    const result = reconstructComplexRoof(RECT_OUTLINE, segments);
+    const expectedSqFt = areaM2 * 10.7639;
+    for (const facet of result.facets) {
+      expect(facet.trueArea3DSqFt).toBeCloseTo(expectedSqFt, 0);
+    }
   });
 
   it('should classify outline edges as eave or rake', () => {
