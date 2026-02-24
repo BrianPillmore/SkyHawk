@@ -66,6 +66,8 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 export default function MarketingLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const setShowLoginModal = useStore((s) => s.setShowLoginModal);
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const logout = useStore((s) => s.logout);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -85,18 +87,37 @@ export default function MarketingLayout() {
             </nav>
 
             <div className="hidden lg:flex items-center gap-4">
-              <button
-                onClick={() => setShowLoginModal(true)}
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                Log In
-              </button>
-              <Link
-                to="/signup"
-                className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-semibold text-sm py-2 px-5 rounded-lg transition-colors shadow-sm"
-              >
-                Get Free Report
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link to="/dashboard" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                    Dashboard
+                  </Link>
+                  <Link to="/account" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                    Account
+                  </Link>
+                  <button
+                    onClick={logout}
+                    className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    Log Out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setShowLoginModal(true)}
+                    className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    Log In
+                  </button>
+                  <Link
+                    to="/signup"
+                    className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-semibold text-sm py-2 px-5 rounded-lg transition-colors shadow-sm"
+                  >
+                    Get Free Report
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile hamburger */}

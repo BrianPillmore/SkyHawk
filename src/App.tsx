@@ -14,6 +14,7 @@ import HomeownersPage from './pages/marketing/HomeownersPage';
 import PricingPage from './pages/marketing/PricingPage';
 import SignupPage from './pages/marketing/SignupPage';
 import LoginRedirect from './pages/Login';
+import AccountPage from './components/account/AccountPage';
 
 function DashboardPage() {
   const { activePropertyId } = useStore();
@@ -73,6 +74,7 @@ export default function App() {
       {/* App routes (authenticated) */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
+      <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

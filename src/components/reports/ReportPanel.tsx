@@ -6,8 +6,9 @@ import { renderLengthDiagram, renderAreaDiagram, renderPitchDiagram } from '../.
 import { captureObliqueViews } from '../../services/imageryApi';
 
 export default function ReportPanel() {
-  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights } = useStore();
+  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights, reportCredits, useCredit, isAuthenticated } = useStore();
   const [generating, setGenerating] = useState(false);
+  const [creditError, setCreditError] = useState('');
   const [companyName, setCompanyName] = useState('GotRuf Reports');
   const [notes, setNotes] = useState('');
   const [includeMap, setIncludeMap] = useState(true);
@@ -33,10 +34,30 @@ export default function ReportPanel() {
 
   const hasData = activeMeasurement.facets.length > 0;
 
+  const needsCredit = isAuthenticated && reportCredits >= 0;
+
   const handleGenerateReport = async () => {
     if (!property || !hasData) return;
+    setCreditError('');
+
+    // Check credits for authenticated free-tier users
+    if (needsCredit && reportCredits <= 0) {
+      setCreditError('No report credits remaining. Upload an EagleView PDF on your Account page to earn more.');
+      return;
+    }
+
     setGenerating(true);
     try {
+      // Deduct credit before generating
+      if (needsCredit) {
+        const success = await useCredit();
+        if (!success) {
+          setCreditError('Failed to use credit. You may be out of credits.');
+          setGenerating(false);
+          return;
+        }
+      }
+
       saveMeasurement();
 
       // Capture map screenshot
@@ -279,6 +300,18 @@ export default function ReportPanel() {
 
       {/* Actions */}
       <section className="space-y-2">
+        {creditError && (
+          <div className="bg-red-900/30 border border-red-800 text-red-400 text-xs rounded-lg px-3 py-2">
+            {creditError}
+          </div>
+        )}
+
+        {isAuthenticated && (
+          <div className="text-xs text-gray-500 text-center">
+            {reportCredits} report credit{reportCredits !== 1 ? 's' : ''} remaining
+          </div>
+        )}
+
         <button
           onClick={handleSave}
           disabled={!hasData}
@@ -289,10 +322,10 @@ export default function ReportPanel() {
 
         <button
           onClick={handleGenerateReport}
-          disabled={!hasData || generating}
+          disabled={!hasData || generating || (needsCredit && reportCredits <= 0)}
           className="w-full px-4 py-2.5 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {generating ? 'Generating...' : 'Generate PDF Report'}
+          {generating ? 'Generating...' : reportCredits <= 0 && needsCredit ? 'No Credits - Upload EagleView PDF' : 'Generate PDF Report'}
         </button>
       </section>
 
