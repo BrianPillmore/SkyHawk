@@ -222,6 +222,8 @@ export interface ReconstructedRoof {
   dataSource?: 'lidar-mask' | 'ai-vision' | 'hybrid';
   buildingHeight?: BuildingHeightAnalysis;
   facetDsmAnalysis?: DsmFacetAnalysis[];
+  imageryQuality?: 'HIGH' | 'MEDIUM' | 'LOW';
+  solarApiAreaSqFt?: number;
 }
 
 export interface DetectedRoofEdge {

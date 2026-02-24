@@ -430,7 +430,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 ### Known Issues
 - ~~**Enterprise features are frontend-only**~~: RESOLVED — RBAC middleware, audit logging, API key auth all implemented server-side.
 - ~~**API integration is spec-only**~~: RESOLVED — API key management, reports, audit log query endpoints all implemented.
-- **reconstructComplexRoof creates 1 facet**: When all Solar API segment centers are identical or very close, the Voronoi partition assigns all vertices to one segment — affects properties where Google reports overlapping segments.
+- ~~**reconstructComplexRoof creates 1 facet**~~: RESOLVED — Hybrid partitioning (azimuth-based when clustered, Voronoi when spread) + Solar API area fallback ensures multi-facet output.
 - **Waste algorithm divergence**: Our waste calculation uses structural heuristics but differs from EagleView's proprietary algorithm. Mean error ~±10%, max ±15% on the 18 calibration properties.
 
 ### EagleView vs Solar API Regression Results (Feb 2026)
@@ -447,10 +447,10 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - 702 S Williams Ave, El Reno (-43.9%) — tiny house, MEDIUM quality, pitch also wrong
 - 112 Pickard Dr, Mcloud (-22.9%) — MEDIUM quality, mixed low-pitch sections unresolved
 
-**Recommended iterations:**
-1. **Flag MEDIUM quality in the UI** — warn users about reduced accuracy when Solar API returns MEDIUM quality imagery instead of HIGH
-2. **Fix `reconstructComplexRoof`** — the critical bottleneck; Solar API area data is good but our reconstruction creates 1 facet instead of many for 16/18 properties, making edge lengths (ridge/hip/valley/rake/eave) completely wrong
-3. **Use Solar API area directly as fallback** — when reconstruction fails or produces bad results, fall back to summing Solar API segment areas directly (already within 5% for half the properties)
+**Recommended iterations (COMPLETED Feb 2026):**
+1. ~~**Flag MEDIUM quality in the UI**~~ — DONE. Yellow warning badge in reports, quality badges in MeasurementsPanel
+2. ~~**Fix `reconstructComplexRoof`**~~ — DONE. Hybrid partitioning: azimuth-based when clustered + Voronoi when spread. Falls back to `reconstructFromSolarApiAreas` when both strategies still produce ≤1 facet
+3. ~~**Use Solar API area directly as fallback**~~ — DONE. `reconstructFromSolarApiAreas()` creates facets with `trueArea3DSqFt` from Google's `areaMeters2` when geometric partitioning fails
 
 ---
 
@@ -466,7 +466,7 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1953 tests across 76 files)
+- Vitest (1968 tests across 76 files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---

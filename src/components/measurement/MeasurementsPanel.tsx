@@ -43,6 +43,32 @@ export default function MeasurementsPanel() {
           </h3>
           <ExportDropdown measurement={activeMeasurement} property={properties.find(p => p.id === activePropertyId)} />
         </div>
+        {/* Data source and quality badges */}
+        {activeMeasurement.dataSource && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+              {activeMeasurement.dataSource === 'lidar-mask' ? 'LIDAR + Solar API'
+                : activeMeasurement.dataSource === 'hybrid' ? 'Solar API + AI'
+                : activeMeasurement.dataSource === 'ai-vision' ? 'AI Vision'
+                : 'Manual'}
+            </span>
+            {activeMeasurement.imageryQuality === 'MEDIUM' && (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+                MEDIUM quality — reduced accuracy
+              </span>
+            )}
+            {activeMeasurement.imageryQuality === 'HIGH' && (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                HIGH quality imagery
+              </span>
+            )}
+            {activeMeasurement.stories && (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                {activeMeasurement.stories} {activeMeasurement.stories === 1 ? 'story' : 'stories'}
+              </span>
+            )}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Total Area" value={formatArea(activeMeasurement.totalTrueAreaSqFt)} />
           <SummaryCard label="Flat Area" value={formatArea(activeMeasurement.totalAreaSqFt)} />

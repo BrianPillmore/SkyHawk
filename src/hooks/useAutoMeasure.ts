@@ -43,9 +43,11 @@ export function useAutoMeasure() {
       setSolarInsights(insights);
 
       const solarSegments: SolarRoofSegment[] = insights?.solarPotential?.roofSegmentStats || [];
+      const imageryQuality = insights?.imageryQuality;
       if (solarSegments.length > 0) {
         const sorted = [...solarSegments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2);
-        setProgress({ status: 'detecting', percent: 15, message: `Solar: ${solarSegments.length} segments, pitch ${sorted[0].pitchDegrees.toFixed(0)}°` });
+        const qualityNote = imageryQuality === 'MEDIUM' ? ' (MEDIUM quality — reduced accuracy)' : '';
+        setProgress({ status: 'detecting', percent: 15, message: `Solar: ${solarSegments.length} segments, pitch ${sorted[0].pitchDegrees.toFixed(0)}°${qualityNote}` });
       }
 
       // Step 2: LIDAR path — if dataLayers available, use mask+DSM for high-accuracy measurement
@@ -106,6 +108,12 @@ export function useAutoMeasure() {
             reconstructed.dataSource = 'lidar-mask';
             reconstructed.buildingHeight = buildingHeight;
             reconstructed.facetDsmAnalysis = facetAnalyses.filter(Boolean) as typeof reconstructed.facetDsmAnalysis;
+            reconstructed.imageryQuality = imageryQuality;
+
+            // Attach Solar API total area for cross-validation
+            if (insights?.solarPotential?.wholeRoofStats?.areaMeters2) {
+              reconstructed.solarApiAreaSqFt = insights.solarPotential.wholeRoofStats.areaMeters2 * 10.7639;
+            }
 
             // Phase 7: Pitch verification — compare Solar API pitch vs DSM pitch
             setProgress({ status: 'processing', percent: 82, message: 'Verifying pitch from DSM...' });
@@ -185,7 +193,8 @@ export function useAutoMeasure() {
             // Apply to store
             applyAutoMeasurement(reconstructed);
 
-            setProgress({ status: 'complete', percent: 100, message: `LIDAR ${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets, ${buildingHeight.heightFt.toFixed(0)} ft tall (${reconstructed.confidence} confidence)` });
+            const qualityWarning = imageryQuality === 'MEDIUM' ? ' ⚠ MEDIUM quality imagery' : '';
+            setProgress({ status: 'complete', percent: 100, message: `LIDAR ${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets, ${buildingHeight.heightFt.toFixed(0)} ft tall (${reconstructed.confidence} confidence)${qualityWarning}` });
 
             return reconstructed;
           }

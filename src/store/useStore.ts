@@ -892,6 +892,12 @@ export const useStore = create<AppState>()(
           if (reconstructed.dataSource) {
             measurement.dataSource = reconstructed.dataSource;
           }
+          if (reconstructed.imageryQuality) {
+            measurement.imageryQuality = reconstructed.imageryQuality;
+          }
+          if (reconstructed.solarApiAreaSqFt) {
+            measurement.solarApiAreaSqFt = reconstructed.solarApiAreaSqFt;
+          }
 
           set({
             activeMeasurement: measurement,

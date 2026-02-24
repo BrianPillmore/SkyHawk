@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
-import type { Property, RoofMeasurement, DamageSeverity } from '../types';
-import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS } from '../types';
+import type { Property, RoofMeasurement, RoofConditionAssessment, DamageSeverity } from '../types';
+import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS, ROOF_MATERIAL_LABELS } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
 import { estimateMaterials } from './materials';
 import { analyzeSolarPotential, analyzeSolarPotentialFromApi, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
@@ -31,6 +31,7 @@ interface ReportOptions {
   pitchDiagramImage?: string;  // base64 data URL
   obliqueViews?: { north?: string; south?: string; east?: string; west?: string }; // base64 data URLs
   includeSolarPanelLayout?: boolean;
+  roofCondition?: RoofConditionAssessment | null;
 }
 
 export async function generateReport(
@@ -118,18 +119,27 @@ export async function generateReport(
     : measurement.dataSource === 'hybrid' ? 'Solar API + AI Vision'
     : measurement.dataSource === 'ai-vision' ? 'AI Vision'
     : 'Manual Measurement';
-  const confidenceLevel = measurement.dataSource === 'lidar-mask' ? 'High'
+  const isMediumQuality = measurement.imageryQuality === 'MEDIUM';
+  const confidenceLevel = isMediumQuality ? 'Medium'
+    : measurement.dataSource === 'lidar-mask' ? 'High'
     : measurement.dataSource === 'hybrid' ? 'High'
     : measurement.dataSource === 'ai-vision' ? 'Medium'
     : 'Standard';
 
-  doc.setFillColor(219, 234, 254);
-  doc.rect(margin, y, contentWidth, 12, 'F');
-  doc.setFillColor(37, 120, 235);
-  doc.rect(margin, y, 4, 12, 'F');
+  const badgeHeight = isMediumQuality ? 17 : 12;
+  const badgeColor: [number, number, number] = isMediumQuality ? [254, 243, 199] : [219, 234, 254];
+  const badgeAccentColor: [number, number, number] = isMediumQuality ? [234, 179, 8] : [37, 120, 235];
+  doc.setFillColor(...badgeColor);
+  doc.rect(margin, y, contentWidth, badgeHeight, 'F');
+  doc.setFillColor(...badgeAccentColor);
+  doc.rect(margin, y, 4, badgeHeight, 'F');
   addText(`SkyHawk Verified — ${confidenceLevel} Confidence`, margin + 8, y + 5, 8, primaryColor, 'bold');
   addText(`Source: ${dataSourceLabel}`, margin + 8, y + 10, 7, grayText);
-  y += 16;
+  if (isMediumQuality) {
+    const warningColor: [number, number, number] = [161, 98, 7];
+    addText('Imagery quality: MEDIUM — measurements may have reduced accuracy', margin + 8, y + 15, 6.5, warningColor);
+  }
+  y += badgeHeight + 4;
 
   // ============ MAP SCREENSHOT (HERO IMAGE) ============
   if (options.mapScreenshot) {
@@ -163,6 +173,9 @@ export async function generateReport(
   const tocSections: TOCEntry[] = [];
   let tocPageNum = 3; // Content starts at page 3
   tocSections.push({ title: 'Property Overview', pageNumber: tocPageNum, indent: 0 });
+  if (options.roofCondition) {
+    tocSections.push({ title: 'Property Intelligence', pageNumber: tocPageNum, indent: 0 });
+  }
   tocSections.push({ title: 'Roof Measurement Summary', pageNumber: tocPageNum, indent: 0 });
   tocPageNum++;
   if (options.includeLengthDiagram || options.includeAreaDiagram || options.includePitchDiagram) {
@@ -248,6 +261,52 @@ export async function generateReport(
   }
   y += overviewData.length * 7 + 6;
 
+  // ============ PROPERTY INTELLIGENCE (Roof Condition) ============
+  if (options.roofCondition) {
+    const rc = options.roofCondition;
+    checkPage(50);
+    y = addText('PROPERTY INTELLIGENCE', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 4;
+
+    const conditionColor: [number, number, number] =
+      rc.category === 'excellent' || rc.category === 'good' ? [22, 163, 74]
+      : rc.category === 'fair' ? [234, 179, 8]
+      : [220, 38, 38];
+
+    const conditionData: string[][] = [
+      ['Roof Condition', `${rc.category.charAt(0).toUpperCase() + rc.category.slice(1)} (${rc.overallScore}/100)`],
+      ['Roof Material', ROOF_MATERIAL_LABELS[rc.materialType] || rc.materialType],
+      ['Estimated Roof Age', `${rc.estimatedAgeYears} years`],
+      ['Estimated Remaining Life', `${rc.estimatedRemainingLifeYears} years`],
+    ];
+
+    for (let i = 0; i < conditionData.length; i++) {
+      const rowY = y + i * 7;
+      if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(conditionData[i][0], margin + 3, rowY, 9, grayText);
+      const valueColor = i === 0 ? conditionColor : darkText;
+      addText(conditionData[i][1], pageWidth - margin - 3 - doc.getTextWidth(conditionData[i][1]), rowY, 9, valueColor, i === 0 ? 'bold' : 'normal');
+    }
+    y += conditionData.length * 7 + 4;
+
+    // Key findings
+    if (rc.findings.length > 0) {
+      addText('Key Findings:', margin + 3, y, 8, darkText, 'bold');
+      y += 5;
+      for (const finding of rc.findings.slice(0, 4)) {
+        checkPage(8);
+        addText(`  • ${finding}`, margin + 5, y, 7.5, grayText);
+        y += 5;
+      }
+    }
+    y += 4;
+  }
+
   // ============ ROOF SUMMARY ============
   checkPage(60);
   y = addText('ROOF MEASUREMENT SUMMARY', margin, y, 12, primaryColor, 'bold');
@@ -256,7 +315,7 @@ export async function generateReport(
   y += 4;
 
   // Summary table
-  const summaryData = [
+  const summaryRows: string[][] = [
     ['Total Roof Area (True)', formatArea(measurement.totalTrueAreaSqFt)],
     ['Total Projected Area', formatArea(measurement.totalAreaSqFt)],
     ['Total Squares', formatNumber(measurement.totalSquares, 1)],
@@ -266,6 +325,18 @@ export async function generateReport(
     ['Estimated Attic Area', measurement.estimatedAtticSqFt ? formatArea(measurement.estimatedAtticSqFt) : 'N/A'],
     ['Suggested Waste Factor', `${measurement.suggestedWastePercent}%`],
   ];
+  // Add building height and imagery quality rows when available
+  if (measurement.buildingHeightFt) {
+    summaryRows.push(['Building Height', `${measurement.buildingHeightFt.toFixed(0)} ft (${measurement.stories ?? '?'} ${(measurement.stories ?? 0) === 1 ? 'story' : 'stories'})`]);
+  }
+  if (measurement.imageryQuality) {
+    summaryRows.push(['Imagery Quality', measurement.imageryQuality]);
+  }
+  if (measurement.solarApiAreaSqFt) {
+    summaryRows.push(['Solar API Cross-Check Area', formatArea(measurement.solarApiAreaSqFt)]);
+  }
+
+  const summaryData = summaryRows;
 
   for (let i = 0; i < summaryData.length; i++) {
     const rowY = y + i * 7;

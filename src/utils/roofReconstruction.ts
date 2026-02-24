@@ -388,10 +388,88 @@ export function reconstructSimpleRoof(
 }
 
 /**
+ * Detect whether segment centers are clustered (too close together for
+ * distance-based Voronoi to produce multiple facets).
+ * Returns true when the maximum inter-center distance is less than 25%
+ * of the building outline's bounding diagonal.
+ */
+export function areSegmentsClustered(
+  outline: LatLng[],
+  segCenters: LatLng[],
+): boolean {
+  if (segCenters.length <= 1) return true;
+
+  // Building bounding diagonal
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  for (const v of outline) {
+    if (v.lat < minLat) minLat = v.lat;
+    if (v.lat > maxLat) maxLat = v.lat;
+    if (v.lng < minLng) minLng = v.lng;
+    if (v.lng > maxLng) maxLng = v.lng;
+  }
+  const diagFt = haversineDistanceFt(
+    { lat: minLat, lng: minLng },
+    { lat: maxLat, lng: maxLng },
+  );
+  if (diagFt === 0) return true;
+
+  // Maximum distance between any two segment centers
+  let maxCenterDist = 0;
+  for (let i = 0; i < segCenters.length; i++) {
+    for (let j = i + 1; j < segCenters.length; j++) {
+      const d = haversineDistanceFt(segCenters[i], segCenters[j]);
+      if (d > maxCenterDist) maxCenterDist = d;
+    }
+  }
+
+  return maxCenterDist < diagFt * 0.25;
+}
+
+/**
+ * Azimuth-based vertex assignment for when segment centers are clustered.
+ * Each outline vertex is assigned to the segment whose *downslope azimuth*
+ * direction most closely matches the bearing from the roof centroid to the vertex.
+ *
+ * The azimuth of a roof segment points in the direction water would flow
+ * (downslope). Vertices on that side of the building "belong" to that segment.
+ */
+export function assignVerticesByAzimuth(
+  outline: LatLng[],
+  segments: SolarRoofSegment[],
+  centroid: LatLng,
+): number[][] {
+  const segGroups: number[][] = segments.map(() => []);
+
+  for (let i = 0; i < outline.length; i++) {
+    // Bearing from centroid to this vertex (radians, 0 = north, clockwise)
+    const bearingRad = bearing(centroid, outline[i]);
+    const bearingDeg = ((bearingRad * 180 / Math.PI) + 360) % 360;
+
+    let bestSeg = 0;
+    let bestAngleDiff = Infinity;
+
+    for (let s = 0; s < segments.length; s++) {
+      // Segment azimuth is the downslope direction
+      const azDeg = segments[s].azimuthDegrees;
+      const diff = Math.abs(bearingDeg - azDeg);
+      const normalizedDiff = Math.min(diff, 360 - diff);
+      if (normalizedDiff < bestAngleDiff) {
+        bestAngleDiff = normalizedDiff;
+        bestSeg = s;
+      }
+    }
+    segGroups[bestSeg].push(i);
+  }
+
+  return segGroups;
+}
+
+/**
  * Reconstruct a complex roof by creating one facet per Solar API segment.
- * Uses segment centers as interior vertices, assigns outline vertices to the
- * nearest segment via a Voronoi-like partition, and creates ridge/hip/valley
- * edges between adjacent segments based on azimuth analysis.
+ * Uses a hybrid partitioning strategy:
+ * - When segment centers are well-spread: Voronoi (nearest-center) assignment
+ * - When segment centers are clustered: azimuth-based assignment
+ * Creates ridge/hip/valley edges between adjacent segments based on azimuth analysis.
  */
 export function reconstructComplexRoof(
   outline: LatLng[],
@@ -402,7 +480,7 @@ export function reconstructComplexRoof(
     return reconstructSimpleRoof(outline, segments);
   }
 
-  void getCentroid(outline); // used in future multi-facet voronoi
+  const centroid = getCentroid(outline);
   const vertices: LatLng[] = [...outline];
   const edges: ReconstructedRoof['edges'] = [];
   const facets: ReconstructedRoof['facets'] = [];
@@ -419,31 +497,58 @@ export function reconstructComplexRoof(
     vertices.push(c);
   }
 
-  // Assign each outline vertex to the nearest segment center (Voronoi partition)
-  const segGroups: number[][] = segments.map(() => []);
-  for (let i = 0; i < outline.length; i++) {
-    let bestSeg = 0;
-    let bestDist = Infinity;
-    for (let s = 0; s < segCenters.length; s++) {
-      const d = haversineDistanceFt(outline[i], segCenters[s]);
-      if (d < bestDist) {
-        bestDist = d;
-        bestSeg = s;
+  // Choose partitioning strategy based on whether segment centers are clustered
+  const clustered = areSegmentsClustered(outline, segCenters);
+  let segGroups: number[][];
+
+  if (clustered) {
+    // Azimuth-based: assign vertices to the segment whose downslope direction
+    // best matches the bearing from centroid to vertex
+    segGroups = assignVerticesByAzimuth(outline, segments, centroid);
+  } else {
+    // Distance-based Voronoi: assign each outline vertex to nearest segment center
+    segGroups = segments.map(() => []);
+    for (let i = 0; i < outline.length; i++) {
+      let bestSeg = 0;
+      let bestDist = Infinity;
+      for (let s = 0; s < segCenters.length; s++) {
+        const d = haversineDistanceFt(outline[i], segCenters[s]);
+        if (d < bestDist) {
+          bestDist = d;
+          bestSeg = s;
+        }
       }
+      segGroups[bestSeg].push(i);
     }
-    segGroups[bestSeg].push(i);
+  }
+
+  // If Voronoi/azimuth still produced only 1 non-empty group, try azimuth as backup
+  const nonEmptyGroups = segGroups.filter(g => g.length >= 2).length;
+  if (nonEmptyGroups <= 1 && !clustered) {
+    segGroups = assignVerticesByAzimuth(outline, segments, centroid);
   }
 
   // Classify outline edges: eave or rake based on bearing vs nearest segment azimuth
   for (let i = 0; i < outline.length; i++) {
     const j = (i + 1) % outline.length;
     const mid = { lat: (outline[i].lat + outline[j].lat) / 2, lng: (outline[i].lng + outline[j].lng) / 2 };
-    // Find nearest segment to this edge midpoint
+    // Find nearest segment to this edge midpoint (use azimuth matching when clustered)
     let bestSeg = 0;
-    let bestDist = Infinity;
-    for (let s = 0; s < segCenters.length; s++) {
-      const d = haversineDistanceFt(mid, segCenters[s]);
-      if (d < bestDist) { bestDist = d; bestSeg = s; }
+    if (clustered) {
+      const bearingRad = bearing(centroid, mid);
+      const bearingDeg = ((bearingRad * 180 / Math.PI) + 360) % 360;
+      let bestDiff = Infinity;
+      for (let s = 0; s < segments.length; s++) {
+        const diff = Math.abs(bearingDeg - segments[s].azimuthDegrees);
+        const normDiff = Math.min(diff, 360 - diff);
+        if (normDiff < bestDiff) { bestDiff = normDiff; bestSeg = s; }
+      }
+    } else {
+      let bestDist = Infinity;
+      for (let s = 0; s < segCenters.length; s++) {
+        const d = haversineDistanceFt(mid, segCenters[s]);
+        if (d < bestDist) { bestDist = d; bestSeg = s; }
+      }
     }
     const segAz = toRadians(segments[bestSeg].azimuthDegrees);
     const edgeBearing = bearing(outline[i], outline[j]);
@@ -489,7 +594,128 @@ export function reconstructComplexRoof(
     }
   }
 
-  // Fallback: if no facets were created, use single-facet approach
+  // Fallback: if still only 0-1 facets, create facets from Solar API areas directly
+  if (facets.length <= 1 && segments.length >= 2) {
+    return reconstructFromSolarApiAreas(outline, segments);
+  }
+
+  return {
+    vertices,
+    edges,
+    facets,
+    roofType: 'complex',
+    confidence: facets.length >= segments.length ? 'medium' : 'low',
+  };
+}
+
+/**
+ * Fallback reconstruction that uses Solar API segment areas directly.
+ * When geometric partitioning fails (clustered centers, all vertices assigned
+ * to one segment), this creates facets with areas proportional to the
+ * Solar API's reported areaMeters2 values by evenly splitting outline vertices.
+ */
+export function reconstructFromSolarApiAreas(
+  outline: LatLng[],
+  segments: SolarRoofSegment[]
+): ReconstructedRoof {
+  const centroid = getCentroid(outline);
+  const vertices: LatLng[] = [...outline];
+  const edges: ReconstructedRoof['edges'] = [];
+  const facets: ReconstructedRoof['facets'] = [];
+
+  // Add segment centers as interior vertices
+  const segCenterIndices: number[] = [];
+  for (const s of segments) {
+    segCenterIndices.push(vertices.length);
+    vertices.push({ lat: s.center.latitude, lng: s.center.longitude });
+  }
+
+  // Sort outline vertices by angle from centroid for ordered traversal
+  const outlineWithAngles = outline.map((v, i) => {
+    const b = bearing(centroid, v);
+    const deg = ((b * 180 / Math.PI) + 360) % 360;
+    return { idx: i, angleDeg: deg };
+  });
+  outlineWithAngles.sort((a, b) => a.angleDeg - b.angleDeg);
+  const sortedIndices = outlineWithAngles.map(o => o.idx);
+
+  // Sort segments by azimuth for consistent assignment
+  const segOrder = segments.map((s, i) => ({ idx: i, az: s.azimuthDegrees }));
+  segOrder.sort((a, b) => a.az - b.az);
+
+  // Distribute sorted outline vertices to segments proportional to area.
+  // Each segment needs at least 2 vertices. If we don't have enough vertices
+  // to give 2 to every segment, limit the number of segments we can support.
+  const totalArea = segments.reduce((sum, s) => sum + s.stats.areaMeters2, 0);
+  const segGroups: number[][] = segments.map(() => []);
+  const maxSegments = Math.min(segOrder.length, Math.floor(sortedIndices.length / 2));
+  const activeSegOrder = segOrder.slice(0, maxSegments);
+
+  // First pass: compute proportional counts with minimum 2
+  const counts: number[] = activeSegOrder.map((s, si) => {
+    if (si === activeSegOrder.length - 1) return 0; // placeholder for last
+    const proportion = segments[s.idx].stats.areaMeters2 / totalArea;
+    return Math.max(2, Math.round(sortedIndices.length * proportion));
+  });
+
+  // Ensure total doesn't exceed available vertices; last segment gets remainder
+  const assignedSoFar = counts.slice(0, -1).reduce((a, b) => a + b, 0);
+  counts[counts.length - 1] = Math.max(2, sortedIndices.length - assignedSoFar);
+
+  // If we overallocated, trim from largest groups
+  let totalCounts = counts.reduce((a, b) => a + b, 0);
+  while (totalCounts > sortedIndices.length) {
+    const maxIdx = counts.indexOf(Math.max(...counts));
+    if (counts[maxIdx] <= 2) break;
+    counts[maxIdx]--;
+    totalCounts--;
+  }
+
+  let vertexOffset = 0;
+  for (let si = 0; si < activeSegOrder.length; si++) {
+    const segIdx = activeSegOrder[si].idx;
+    const end = Math.min(vertexOffset + counts[si], sortedIndices.length);
+    for (let v = vertexOffset; v < end; v++) {
+      segGroups[segIdx].push(sortedIndices[v]);
+    }
+    vertexOffset = end;
+  }
+
+  // Outline edges
+  for (let i = 0; i < outline.length; i++) {
+    const j = (i + 1) % outline.length;
+    edges.push({ startIndex: i, endIndex: j, type: 'eave' });
+  }
+
+  // Create facets
+  for (let s = 0; s < segments.length; s++) {
+    const group = segGroups[s];
+    if (group.length < 2) continue;
+    const pitch = clampPitch(Math.round(degreesToPitch(segments[s].pitchDegrees) * 10) / 10);
+    const areaM2 = segments[s].stats.areaMeters2;
+    const areaSqFt = areaM2 * 10.7639;
+    facets.push({
+      vertexIndices: [...group, segCenterIndices[s]],
+      pitch,
+      name: `Facet ${facets.length + 1}`,
+      trueArea3DSqFt: areaSqFt,
+    });
+  }
+
+  // Internal edges between adjacent facets
+  for (let i = 0; i < segments.length; i++) {
+    for (let j = i + 1; j < segments.length; j++) {
+      const azDiff = Math.abs(segments[i].azimuthDegrees - segments[j].azimuthDegrees);
+      const normDiff = Math.min(azDiff, 360 - azDiff);
+
+      let edgeType: 'ridge' | 'hip' | 'valley';
+      if (normDiff > 150) edgeType = 'ridge';
+      else if (normDiff > 60 && normDiff < 120) edgeType = 'hip';
+      else edgeType = 'valley';
+      edges.push({ startIndex: segCenterIndices[i], endIndex: segCenterIndices[j], type: edgeType });
+    }
+  }
+
   if (facets.length === 0) {
     const avgPitchDeg = segments.reduce((s, seg) => s + seg.pitchDegrees, 0) / segments.length;
     facets.push({
@@ -504,7 +730,8 @@ export function reconstructComplexRoof(
     edges,
     facets,
     roofType: 'complex',
-    confidence: segments.length >= 4 ? 'medium' : 'low',
+    confidence: facets.length > 1 ? 'medium' : 'low',
+    dataSource: 'hybrid',
   };
 }
 

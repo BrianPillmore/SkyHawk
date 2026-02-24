@@ -8,7 +8,7 @@ import { downloadHtmlReport } from '../../utils/htmlReportExporter';
 import type { HtmlReportData } from '../../utils/htmlReportExporter';
 
 export default function ReportPanel() {
-  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights } = useStore();
+  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights, roofCondition } = useStore();
   const [generating, setGenerating] = useState(false);
   const [companyName, setCompanyName] = useState('GotRuf Reports');
   const [notes, setNotes] = useState('');
@@ -93,6 +93,7 @@ export default function ReportPanel() {
         pitchDiagramImage,
         includeObliqueViews,
         obliqueViews,
+        roofCondition,
       });
     } catch (err) {
       console.error('Report generation failed:', err);
