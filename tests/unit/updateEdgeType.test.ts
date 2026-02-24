@@ -96,15 +96,20 @@ describe('updateEdgeType', () => {
     expect(useStore.getState().activeMeasurement!.totalEaveLf).toBeCloseTo(totalEaveBefore - edgeLength, 1);
   });
 
-  it('should recalculate totalFlashingLf for flashing and step-flashing', () => {
+  it('should recalculate totalFlashingLf and totalStepFlashingLf separately', () => {
     setupPropertyWithOutline();
     const edges = useStore.getState().activeMeasurement!.edges;
     const len0 = edges[0].lengthFt;
     const len1 = edges[1].lengthFt;
     useStore.getState().updateEdgeType(edges[0].id, 'flashing');
     useStore.getState().updateEdgeType(edges[1].id, 'step-flashing');
-    const totalFlashing = useStore.getState().activeMeasurement!.totalFlashingLf;
-    expect(totalFlashing).toBeCloseTo(len0 + len1, 1);
+    const m = useStore.getState().activeMeasurement!;
+    // Flashing and step-flashing are tracked separately
+    expect(m.totalFlashingLf).toBeCloseTo(len0, 1);
+    expect(m.totalStepFlashingLf).toBeCloseTo(len1, 1);
+    // Edge counts should also be tracked
+    expect(m.flashingCount).toBe(1);
+    expect(m.stepFlashingCount).toBe(1);
   });
 
   it('should recalculate totalDripEdgeLf (rake + eave)', () => {

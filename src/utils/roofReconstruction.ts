@@ -1,6 +1,6 @@
 import type { LatLng } from '../types';
 import type { SolarRoofSegment, RoofType, ReconstructedRoof } from '../types/solar';
-import { degreesToPitch, toRadians, getCentroid, latLngToLocalFt } from './geometry';
+import { degreesToPitch, toRadians, getCentroid, latLngToLocalFt, haversineDistanceFt } from './geometry';
 import { localFtToLatLng, bearing, findLinePolygonIntersections } from './geometryHelpers';
 
 /**
@@ -388,38 +388,138 @@ export function reconstructSimpleRoof(
 }
 
 /**
- * Reconstruct a complex roof: outline + all segments as individual facets.
- * The user will need to manually refine edges.
+ * Reconstruct a complex roof by creating one facet per Solar API segment.
+ * Uses segment centers as interior vertices, assigns outline vertices to the
+ * nearest segment via a Voronoi-like partition, and creates ridge/hip/valley
+ * edges between adjacent segments based on azimuth analysis.
  */
 export function reconstructComplexRoof(
   outline: LatLng[],
   segments: SolarRoofSegment[]
 ): ReconstructedRoof {
-  const vertices = [...outline];
-  const edges: ReconstructedRoof['edges'] = [];
-
-  // All outline edges are eaves
-  for (let i = 0; i < outline.length; i++) {
-    const j = (i + 1) % outline.length;
-    edges.push({ startIndex: i, endIndex: j, type: 'eave' });
+  // Fewer than 2 segments → fall back to simple
+  if (segments.length <= 1) {
+    return reconstructSimpleRoof(outline, segments);
   }
 
-  // Create one facet per segment, but map to outline vertices
-  // For complex roofs, just create one facet with all outline vertices
-  // and let the user refine
-  const avgPitchDeg = segments.reduce((s, seg) => s + seg.pitchDegrees, 0) / segments.length;
+  const centroid = getCentroid(outline);
+  const vertices: LatLng[] = [...outline];
+  const edges: ReconstructedRoof['edges'] = [];
+  const facets: ReconstructedRoof['facets'] = [];
+
+  // Convert segment centers to LatLng and add as interior vertices
+  const segCenterIndices: number[] = [];
+  const segCenters: LatLng[] = segments.map((s) => ({
+    lat: s.center.latitude,
+    lng: s.center.longitude,
+  }));
+
+  for (const c of segCenters) {
+    segCenterIndices.push(vertices.length);
+    vertices.push(c);
+  }
+
+  // Assign each outline vertex to the nearest segment center (Voronoi partition)
+  const segGroups: number[][] = segments.map(() => []);
+  for (let i = 0; i < outline.length; i++) {
+    let bestSeg = 0;
+    let bestDist = Infinity;
+    for (let s = 0; s < segCenters.length; s++) {
+      const d = haversineDistanceFt(outline[i], segCenters[s]);
+      if (d < bestDist) {
+        bestDist = d;
+        bestSeg = s;
+      }
+    }
+    segGroups[bestSeg].push(i);
+  }
+
+  // Classify outline edges: eave or rake based on bearing vs nearest segment azimuth
+  for (let i = 0; i < outline.length; i++) {
+    const j = (i + 1) % outline.length;
+    const mid = { lat: (outline[i].lat + outline[j].lat) / 2, lng: (outline[i].lng + outline[j].lng) / 2 };
+    // Find nearest segment to this edge midpoint
+    let bestSeg = 0;
+    let bestDist = Infinity;
+    for (let s = 0; s < segCenters.length; s++) {
+      const d = haversineDistanceFt(mid, segCenters[s]);
+      if (d < bestDist) { bestDist = d; bestSeg = s; }
+    }
+    const segAz = toRadians(segments[bestSeg].azimuthDegrees);
+    const edgeBearing = bearing(outline[i], outline[j]);
+    // Edge perpendicular to segment azimuth → rake, parallel → eave
+    const angleDiff = Math.abs(edgeBearing - segAz);
+    const normAngle = Math.min(angleDiff, Math.PI * 2 - angleDiff);
+    const type = (normAngle < Math.PI / 4 || normAngle > (3 * Math.PI) / 4) ? 'eave' : 'rake';
+    edges.push({ startIndex: i, endIndex: j, type });
+  }
+
+  // Create one facet per segment that has assigned outline vertices
+  for (let s = 0; s < segments.length; s++) {
+    const group = segGroups[s];
+    if (group.length < 2) continue;
+    const pitch = Math.round(degreesToPitch(segments[s].pitchDegrees) * 10) / 10;
+    facets.push({
+      vertexIndices: [...group, segCenterIndices[s]],
+      pitch,
+      name: `Facet ${facets.length + 1}`,
+    });
+  }
+
+  // Determine adjacency between segments and add ridge/hip/valley edges
+  for (let i = 0; i < segments.length; i++) {
+    for (let j = i + 1; j < segments.length; j++) {
+      if (!areSegmentGroupsAdjacent(segGroups[i], segGroups[j], outline.length)) continue;
+
+      const azDiff = Math.abs(segments[i].azimuthDegrees - segments[j].azimuthDegrees);
+      const normDiff = Math.min(azDiff, 360 - azDiff);
+
+      let edgeType: 'ridge' | 'hip' | 'valley';
+      if (normDiff > 150) {
+        // Opposing faces → ridge
+        edgeType = 'ridge';
+      } else if (normDiff > 60 && normDiff < 120) {
+        // ~90° → hip
+        edgeType = 'hip';
+      } else {
+        // Other → valley (cross-gable transitions, dormers)
+        edgeType = 'valley';
+      }
+      edges.push({ startIndex: segCenterIndices[i], endIndex: segCenterIndices[j], type: edgeType });
+    }
+  }
+
+  // Fallback: if no facets were created, use single-facet approach
+  if (facets.length === 0) {
+    const avgPitchDeg = segments.reduce((s, seg) => s + seg.pitchDegrees, 0) / segments.length;
+    facets.push({
+      vertexIndices: outline.map((_, i) => i),
+      pitch: Math.round(degreesToPitch(avgPitchDeg) * 10) / 10,
+      name: 'Facet 1',
+    });
+  }
 
   return {
     vertices,
     edges,
-    facets: [{
-      vertexIndices: outline.map((_, i) => i),
-      pitch: Math.round(degreesToPitch(avgPitchDeg) * 10) / 10,
-      name: 'Facet 1',
-    }],
+    facets,
     roofType: 'complex',
-    confidence: 'low',
+    confidence: segments.length >= 4 ? 'medium' : 'low',
   };
+}
+
+/**
+ * Check if two groups of outline vertex indices are adjacent
+ * (share a consecutive pair along the outline polygon).
+ */
+function areSegmentGroupsAdjacent(groupA: number[], groupB: number[], outlineLen: number): boolean {
+  const setB = new Set(groupB);
+  for (const idx of groupA) {
+    const next = (idx + 1) % outlineLen;
+    const prev = (idx - 1 + outlineLen) % outlineLen;
+    if (setB.has(next) || setB.has(prev)) return true;
+  }
+  return false;
 }
 
 /**

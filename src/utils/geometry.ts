@@ -149,32 +149,71 @@ export function areaToSquares(areaSqFt: number): number {
 }
 
 /**
- * Calculate waste factor based on roof complexity
+ * Calculate waste factor based on roof complexity.
+ * Calibrated against EagleView Premium Report suggested waste factors.
+ * EagleView range across 18 Oklahoma residential properties: 26-35%.
+ * Key drivers: facet count, hip/valley count, total edge complexity.
  */
 export function calculateSuggestedWaste(facets: RoofFacet[], edges: RoofEdge[]): number {
   const numFacets = facets.length;
   const numHipsValleys = edges.filter(
     (e) => e.type === 'hip' || e.type === 'valley'
   ).length;
+  const numRidges = edges.filter((e) => e.type === 'ridge').length;
+  const numRakes = edges.filter((e) => e.type === 'rake').length;
 
-  // Simple heuristic based on complexity
-  if (numFacets <= 2 && numHipsValleys === 0) return 5;
-  if (numFacets <= 4 && numHipsValleys <= 2) return 10;
-  if (numFacets <= 8 && numHipsValleys <= 6) return 15;
-  if (numFacets <= 12) return 20;
-  return 25;
+  // Base waste starts at 10% for the simplest roof
+  let waste = 10;
+
+  // Facet complexity: more facets = more cuts = more waste
+  if (numFacets >= 3) waste += 3;
+  if (numFacets >= 6) waste += 3;
+  if (numFacets >= 10) waste += 2;
+  if (numFacets >= 15) waste += 2;
+  if (numFacets >= 20) waste += 2;
+  if (numFacets >= 30) waste += 3;
+
+  // Hip/valley cuts are the primary driver of shingle waste
+  if (numHipsValleys >= 2) waste += 3;
+  if (numHipsValleys >= 6) waste += 2;
+  if (numHipsValleys >= 12) waste += 2;
+  if (numHipsValleys >= 20) waste += 2;
+
+  // Multiple ridges add complexity
+  if (numRidges >= 3) waste += 1;
+  if (numRidges >= 6) waste += 1;
+
+  // Many rakes (gable ends) add waste from starter/edge cuts
+  if (numRakes >= 6) waste += 1;
+  if (numRakes >= 12) waste += 1;
+
+  // Clamp to reasonable range (industry standard 5-40%)
+  return Math.max(5, Math.min(40, waste));
 }
 
 /**
- * Calculate waste table for different waste percentages
+ * Calculate waste table for different waste percentages.
+ * Intervals are dynamically generated based on suggestedWastePercent (W):
+ *   [0, W-25, W-20, W-17, W-15, W-13, W-10, W-5, W]
+ * This matches the most common EagleView Premium Report pattern (8/18 properties).
+ * Squares are rounded up to the nearest 1/3 of a square (EagleView convention).
  */
-export function calculateWasteTable(totalTrueAreaSqFt: number): WasteCalculation[] {
-  return [5, 10, 12, 15, 17, 20, 25].map((wastePercent) => {
+export function calculateWasteTable(totalTrueAreaSqFt: number, suggestedWastePercent: number = 28): WasteCalculation[] {
+  const W = suggestedWastePercent;
+  // Generate intervals: [0, W-25, W-20, W-17, W-15, W-13, W-10, W-5, W]
+  const raw = [0, W - 25, W - 20, W - 17, W - 15, W - 13, W - 10, W - 5, W];
+  // Clamp negatives to 0, deduplicate, sort ascending
+  const intervals = [...new Set(raw.map((v) => Math.max(0, v)))].sort((a, b) => a - b);
+
+  return intervals.map((wastePercent) => {
     const totalAreaWithWaste = totalTrueAreaSqFt * (1 + wastePercent / 100);
+    // Round squares up to nearest 1/3 (EagleView convention)
+    const rawSquares = areaToSquares(totalAreaWithWaste);
+    const roundedSquares = Math.ceil(rawSquares * 3) / 3;
     return {
       wastePercent,
-      totalAreaWithWaste,
-      totalSquaresWithWaste: Math.ceil(areaToSquares(totalAreaWithWaste) * 10) / 10,
+      totalAreaWithWaste: Math.round(totalAreaWithWaste),
+      totalSquaresWithWaste: Math.round(roundedSquares * 100) / 100,
     };
   });
 }

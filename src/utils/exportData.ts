@@ -28,7 +28,7 @@ function dateStamp(): string {
 export function buildExportData(measurement: RoofMeasurement) {
   const materials = measurement.totalSquares > 0 ? estimateMaterials(measurement) : null;
   const wasteTable = measurement.totalTrueAreaSqFt > 0
-    ? calculateWasteTable(measurement.totalTrueAreaSqFt)
+    ? calculateWasteTable(measurement.totalTrueAreaSqFt, measurement.suggestedWastePercent)
     : [];
 
   return {

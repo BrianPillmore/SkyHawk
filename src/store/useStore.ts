@@ -196,8 +196,19 @@ function createEmptyMeasurement(propertyId: string): RoofMeasurement {
     totalRakeLf: 0,
     totalEaveLf: 0,
     totalFlashingLf: 0,
+    totalStepFlashingLf: 0,
     totalDripEdgeLf: 0,
     suggestedWastePercent: 10,
+    ridgeCount: 0,
+    hipCount: 0,
+    valleyCount: 0,
+    rakeCount: 0,
+    eaveCount: 0,
+    flashingCount: 0,
+    stepFlashingCount: 0,
+    structureComplexity: 'Simple',
+    estimatedAtticSqFt: 0,
+    pitchBreakdown: [],
   };
 }
 
@@ -701,13 +712,58 @@ export const useStore = create<AppState>()(
 
             const edgeByType = (type: EdgeType) =>
               edges.filter((e) => e.type === type).reduce((sum, e) => sum + e.lengthFt, 0);
+            const edgeCountByType = (type: EdgeType) =>
+              edges.filter((e) => e.type === type).length;
 
             const totalRidgeLf = edgeByType('ridge');
             const totalHipLf = edgeByType('hip');
             const totalValleyLf = edgeByType('valley');
             const totalRakeLf = edgeByType('rake');
             const totalEaveLf = edgeByType('eave');
-            const totalFlashingLf = edgeByType('flashing') + edgeByType('step-flashing');
+            const totalFlashingLf = edgeByType('flashing');
+            const totalStepFlashingLf = edgeByType('step-flashing');
+
+            // Edge counts (EagleView parity)
+            const ridgeCount = edgeCountByType('ridge');
+            const hipCount = edgeCountByType('hip');
+            const valleyCount = edgeCountByType('valley');
+            const rakeCount = edgeCountByType('rake');
+            const eaveCount = edgeCountByType('eave');
+            const flashingCount = edgeCountByType('flashing');
+            const stepFlashingCount = edgeCountByType('step-flashing');
+
+            // Pitch breakdown table (group facets by pitch, sum areas)
+            const pitchMap = new Map<number, number>();
+            for (const f of facets) {
+              const roundedPitch = Math.round(f.pitch);
+              pitchMap.set(roundedPitch, (pitchMap.get(roundedPitch) || 0) + f.trueAreaSqFt);
+            }
+            const pitchBreakdown = Array.from(pitchMap.entries())
+              .sort((a, b) => a[0] - b[0])
+              .map(([pitch, area]) => ({
+                pitch,
+                areaSqFt: Math.round(area * 10) / 10,
+                percentOfRoof: totalTrueAreaSqFt > 0 ? Math.round((area / totalTrueAreaSqFt) * 1000) / 10 : 0,
+              }));
+
+            // Structure complexity (calibrated against EagleView)
+            const numFacets = facets.length;
+            const numHV = hipCount + valleyCount;
+            let structureComplexity: 'Simple' | 'Normal' | 'Complex' = 'Simple';
+            if (numFacets >= 15 || numHV >= 15) {
+              structureComplexity = 'Complex';
+            } else if (numFacets >= 6 || numHV >= 4) {
+              structureComplexity = 'Normal';
+            }
+
+            // Estimated attic area (flat footprint = total true area / avg pitch factor)
+            const avgPitch = facets.length > 0
+              ? facets.reduce((sum, f) => sum + f.pitch, 0) / facets.length
+              : 0;
+            const avgPitchFactor = Math.sqrt(1 + Math.pow(avgPitch / 12, 2));
+            const estimatedAtticSqFt = avgPitchFactor > 0
+              ? Math.round(totalTrueAreaSqFt / avgPitchFactor)
+              : 0;
 
             return {
               activeMeasurement: {
@@ -722,8 +778,19 @@ export const useStore = create<AppState>()(
                 totalRakeLf,
                 totalEaveLf,
                 totalFlashingLf,
+                totalStepFlashingLf,
                 totalDripEdgeLf: totalRakeLf + totalEaveLf,
                 suggestedWastePercent: calculateSuggestedWaste(facets, edges),
+                ridgeCount,
+                hipCount,
+                valleyCount,
+                rakeCount,
+                eaveCount,
+                flashingCount,
+                stepFlashingCount,
+                structureComplexity,
+                estimatedAtticSqFt,
+                pitchBreakdown,
                 updatedAt: new Date().toISOString(),
               },
             };

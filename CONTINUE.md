@@ -45,10 +45,22 @@ reports immediately competitive for contractors and adjusters.
   - Click-to-inspect facets, toggle diagram views
   - Shareable companion to the PDF
 
-### Priority 1b: Accuracy Investigation
-**Flag from EagleView comparison**: SkyHawk reports 93.7 squares vs EagleView's 63.2 squares
-for 701 Kingston Dr (+48% discrepancy). Facets #5 and #6 show 17/12 pitch (55 degrees) which
-is suspiciously steep for residential and nearly doubles their projected area.
+### Priority 1b: Accuracy — Solar API Data Layers Integration
+**The single biggest accuracy opportunity.** The Solar API dataLayers endpoint ($0.075/call)
+provides LIDAR-derived GeoTIFFs at 10cm resolution — roof mask, DSM elevation, RGB imagery.
+This data is already typed in `src/types/solar.ts` and the GeoTIFF parsing pipeline exists
+in `src/utils/contour.ts`, but it's never wired into the auto-measure flow.
+- [ ] Wire `fetchDataLayers` + `fetchGeoTiff` into `useAutoMeasure.ts` pipeline
+- [ ] Use LIDAR mask for pixel-perfect roof outlines (replace or supplement Claude Vision)
+- [ ] Use DSM elevation data for actual 3D pitch calculation (vs. Solar API segment estimates)
+- [ ] Use DSM for story detection, parapet identification
+- [ ] Calculate actual 3D surface area from elevation model
+- [ ] **Plan file**: `plans/google-solar-api-deep-dive.md`
+
+### Priority 1c: Accuracy Investigation (from EagleView comparison)
+**Flag**: SkyHawk reports 93.7 squares vs EagleView's 63.2 squares for 701 Kingston Dr
+(+48% discrepancy). Facets #5 and #6 show 17/12 pitch (55 degrees) which is suspiciously
+steep for residential and nearly doubles their projected area.
 - [ ] Investigate Solar API segment-to-facet pitch matching logic
 - [ ] Add pitch reasonableness cap (e.g., clamp residential pitch to 18/12 max)
 - [ ] Verify roof footprint boundary isn't including adjacent structures
@@ -117,7 +129,22 @@ FAA Part 107 requirements, cost estimates, and 4-phase implementation roadmap.
 - [ ] Integration with SkyHawk measurement engine (replace Google satellite with drone orthomosaic)
 - [ ] Autonomous inspection workflows
 
-### Priority 6: Phase 8 — Commercial Properties
+### Priority 6: Google Solar API Deep Integration
+**Plan file**: `plans/google-solar-api-deep-dive.md`
+
+SkyHawk currently uses ~30% of the Solar API's available data. An 8-phase plan to leverage
+the remaining 70% for significant accuracy and feature improvements:
+
+- [ ] **Phase 1**: Extend type definitions to capture full API response (solarPanels[], configs, financial)
+- [ ] **Phase 2**: Panel placement validation — cross-check facet areas against Google's panel counts
+- [ ] **Phase 3**: Replace hand-rolled solar calculator with Google's `yearlyEnergyDcKwh` (+20-40% accuracy)
+- [ ] **Phase 4**: Financial analysis integration — federal/state/utility incentives, lease/finance scenarios
+- [ ] **Phase 5**: Sunshine quantiles for per-segment shading quality scores
+- [ ] **Phase 6**: GeoTIFF flux/shade processing — pixel-accurate energy and shading (most complex)
+- [ ] **Phase 7**: DSM-based pitch verification and building height extraction
+- [ ] **Phase 8**: Panel layout visualization in map and PDF reports
+
+### Priority 7: Phase 8 — Commercial Properties
 - Large commercial roof support
 - Multi-section commercial reports
 - Flat roof drainage analysis
@@ -302,11 +329,47 @@ test(scope): description of test additions
 - [ ] **Phase 7: Drone Integration**
 - [ ] **Phase 8: Commercial Properties**
 
+### EagleView Calibration (COMPLETE — Phases 1-7)
+Systematic calibration of SkyHawk against 18 EagleView Premium Reports:
+- [x] Phase 1: Extracted all 18 EagleView ground truth records to `tests/fixtures/eagleview-calibration.json`
+- [x] Phase 2-3: Analyzed pipeline deviations and built comparison matrix
+- [x] Phase 4: Root cause analysis — identified waste algorithm, edge counting, structure complexity gaps
+- [x] Phase 5-7: Implemented improvements:
+  - Multi-factor waste algorithm (facet count + hip/valley + ridge + rake thresholds)
+  - Dynamic waste table intervals: `[0, W-25, W-20, W-17, W-15, W-13, W-10, W-5, W]`
+  - 1/3 square rounding convention: `Math.ceil(rawSquares * 3) / 3`
+  - Structure complexity classification (Complex/Normal/Simple)
+  - Edge counts tracked per type on RoofMeasurement
+  - Pitch breakdown and estimated attic sqft fields
+  - Flashing and step-flashing tracked separately
+  - Multi-facet roof reconstruction via Voronoi partition of Solar API segments
+  - Regression test suite: 17 tests across 18 EagleView properties
+- [ ] Phase 8: Report format parity (diagrams, TOC, oblique images) — NOT STARTED
+- [ ] Phase 9: Mocked Solar API regression pipeline — PARTIAL (fixture-based regression exists)
+
+### Backend Deployment (PARTIAL)
+Express backend deployed to Hetzner VPS (89.167.94.69):
+- [x] Auth middleware (JWT + bcrypt)
+- [x] Vision API proxy (Claude edge detection)
+- [x] Nginx reverse proxy with SSL
+- [x] Trust proxy configuration
+- [ ] Property CRUD API — NOT DONE
+- [ ] Database persistence — NOT DONE
+
+### API Cost Per Property (~$0.05-0.06 beyond free tier)
+| API | Cost/Call | Free/Month |
+|-----|----------|------------|
+| Solar Building Insights | $0.01 | 10,000 |
+| Anthropic Claude (dominant) | ~$0.029 | None |
+| Static Maps | $0.002 | 10,000 |
+| Maps JS + Places | ~$0.01 | 10,000 each |
+| Solar Data Layers | $0.075 | 1,000 (NOT USED) |
+
 ### Known Issues
-- **API keys are client-side**: All API keys (Google Maps, Anthropic Claude) are exposed via `VITE_` environment variables. For production, these should be proxied through a backend server.
 - **Enterprise features are frontend-only**: RBAC and audit trail work in browser but have no backend enforcement. Server-side auth and database persistence needed.
 - **API integration is spec-only**: API key management UI exists in `EnterprisePanel.tsx` but no actual backend API endpoints are implemented.
-- **No deployment configuration**: No CI/CD, no Docker, no hosting setup.
+- **reconstructComplexRoof creates 1 facet**: When all Solar API segment centers are identical or very close, the Voronoi partition assigns all vertices to one segment — affects properties where Google reports overlapping segments.
+- **Waste algorithm divergence**: Our waste calculation uses structural heuristics but differs from EagleView's proprietary algorithm. Mean error ~±10%, max ±15% on the 18 calibration properties.
 
 ---
 
@@ -322,7 +385,8 @@ test(scope): description of test additions
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (892 tests across 24 files)
+- Vitest (1291 tests across 44 files)
+- Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
 
@@ -415,28 +479,33 @@ All keys are configured in `.env` (gitignored, not committed):
 | Enterprise utilities | `src/utils/enterprise.ts` |
 
 ### Plans & Specs
-| Document | File |
-|----------|------|
-| Auto-Measurement Plan | `plans/AUTO_MEASUREMENT.md` |
-| Phase 1 (COMPLETE) | `plans/PHASE1_CORE_MEASUREMENT.md` |
-| Phase 2 (COMPLETE) | `plans/PHASE2_3D_ENHANCED.md` |
-| Phase 3 (COMPLETE) | `plans/PHASE3_INSURANCE.md` |
-| Phase 4 (COMPLETE) | `plans/PHASE4_AI.md` |
-| API Spec | `specs/API_SPEC.md` |
-| Measurement Spec | `specs/MEASUREMENT_SPEC.md` |
-| Report Spec | `specs/REPORT_SPEC.md` |
-| Architecture | `docs/ARCHITECTURE.md` |
-| Getting Started | `docs/GETTING_STARTED.md` |
-| Contributing | `docs/CONTRIBUTING.md` |
-| Feature Roadmap | `ROADMAP.md` |
+| Document | File | Status |
+|----------|------|--------|
+| Auto-Measurement Plan | `plans/AUTO_MEASUREMENT.md` | COMPLETE |
+| Phase 1 (Core) | `plans/PHASE1_CORE_MEASUREMENT.md` | COMPLETE |
+| Phase 2 (3D) | `plans/PHASE2_3D_ENHANCED.md` | COMPLETE |
+| Phase 3 (Insurance) | `plans/PHASE3_INSURANCE.md` | COMPLETE |
+| Phase 4 (AI) | `plans/PHASE4_AI.md` | COMPLETE |
+| EagleView Calibration | `plans/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
+| EagleView Parity Plan | `plans/eagleview-parity-improvements.md` | NOT STARTED |
+| Database Persistence | `plans/database-persistence.md` | NOT STARTED |
+| Drone Integration | `plans/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
+| Google Solar API Deep Dive | `plans/google-solar-api-deep-dive.md` | NEW |
+| API Spec | `specs/API_SPEC.md` | |
+| Measurement Spec | `specs/MEASUREMENT_SPEC.md` | |
+| Report Spec | `specs/REPORT_SPEC.md` | |
+| Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (892 passing tests across 24 files)
+### Tests (1291 passing tests across 44 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
 | Geometry extended | `tests/unit/geometry-extended.test.ts` |
 | Geometry helpers | `tests/unit/geometryHelpers.test.ts` |
 | State store | `tests/unit/store.test.ts` |
+| State store extended | `tests/unit/store-extended.test.ts` |
+| State auth | `tests/unit/storeAuth.test.ts` |
+| State roof condition | `tests/unit/storeRoofCondition.test.ts` |
 | Contour algorithms | `tests/unit/contour.test.ts` |
 | Roof reconstruction | `tests/unit/roofReconstruction.test.ts` |
 | Solar calculations | `tests/unit/solarCalculations.test.ts` |
@@ -456,6 +525,12 @@ All keys are configured in `.env` (gitignored, not committed):
 | Wall calculations | `tests/unit/wallCalculations.test.ts` |
 | Shading analysis | `tests/unit/shadingAnalysis.test.ts` |
 | Sun path | `tests/unit/sunPath.test.ts` |
+| Edge detection | `tests/unit/detectRoofEdges.test.ts` |
+| Facet building | `tests/unit/buildFacetsFromEdges.test.ts` |
+| Edge type updates | `tests/unit/updateEdgeType.test.ts` |
+| Analyze condition | `tests/unit/analyzeRoofCondition.test.ts` |
+| Color utilities | `tests/unit/colors.test.ts` |
+| EagleView regression | `tests/unit/eagleviewRegression.test.ts` |
 | Dashboard component | `tests/unit/Dashboard.test.tsx` |
 
 Run tests with: `npx vitest run`

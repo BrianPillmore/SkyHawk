@@ -207,7 +207,7 @@ describe('addEdge edge cases', () => {
 describe('recalculateMeasurements with edge types', () => {
   beforeEach(resetState);
 
-  it('should include step-flashing in total flashing length', () => {
+  it('should track flashing and step-flashing separately', () => {
     useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
     useStore.getState().startNewMeasurement();
     const v1 = useStore.getState().addVertex(40.0, -90.0);
@@ -218,7 +218,12 @@ describe('recalculateMeasurements with edge types', () => {
     const m = useStore.getState().activeMeasurement!;
     const f = m.edges.find((e) => e.type === 'flashing')!;
     const sf = m.edges.find((e) => e.type === 'step-flashing')!;
-    expect(m.totalFlashingLf).toBeCloseTo(f.lengthFt + sf.lengthFt, 1);
+    // Flashing and step-flashing are now tracked separately (EagleView parity)
+    expect(m.totalFlashingLf).toBeCloseTo(f.lengthFt, 1);
+    expect(m.totalStepFlashingLf).toBeCloseTo(sf.lengthFt, 1);
+    // Edge counts should also be tracked
+    expect(m.flashingCount).toBe(1);
+    expect(m.stepFlashingCount).toBe(1);
   });
 
   it('should correctly compute drip edge as rake + eave', () => {
@@ -249,6 +254,166 @@ describe('recalculateMeasurements with edge types', () => {
     expect(m.totalValleyLf).toBeGreaterThan(0);
     expect(m.totalRakeLf).toBeGreaterThan(0);
     expect(m.totalEaveLf).toBeGreaterThan(0);
+  });
+});
+
+describe('EagleView parity: createEmptyMeasurement defaults', () => {
+  beforeEach(resetState);
+
+  it('should initialize all new EagleView fields to defaults', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    const m = useStore.getState().activeMeasurement!;
+    expect(m.totalStepFlashingLf).toBe(0);
+    expect(m.ridgeCount).toBe(0);
+    expect(m.hipCount).toBe(0);
+    expect(m.valleyCount).toBe(0);
+    expect(m.rakeCount).toBe(0);
+    expect(m.eaveCount).toBe(0);
+    expect(m.flashingCount).toBe(0);
+    expect(m.stepFlashingCount).toBe(0);
+    expect(m.structureComplexity).toBe('Simple');
+    expect(m.estimatedAtticSqFt).toBe(0);
+    expect(m.pitchBreakdown).toEqual([]);
+  });
+});
+
+describe('EagleView parity: pitch breakdown table', () => {
+  beforeEach(resetState);
+
+  it('should generate pitch breakdown from facets', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    useStore.getState().setDrawingMode('outline');
+    useStore.getState().addOutlinePoint(40.0, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -89.999);
+    useStore.getState().finishOutline();
+    // Update pitch on the facet
+    const facetId = useStore.getState().activeMeasurement!.facets[0].id;
+    useStore.getState().updateFacetPitch(facetId, 8);
+    const m = useStore.getState().activeMeasurement!;
+    expect(m.pitchBreakdown.length).toBeGreaterThan(0);
+    expect(m.pitchBreakdown[0].pitch).toBe(8);
+    expect(m.pitchBreakdown[0].areaSqFt).toBeGreaterThan(0);
+    expect(m.pitchBreakdown[0].percentOfRoof).toBeCloseTo(100, 0);
+  });
+
+  it('should group multiple facets by pitch', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    // First outline
+    useStore.getState().setDrawingMode('outline');
+    useStore.getState().addOutlinePoint(40.0, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -89.999);
+    useStore.getState().finishOutline();
+    // Second outline
+    useStore.getState().setDrawingMode('outline');
+    useStore.getState().addOutlinePoint(40.002, -90.002);
+    useStore.getState().addOutlinePoint(40.003, -90.002);
+    useStore.getState().addOutlinePoint(40.003, -89.998);
+    useStore.getState().finishOutline();
+    const facets = useStore.getState().activeMeasurement!.facets;
+    // Set different pitches
+    useStore.getState().updateFacetPitch(facets[0].id, 6);
+    useStore.getState().updateFacetPitch(facets[1].id, 8);
+    const m = useStore.getState().activeMeasurement!;
+    expect(m.pitchBreakdown.length).toBe(2);
+    const pitches = m.pitchBreakdown.map((p) => p.pitch);
+    expect(pitches).toContain(6);
+    expect(pitches).toContain(8);
+    // Percentages should sum to ~100
+    const totalPercent = m.pitchBreakdown.reduce((s, p) => s + p.percentOfRoof, 0);
+    expect(totalPercent).toBeCloseTo(100, 0);
+  });
+});
+
+describe('EagleView parity: structure complexity', () => {
+  beforeEach(resetState);
+
+  it('should classify simple roof as Simple', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    useStore.getState().setDrawingMode('outline');
+    useStore.getState().addOutlinePoint(40.0, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -89.999);
+    useStore.getState().finishOutline();
+    const m = useStore.getState().activeMeasurement!;
+    // 1 facet, 3 eave edges, 0 hips/valleys → Simple
+    expect(m.structureComplexity).toBe('Simple');
+  });
+
+  it('should classify roof with many edges as Normal or Complex', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    // Create many outlines to get >= 6 facets
+    for (let i = 0; i < 7; i++) {
+      const base = 40.0 + i * 0.005;
+      useStore.getState().setDrawingMode('outline');
+      useStore.getState().addOutlinePoint(base, -90.0);
+      useStore.getState().addOutlinePoint(base + 0.001, -90.0);
+      useStore.getState().addOutlinePoint(base + 0.001, -89.999);
+      useStore.getState().finishOutline();
+    }
+    const m = useStore.getState().activeMeasurement!;
+    expect(m.facets.length).toBeGreaterThanOrEqual(6);
+    // With 7 facets (>=6) and only eave edges → at least Normal
+    expect(['Normal', 'Complex']).toContain(m.structureComplexity);
+  });
+});
+
+describe('EagleView parity: estimated attic area', () => {
+  beforeEach(resetState);
+
+  it('should compute estimated attic area for pitched roof', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    useStore.getState().setDrawingMode('outline');
+    useStore.getState().addOutlinePoint(40.0, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -90.0);
+    useStore.getState().addOutlinePoint(40.001, -89.999);
+    useStore.getState().finishOutline();
+    const facetId = useStore.getState().activeMeasurement!.facets[0].id;
+    useStore.getState().updateFacetPitch(facetId, 8);
+    const m = useStore.getState().activeMeasurement!;
+    // Attic area = trueArea / pitchFactor; pitchFactor for 8/12 = sqrt(1+(8/12)^2) ≈ 1.202
+    expect(m.estimatedAtticSqFt).toBeGreaterThan(0);
+    expect(m.estimatedAtticSqFt).toBeLessThan(m.totalTrueAreaSqFt);
+  });
+
+  it('should return 0 attic area when no facets', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    const m = useStore.getState().activeMeasurement!;
+    expect(m.estimatedAtticSqFt).toBe(0);
+  });
+});
+
+describe('EagleView parity: edge counts', () => {
+  beforeEach(resetState);
+
+  it('should count edges by type after multiple adds', () => {
+    useStore.getState().createProperty('Test', 'City', 'ST', '00000', 40.0, -90.0);
+    useStore.getState().startNewMeasurement();
+    const vs: string[] = [];
+    for (let i = 0; i < 8; i++) vs.push(useStore.getState().addVertex(40.0 + i * 0.001, -90.0));
+    useStore.getState().addEdge(vs[0], vs[1], 'ridge');
+    useStore.getState().addEdge(vs[1], vs[2], 'ridge');
+    useStore.getState().addEdge(vs[2], vs[3], 'hip');
+    useStore.getState().addEdge(vs[3], vs[4], 'hip');
+    useStore.getState().addEdge(vs[4], vs[5], 'hip');
+    useStore.getState().addEdge(vs[5], vs[6], 'valley');
+    useStore.getState().addEdge(vs[6], vs[7], 'eave');
+    const m = useStore.getState().activeMeasurement!;
+    expect(m.ridgeCount).toBe(2);
+    expect(m.hipCount).toBe(3);
+    expect(m.valleyCount).toBe(1);
+    expect(m.eaveCount).toBe(1);
+    expect(m.rakeCount).toBe(0);
+    expect(m.flashingCount).toBe(0);
+    expect(m.stepFlashingCount).toBe(0);
   });
 });
 

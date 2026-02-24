@@ -45,8 +45,22 @@ export interface RoofMeasurement {
   totalRakeLf: number;
   totalEaveLf: number;
   totalFlashingLf: number;
+  totalStepFlashingLf: number;
   totalDripEdgeLf: number;
   suggestedWastePercent: number;
+  // Edge counts (EagleView parity)
+  ridgeCount: number;
+  hipCount: number;
+  valleyCount: number;
+  rakeCount: number;
+  eaveCount: number;
+  flashingCount: number;
+  stepFlashingCount: number;
+  // Structure classification
+  structureComplexity: 'Simple' | 'Normal' | 'Complex';
+  estimatedAtticSqFt: number;
+  // Pitch breakdown table
+  pitchBreakdown: PitchBreakdownEntry[];
 }
 
 export interface Property {
@@ -70,6 +84,12 @@ export interface WasteCalculation {
   wastePercent: number;
   totalSquaresWithWaste: number;
   totalAreaWithWaste: number;
+}
+
+export interface PitchBreakdownEntry {
+  pitch: number; // in x/12 format
+  areaSqFt: number;
+  percentOfRoof: number;
 }
 
 export type DrawingMode =

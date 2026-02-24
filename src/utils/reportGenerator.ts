@@ -166,6 +166,8 @@ export async function generateReport(
     ['Total Squares', formatNumber(measurement.totalSquares, 1)],
     ['Predominant Pitch', formatPitch(measurement.predominantPitch)],
     ['Number of Facets', String(measurement.facets.length)],
+    ['Structure Complexity', measurement.structureComplexity || 'Simple'],
+    ['Estimated Attic Area', measurement.estimatedAtticSqFt ? formatArea(measurement.estimatedAtticSqFt) : 'N/A'],
     ['Suggested Waste Factor', `${measurement.suggestedWastePercent}%`],
   ];
 
@@ -180,6 +182,42 @@ export async function generateReport(
   }
   y += summaryData.length * 7 + 6;
 
+  // ============ AREAS PER PITCH ============
+  const pitchBreakdown = measurement.pitchBreakdown ?? [];
+  if (pitchBreakdown.length > 0) {
+    checkPage(40);
+    y = addText('AREAS PER PITCH', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 4;
+
+    // Pitch table header
+    doc.setFillColor(...primaryColor);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('Roof Pitch', margin + 3, y, 8, [255, 255, 255], 'bold');
+    addText('Area (sq ft)', margin + contentWidth * 0.45, y, 8, [255, 255, 255], 'bold');
+    addText('% of Roof', margin + contentWidth * 0.78, y, 8, [255, 255, 255], 'bold');
+    y += 7;
+
+    for (let i = 0; i < pitchBreakdown.length; i++) {
+      checkPage(10);
+      const entry = pitchBreakdown[i];
+      const rowY = y + i * 7;
+      const isPredominant = entry.pitch === measurement.predominantPitch;
+      if (isPredominant) {
+        doc.setFillColor(219, 234, 254);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      } else if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(formatPitch(entry.pitch), margin + 3, rowY, 9, isPredominant ? primaryColor : darkText, isPredominant ? 'bold' : 'normal');
+      addText(formatNumber(entry.areaSqFt, 1), margin + contentWidth * 0.45, rowY, 9, darkText);
+      addText(`${entry.percentOfRoof}%`, margin + contentWidth * 0.78, rowY, 9, darkText, 'bold');
+    }
+    y += pitchBreakdown.length * 7 + 6;
+  }
+
   // ============ LINE MEASUREMENTS ============
   checkPage(60);
   y = addText('LINE MEASUREMENTS', margin, y, 12, primaryColor, 'bold');
@@ -188,13 +226,14 @@ export async function generateReport(
   y += 4;
 
   const lineData: [string, string, number][] = [
-    ['Ridges', formatLength(measurement.totalRidgeLf), measurement.edges.filter(e => e.type === 'ridge').length],
-    ['Hips', formatLength(measurement.totalHipLf), measurement.edges.filter(e => e.type === 'hip').length],
-    ['Valleys', formatLength(measurement.totalValleyLf), measurement.edges.filter(e => e.type === 'valley').length],
-    ['Rakes/Gables', formatLength(measurement.totalRakeLf), measurement.edges.filter(e => e.type === 'rake').length],
-    ['Eaves', formatLength(measurement.totalEaveLf), measurement.edges.filter(e => e.type === 'eave').length],
-    ['Flashing', formatLength(measurement.totalFlashingLf), measurement.edges.filter(e => e.type === 'flashing' || e.type === 'step-flashing').length],
-    ['Drip Edge (Total)', formatLength(measurement.totalDripEdgeLf), 0],
+    ['Ridges', formatLength(measurement.totalRidgeLf), measurement.ridgeCount],
+    ['Hips', formatLength(measurement.totalHipLf), measurement.hipCount],
+    ['Valleys', formatLength(measurement.totalValleyLf), measurement.valleyCount],
+    ['Rakes', formatLength(measurement.totalRakeLf), measurement.rakeCount],
+    ['Eaves/Starter', formatLength(measurement.totalEaveLf), measurement.eaveCount],
+    ['Drip Edge (Eaves + Rakes)', formatLength(measurement.totalDripEdgeLf), measurement.rakeCount + measurement.eaveCount],
+    ['Flashing', formatLength(measurement.totalFlashingLf), measurement.flashingCount],
+    ['Step Flashing', formatLength(measurement.totalStepFlashingLf ?? 0), measurement.stepFlashingCount],
   ];
 
   // Table header
@@ -260,12 +299,12 @@ export async function generateReport(
   y += 2;
   y = addLine(y);
   y += 2;
-  y = addText('The suggested waste factor is intended to serve as a guide. Actual waste may differ based on', margin, y, 7, grayText);
+  y = addText('This waste calculation table is for asphalt shingle roofing applications. The suggested waste factor is intended', margin, y, 7, grayText);
   y += 3;
-  y = addText('installation techniques, crew experience, material type, and potential site salvage.', margin, y, 7, grayText);
+  y = addText('to serve as a guide. Actual waste may differ based on installation techniques, crew experience, and material type.', margin, y, 7, grayText);
   y += 5;
 
-  const wasteTable = calculateWasteTable(measurement.totalTrueAreaSqFt);
+  const wasteTable = calculateWasteTable(measurement.totalTrueAreaSqFt, measurement.suggestedWastePercent);
 
   // Waste table header
   doc.setFillColor(...primaryColor);
@@ -292,7 +331,7 @@ export async function generateReport(
     const label = isSuggested ? `${row.wastePercent}% (suggested)` : `${row.wastePercent}%`;
     addText(label, margin + 3, rowY, 9, isSuggested ? primaryColor : darkText, isSuggested ? 'bold' : 'normal');
     addText(formatArea(row.totalAreaWithWaste), margin + contentWidth * 0.4, rowY, 9, darkText);
-    addText(formatNumber(row.totalSquaresWithWaste, 1), margin + contentWidth * 0.75, rowY, 9, darkText, 'bold');
+    addText(formatNumber(row.totalSquaresWithWaste, 2), margin + contentWidth * 0.75, rowY, 9, darkText, 'bold');
   }
   y += wasteTable.length * 7 + 6;
 

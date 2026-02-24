@@ -31,7 +31,7 @@ export default function MeasurementsPanel() {
   if (!activeMeasurement) return null;
 
   const { facets, edges } = activeMeasurement;
-  const wasteTable = calculateWasteTable(activeMeasurement.totalTrueAreaSqFt);
+  const wasteTable = calculateWasteTable(activeMeasurement.totalTrueAreaSqFt, activeMeasurement.suggestedWastePercent);
 
   return (
     <div className="p-3 space-y-4">

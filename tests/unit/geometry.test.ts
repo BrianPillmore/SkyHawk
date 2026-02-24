@@ -143,10 +143,11 @@ describe('Waste Factor', () => {
     const edges: RoofEdge[] = [
       { id: '1', startVertexId: 'a', endVertexId: 'b', type: 'eave', lengthFt: 50 },
     ];
-    expect(calculateSuggestedWaste(facets, edges)).toBe(5);
+    // Simple 1-facet, no hips/valleys = base 10%
+    expect(calculateSuggestedWaste(facets, edges)).toBe(10);
   });
 
-  it('should suggest medium waste for medium-complexity roofs', () => {
+  it('should suggest higher waste for medium-complexity roofs', () => {
     const facets: RoofFacet[] = Array(5).fill(null).map((_, i) => ({
       id: String(i), name: `F${i}`, vertexIds: [], pitch: 6, areaSqFt: 500, trueAreaSqFt: 559, edgeIds: [],
     }));
@@ -155,16 +156,148 @@ describe('Waste Factor', () => {
       { id: '2', startVertexId: 'b', endVertexId: 'c', type: 'valley', lengthFt: 15 },
       { id: '3', startVertexId: 'c', endVertexId: 'd', type: 'hip', lengthFt: 20 },
     ];
-    expect(calculateSuggestedWaste(facets, edges)).toBe(15);
+    // base 10 + 5 facets (>=3 → +3) + 3 hips/valleys (>=2 → +3) = 16%
+    expect(calculateSuggestedWaste(facets, edges)).toBe(16);
   });
 
-  it('should generate correct waste table', () => {
+  it('should suggest high waste for complex roofs (EagleView calibrated)', () => {
+    // 20 facets, 16 hips, 7 valleys, 8 ridges, 8 rakes
+    const facets: RoofFacet[] = Array(20).fill(null).map((_, i) => ({
+      id: String(i), name: `F${i}`, vertexIds: [], pitch: 8, areaSqFt: 200, trueAreaSqFt: 240, edgeIds: [],
+    }));
+    const edges: RoofEdge[] = [
+      ...Array(16).fill(null).map((_, i) => ({ id: `h${i}`, startVertexId: 'a', endVertexId: 'b', type: 'hip' as const, lengthFt: 13 })),
+      ...Array(7).fill(null).map((_, i) => ({ id: `v${i}`, startVertexId: 'a', endVertexId: 'b', type: 'valley' as const, lengthFt: 16 })),
+      ...Array(8).fill(null).map((_, i) => ({ id: `r${i}`, startVertexId: 'a', endVertexId: 'b', type: 'ridge' as const, lengthFt: 8 })),
+      ...Array(8).fill(null).map((_, i) => ({ id: `k${i}`, startVertexId: 'a', endVertexId: 'b', type: 'rake' as const, lengthFt: 7 })),
+    ];
+    const waste = calculateSuggestedWaste(facets, edges);
+    // Should be in 25-35% range (EagleView range for complex roofs)
+    expect(waste).toBeGreaterThanOrEqual(25);
+    expect(waste).toBeLessThanOrEqual(40);
+  });
+
+  it('should generate EagleView-format waste table', () => {
     const table = calculateWasteTable(2000);
-    expect(table.length).toBe(7);
-    expect(table[0].wastePercent).toBe(5);
-    expect(table[0].totalAreaWithWaste).toBe(2100);
-    expect(table[6].wastePercent).toBe(25);
-    expect(table[6].totalAreaWithWaste).toBe(2500);
+    // EagleView uses 9 intervals: 0, 3, 8, 11, 13, 15, 18, 23, 28
+    expect(table.length).toBe(9);
+    expect(table[0].wastePercent).toBe(0);
+    expect(table[0].totalAreaWithWaste).toBe(2000);
+    expect(table[5].wastePercent).toBe(15);
+    expect(table[5].totalAreaWithWaste).toBe(2300);
+    expect(table[8].wastePercent).toBe(28);
+    expect(table[8].totalAreaWithWaste).toBe(2560);
+    // Squares should be rounded up to 1/3 square
+    expect(table[0].totalSquaresWithWaste).toBe(20);
+    expect(table[5].totalSquaresWithWaste).toBe(23);
+  });
+});
+
+describe('Waste Factor Edge Cases (EagleView Calibration)', () => {
+  it('should return base 10% for zero facets and zero edges', () => {
+    expect(calculateSuggestedWaste([], [])).toBe(10);
+  });
+
+  it('should clamp minimum waste to 5%', () => {
+    // Even with minimal inputs, base is 10 so min clamp doesn't trigger normally
+    // But the algorithm ensures Math.max(5, ...) is applied
+    const result = calculateSuggestedWaste([], []);
+    expect(result).toBeGreaterThanOrEqual(5);
+  });
+
+  it('should clamp maximum waste to 40%', () => {
+    // Extreme case: 35 facets, 25 hips/valleys, 10 ridges, 15 rakes
+    const facets: RoofFacet[] = Array(35).fill(null).map((_, i) => ({
+      id: String(i), name: `F${i}`, vertexIds: [], pitch: 8, areaSqFt: 100, trueAreaSqFt: 120, edgeIds: [],
+    }));
+    const edges: RoofEdge[] = [
+      ...Array(25).fill(null).map((_, i) => ({ id: `h${i}`, startVertexId: 'a', endVertexId: 'b', type: 'hip' as const, lengthFt: 10 })),
+      ...Array(10).fill(null).map((_, i) => ({ id: `r${i}`, startVertexId: 'a', endVertexId: 'b', type: 'ridge' as const, lengthFt: 8 })),
+      ...Array(15).fill(null).map((_, i) => ({ id: `k${i}`, startVertexId: 'a', endVertexId: 'b', type: 'rake' as const, lengthFt: 7 })),
+    ];
+    // Max possible: 10+3+3+2+2+2+3+3+2+2+2+1+1+1+1 = 38, but with 25 hips that's all thresholds
+    const waste = calculateSuggestedWaste(facets, edges);
+    expect(waste).toBeLessThanOrEqual(40);
+    expect(waste).toBeGreaterThanOrEqual(5);
+  });
+
+  it('should trigger 30+ facet bonus', () => {
+    const facets: RoofFacet[] = Array(30).fill(null).map((_, i) => ({
+      id: String(i), name: `F${i}`, vertexIds: [], pitch: 6, areaSqFt: 100, trueAreaSqFt: 112, edgeIds: [],
+    }));
+    // base 10 + (>=3→3) + (>=6→3) + (>=10→2) + (>=15→2) + (>=20→2) + (>=30→3) = 25
+    expect(calculateSuggestedWaste(facets, [])).toBe(25);
+  });
+
+  it('should trigger all hip/valley thresholds at 20+', () => {
+    const facets: RoofFacet[] = [
+      { id: '1', name: 'F1', vertexIds: [], pitch: 6, areaSqFt: 1000, trueAreaSqFt: 1118, edgeIds: [] },
+    ];
+    const edges: RoofEdge[] = Array(20).fill(null).map((_, i) => ({
+      id: `h${i}`, startVertexId: 'a', endVertexId: 'b', type: 'hip' as const, lengthFt: 10,
+    }));
+    // base 10 + (>=2→3) + (>=6→2) + (>=12→2) + (>=20→2) = 19
+    expect(calculateSuggestedWaste(facets, edges)).toBe(19);
+  });
+
+  it('should add ridge and rake bonuses independently', () => {
+    const facets: RoofFacet[] = [
+      { id: '1', name: 'F1', vertexIds: [], pitch: 6, areaSqFt: 1000, trueAreaSqFt: 1118, edgeIds: [] },
+    ];
+    const edges: RoofEdge[] = [
+      ...Array(6).fill(null).map((_, i) => ({ id: `r${i}`, startVertexId: 'a', endVertexId: 'b', type: 'ridge' as const, lengthFt: 8 })),
+      ...Array(12).fill(null).map((_, i) => ({ id: `k${i}`, startVertexId: 'a', endVertexId: 'b', type: 'rake' as const, lengthFt: 7 })),
+    ];
+    // base 10 + ridges(>=3→1, >=6→1) + rakes(>=6→1, >=12→1) = 14
+    expect(calculateSuggestedWaste(facets, edges)).toBe(14);
+  });
+});
+
+describe('Waste Table Edge Cases', () => {
+  it('should handle non-round areas with 1/3 square rounding', () => {
+    // 1550 sq ft → at 0%: raw = 15.5 sq, ceil(15.5*3)/3 = ceil(46.5)/3 = 47/3 = 15.67
+    const table = calculateWasteTable(1550);
+    expect(table[0].totalSquaresWithWaste).toBeCloseTo(15.67, 1);
+  });
+
+  it('should produce correct intervals for all 9 entries', () => {
+    const table = calculateWasteTable(1000);
+    const expectedIntervals = [0, 3, 8, 11, 13, 15, 18, 23, 28];
+    for (let i = 0; i < 9; i++) {
+      expect(table[i].wastePercent).toBe(expectedIntervals[i]);
+    }
+  });
+
+  it('should handle 0 area gracefully', () => {
+    const table = calculateWasteTable(0);
+    expect(table.length).toBe(9);
+    expect(table[0].totalAreaWithWaste).toBe(0);
+    expect(table[0].totalSquaresWithWaste).toBe(0);
+  });
+
+  it('should generate dynamic intervals based on suggestedWastePercent', () => {
+    // W=30 → intervals: [0, 5, 10, 13, 15, 17, 20, 25, 30]
+    const table = calculateWasteTable(1000, 30);
+    expect(table.length).toBe(9);
+    const intervals = table.map(r => r.wastePercent);
+    expect(intervals).toEqual([0, 5, 10, 13, 15, 17, 20, 25, 30]);
+  });
+
+  it('should generate intervals ending at suggested waste for W=35', () => {
+    // W=35 → intervals: [0, 10, 15, 18, 20, 22, 25, 30, 35]
+    const table = calculateWasteTable(1000, 35);
+    expect(table[0].wastePercent).toBe(0);
+    expect(table[table.length - 1].wastePercent).toBe(35);
+    expect(table.length).toBe(9);
+  });
+
+  it('should clamp negative intervals to 0 and deduplicate for low W', () => {
+    // W=10 → raw: [0, -15, -10, -7, -5, -3, 0, 5, 10] → clamped: [0,0,0,0,0,0,0,5,10] → dedup: [0,5,10]
+    const table = calculateWasteTable(1000, 10);
+    expect(table[0].wastePercent).toBe(0);
+    expect(table[table.length - 1].wastePercent).toBe(10);
+    // Should have fewer than 9 entries due to dedup
+    expect(table.length).toBeLessThan(9);
   });
 });
 

@@ -1,0 +1,2068 @@
+[
+  {
+    "reportId": "66995028",
+    "address": "3517 Lindee Lane, Oklahoma City, OK 73179",
+    "latitude": 35.429144,
+    "longitude": -97.687699,
+    "reportDate": "8/18/2025",
+    "claimNumber": "HO-2025-668710599",
+    "dateOfLoss": "2025-05-25",
+    "totalRoofAreaSqFt": 6052,
+    "totalRoofFacets": 36,
+    "predominantPitch": "12/12",
+    "numberOfStories": ">1",
+    "estimatedAtticSqFt": 413,
+    "lengths": {
+      "ridges": {
+        "totalFt": 118,
+        "count": 9
+      },
+      "hips": {
+        "totalFt": 187,
+        "count": 21
+      },
+      "valleys": {
+        "totalFt": 150,
+        "count": 16
+      },
+      "rakes": {
+        "totalFt": 108,
+        "count": 15
+      },
+      "eaves": {
+        "totalFt": 312,
+        "count": 20
+      },
+      "dripEdge": {
+        "totalFt": 420,
+        "count": 35
+      },
+      "flashing": {
+        "totalFt": 32,
+        "count": 10
+      },
+      "stepFlashing": {
+        "totalFt": 47,
+        "count": 13
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "10/12",
+        "areaSqFt": 2616.5,
+        "percentOfRoof": 43.2
+      },
+      {
+        "pitch": "12/12",
+        "areaSqFt": 3286.5,
+        "percentOfRoof": 54.3
+      },
+      {
+        "pitch": "16/12",
+        "areaSqFt": 148.3,
+        "percentOfRoof": 2.5
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 6052,
+        "squares": 60.66
+      },
+      {
+        "wastePercent": 3,
+        "areaSqFt": 6234,
+        "squares": 62.66
+      },
+      {
+        "wastePercent": 8,
+        "areaSqFt": 6537,
+        "squares": 65.66
+      },
+      {
+        "wastePercent": 11,
+        "areaSqFt": 6718,
+        "squares": 67.33
+      },
+      {
+        "wastePercent": 13,
+        "areaSqFt": 6839,
+        "squares": 68.66
+      },
+      {
+        "wastePercent": 15,
+        "areaSqFt": 6960,
+        "squares": 69.66
+      },
+      {
+        "wastePercent": 18,
+        "areaSqFt": 7142,
+        "squares": 71.66
+      },
+      {
+        "wastePercent": 23,
+        "areaSqFt": 7444,
+        "squares": 74.66
+      },
+      {
+        "wastePercent": 28,
+        "areaSqFt": 7747,
+        "squares": 77.66
+      }
+    ],
+    "suggestedWastePercent": 28,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "67030938",
+    "address": "15805 Harts Mill Rd, Edmond, OK 73013",
+    "latitude": 35.6307537,
+    "longitude": -97.51587,
+    "reportDate": "8/19/2025",
+    "claimNumber": "XXX",
+    "totalRoofAreaSqFt": 4619,
+    "totalRoofFacets": 15,
+    "predominantPitch": "8/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 3843,
+    "lengths": {
+      "ridges": {
+        "totalFt": 65,
+        "count": 6
+      },
+      "hips": {
+        "totalFt": 186,
+        "count": 14
+      },
+      "valleys": {
+        "totalFt": 84,
+        "count": 6
+      },
+      "rakes": {
+        "totalFt": 46,
+        "count": 4
+      },
+      "eaves": {
+        "totalFt": 301,
+        "count": 16
+      },
+      "dripEdge": {
+        "totalFt": 347,
+        "count": 20
+      },
+      "flashing": {
+        "totalFt": 34,
+        "count": 3
+      },
+      "stepFlashing": {
+        "totalFt": 16,
+        "count": 7
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "8/12",
+        "areaSqFt": 4618.5,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 4619,
+        "squares": 46.33
+      },
+      {
+        "wastePercent": 4,
+        "areaSqFt": 4804,
+        "squares": 48.33
+      },
+      {
+        "wastePercent": 9,
+        "areaSqFt": 5035,
+        "squares": 50.66
+      },
+      {
+        "wastePercent": 12,
+        "areaSqFt": 5174,
+        "squares": 52.0
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 5266,
+        "squares": 52.66
+      },
+      {
+        "wastePercent": 16,
+        "areaSqFt": 5359,
+        "squares": 53.66
+      },
+      {
+        "wastePercent": 19,
+        "areaSqFt": 5497,
+        "squares": 55.0
+      },
+      {
+        "wastePercent": 24,
+        "areaSqFt": 5728,
+        "squares": 57.33
+      },
+      {
+        "wastePercent": 29,
+        "areaSqFt": 5959,
+        "squares": 59.66
+      }
+    ],
+    "suggestedWastePercent": 29,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "67317610",
+    "address": "804 W Windmill Ct, Mustang, OK 73064",
+    "latitude": 35.3999966,
+    "longitude": -97.7406297,
+    "reportDate": "9/8/2025",
+    "claimNumber": "3688S034S",
+    "dateOfLoss": "2025-08-08",
+    "totalRoofAreaSqFt": 4362,
+    "totalRoofFacets": 21,
+    "predominantPitch": "8/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 3630,
+    "lengths": {
+      "ridges": {
+        "totalFt": 88,
+        "count": 7
+      },
+      "hips": {
+        "totalFt": 186,
+        "count": 16
+      },
+      "valleys": {
+        "totalFt": 124,
+        "count": 7
+      },
+      "rakes": {
+        "totalFt": 64,
+        "count": 12
+      },
+      "eaves": {
+        "totalFt": 274,
+        "count": 20
+      },
+      "dripEdge": {
+        "totalFt": 338,
+        "count": 32
+      },
+      "flashing": {
+        "totalFt": 15,
+        "count": 10
+      },
+      "stepFlashing": {
+        "totalFt": 25,
+        "count": 13
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "4/12",
+        "areaSqFt": 0.9,
+        "percentOfRoof": 0.0
+      },
+      {
+        "pitch": "8/12",
+        "areaSqFt": 4360.5,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 4362,
+        "squares": 43.66
+      },
+      {
+        "wastePercent": 1,
+        "areaSqFt": 4406,
+        "squares": 44.33
+      },
+      {
+        "wastePercent": 6,
+        "areaSqFt": 4624,
+        "squares": 46.33
+      },
+      {
+        "wastePercent": 11,
+        "areaSqFt": 4842,
+        "squares": 48.66
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 4973,
+        "squares": 50.0
+      },
+      {
+        "wastePercent": 16,
+        "areaSqFt": 5060,
+        "squares": 50.66
+      },
+      {
+        "wastePercent": 18,
+        "areaSqFt": 5148,
+        "squares": 51.66
+      },
+      {
+        "wastePercent": 21,
+        "areaSqFt": 5279,
+        "squares": 53.0
+      },
+      {
+        "wastePercent": 26,
+        "areaSqFt": 5497,
+        "squares": 55.0
+      }
+    ],
+    "suggestedWastePercent": 26,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "67567814",
+    "address": "3512 Lindee Lane, Oklahoma City, OK 73179",
+    "latitude": 35.4294164,
+    "longitude": -97.6870484,
+    "reportDate": "9/23/2025",
+    "claimNumber": "HO-2025-226990821",
+    "dateOfLoss": "2025-05-17",
+    "totalRoofAreaSqFt": 4611,
+    "totalRoofFacets": 39,
+    "predominantPitch": "12/12",
+    "numberOfStories": ">1",
+    "estimatedAtticSqFt": 3554,
+    "lengths": {
+      "ridges": {
+        "totalFt": 81,
+        "count": 12
+      },
+      "hips": {
+        "totalFt": 332,
+        "count": 26
+      },
+      "valleys": {
+        "totalFt": 188,
+        "count": 18
+      },
+      "rakes": {
+        "totalFt": 106,
+        "count": 15
+      },
+      "eaves": {
+        "totalFt": 385,
+        "count": 45
+      },
+      "dripEdge": {
+        "totalFt": 491,
+        "count": 60
+      },
+      "flashing": {
+        "totalFt": 67,
+        "count": 20
+      },
+      "stepFlashing": {
+        "totalFt": 128,
+        "count": 24
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "5/12",
+        "areaSqFt": 238.6,
+        "percentOfRoof": 5.2
+      },
+      {
+        "pitch": "6/12",
+        "areaSqFt": 348.4,
+        "percentOfRoof": 7.6
+      },
+      {
+        "pitch": "7/12",
+        "areaSqFt": 23.1,
+        "percentOfRoof": 0.5
+      },
+      {
+        "pitch": "8/12",
+        "areaSqFt": 1343.0,
+        "percentOfRoof": 29.1
+      },
+      {
+        "pitch": "11/12",
+        "areaSqFt": 50.7,
+        "percentOfRoof": 1.1
+      },
+      {
+        "pitch": "12/12",
+        "areaSqFt": 2606.7,
+        "percentOfRoof": 56.5
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 4611,
+        "squares": 46.33
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 5073,
+        "squares": 51.0
+      },
+      {
+        "wastePercent": 15,
+        "areaSqFt": 5303,
+        "squares": 53.33
+      },
+      {
+        "wastePercent": 20,
+        "areaSqFt": 5534,
+        "squares": 55.66
+      },
+      {
+        "wastePercent": 23,
+        "areaSqFt": 5672,
+        "squares": 57.0
+      },
+      {
+        "wastePercent": 25,
+        "areaSqFt": 5764,
+        "squares": 57.66
+      },
+      {
+        "wastePercent": 27,
+        "areaSqFt": 5856,
+        "squares": 58.66
+      },
+      {
+        "wastePercent": 30,
+        "areaSqFt": 5995,
+        "squares": 60.0
+      },
+      {
+        "wastePercent": 35,
+        "areaSqFt": 6225,
+        "squares": 62.33
+      }
+    ],
+    "suggestedWastePercent": 35,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "67752979",
+    "address": "3113 Loren Dr, Moore, OK 73160",
+    "latitude": 35.3656683,
+    "longitude": -97.4743772,
+    "reportDate": "10/6/2025",
+    "claimNumber": "5037390581-1",
+    "dateOfLoss": "2025-05-17",
+    "totalRoofAreaSqFt": 2670,
+    "totalRoofFacets": 7,
+    "predominantPitch": "8/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 2222,
+    "lengths": {
+      "ridges": {
+        "totalFt": 26,
+        "count": 3
+      },
+      "hips": {
+        "totalFt": 139,
+        "count": 6
+      },
+      "valleys": {
+        "totalFt": 32,
+        "count": 2
+      },
+      "rakes": {
+        "totalFt": 20,
+        "count": 2
+      },
+      "eaves": {
+        "totalFt": 189,
+        "count": 7
+      },
+      "dripEdge": {
+        "totalFt": 209,
+        "count": 9
+      },
+      "flashing": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "stepFlashing": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "8/12",
+        "areaSqFt": 2669.7,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 2670,
+        "squares": 27.0
+      },
+      {
+        "wastePercent": 5,
+        "areaSqFt": 2804,
+        "squares": 28.33
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 2938,
+        "squares": 29.66
+      },
+      {
+        "wastePercent": 13,
+        "areaSqFt": 3018,
+        "squares": 30.33
+      },
+      {
+        "wastePercent": 15,
+        "areaSqFt": 3071,
+        "squares": 31.0
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 3124,
+        "squares": 31.33
+      },
+      {
+        "wastePercent": 20,
+        "areaSqFt": 3204,
+        "squares": 32.33
+      },
+      {
+        "wastePercent": 25,
+        "areaSqFt": 3338,
+        "squares": 33.66
+      },
+      {
+        "wastePercent": 30,
+        "areaSqFt": 3471,
+        "squares": 35.0
+      }
+    ],
+    "suggestedWastePercent": 30,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "67833510",
+    "address": "4001 NE 142nd St, Edmond, OK 73013",
+    "latitude": 35.6152636,
+    "longitude": -97.4458357,
+    "reportDate": "10/13/2025",
+    "claimNumber": "0800019432",
+    "dateOfLoss": "2025-05-14",
+    "totalRoofAreaSqFt": 4263,
+    "totalRoofFacets": 20,
+    "predominantPitch": "8/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 3546,
+    "lengths": {
+      "ridges": {
+        "totalFt": 66,
+        "count": 8
+      },
+      "hips": {
+        "totalFt": 214,
+        "count": 16
+      },
+      "valleys": {
+        "totalFt": 115,
+        "count": 7
+      },
+      "rakes": {
+        "totalFt": 60,
+        "count": 8
+      },
+      "eaves": {
+        "totalFt": 268,
+        "count": 19
+      },
+      "dripEdge": {
+        "totalFt": 328,
+        "count": 27
+      },
+      "flashing": {
+        "totalFt": 14,
+        "count": 5
+      },
+      "stepFlashing": {
+        "totalFt": 32,
+        "count": 9
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "8/12",
+        "areaSqFt": 4233.2,
+        "percentOfRoof": 99.3
+      },
+      {
+        "pitch": "9/12",
+        "areaSqFt": 21.1,
+        "percentOfRoof": 0.5
+      },
+      {
+        "pitch": "12/12",
+        "areaSqFt": 8.6,
+        "percentOfRoof": 0.2
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 4263,
+        "squares": 42.66
+      },
+      {
+        "wastePercent": 2,
+        "areaSqFt": 4349,
+        "squares": 43.66
+      },
+      {
+        "wastePercent": 7,
+        "areaSqFt": 4562,
+        "squares": 45.66
+      },
+      {
+        "wastePercent": 12,
+        "areaSqFt": 4775,
+        "squares": 48.0
+      },
+      {
+        "wastePercent": 15,
+        "areaSqFt": 4903,
+        "squares": 49.33
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 4988,
+        "squares": 50.0
+      },
+      {
+        "wastePercent": 19,
+        "areaSqFt": 5073,
+        "squares": 51.0
+      },
+      {
+        "wastePercent": 22,
+        "areaSqFt": 5201,
+        "squares": 52.33
+      },
+      {
+        "wastePercent": 27,
+        "areaSqFt": 5415,
+        "squares": 54.33
+      }
+    ],
+    "suggestedWastePercent": 27,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "67880633",
+    "address": "765 W Windmill Ct, Mustang, OK 73064",
+    "latitude": 35.4005078,
+    "longitude": -97.7399113,
+    "reportDate": "10/15/2025",
+    "claimNumber": "3690R764H",
+    "dateOfLoss": "2025-05-17",
+    "totalRoofAreaSqFt": 4425,
+    "totalRoofFacets": 14,
+    "predominantPitch": "9/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 3540,
+    "lengths": {
+      "ridges": {
+        "totalFt": 69,
+        "count": 7
+      },
+      "hips": {
+        "totalFt": 204,
+        "count": 10
+      },
+      "valleys": {
+        "totalFt": 112,
+        "count": 6
+      },
+      "rakes": {
+        "totalFt": 61,
+        "count": 6
+      },
+      "eaves": {
+        "totalFt": 256,
+        "count": 15
+      },
+      "dripEdge": {
+        "totalFt": 317,
+        "count": 21
+      },
+      "flashing": {
+        "totalFt": 3,
+        "count": 2
+      },
+      "stepFlashing": {
+        "totalFt": 17,
+        "count": 4
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "9/12",
+        "areaSqFt": 4424.6,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 4425,
+        "squares": 44.33
+      },
+      {
+        "wastePercent": 1,
+        "areaSqFt": 4470,
+        "squares": 45.0
+      },
+      {
+        "wastePercent": 6,
+        "areaSqFt": 4691,
+        "squares": 47.0
+      },
+      {
+        "wastePercent": 11,
+        "areaSqFt": 4912,
+        "squares": 49.33
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 5045,
+        "squares": 50.66
+      },
+      {
+        "wastePercent": 16,
+        "areaSqFt": 5133,
+        "squares": 51.33
+      },
+      {
+        "wastePercent": 18,
+        "areaSqFt": 5222,
+        "squares": 52.33
+      },
+      {
+        "wastePercent": 21,
+        "areaSqFt": 5355,
+        "squares": 53.66
+      },
+      {
+        "wastePercent": 26,
+        "areaSqFt": 5576,
+        "squares": 56.0
+      }
+    ],
+    "suggestedWastePercent": 26,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "67947267",
+    "address": "1012 David Rd, Moore, OK 73160",
+    "latitude": 35.3469242,
+    "longitude": -97.4548485,
+    "reportDate": "10/21/2025",
+    "totalRoofAreaSqFt": 2547,
+    "totalRoofFacets": 6,
+    "predominantPitch": "7/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 2240,
+    "lengths": {
+      "ridges": {
+        "totalFt": 72,
+        "count": 3
+      },
+      "hips": {
+        "totalFt": 10,
+        "count": 2
+      },
+      "valleys": {
+        "totalFt": 37,
+        "count": 2
+      },
+      "rakes": {
+        "totalFt": 122,
+        "count": 9
+      },
+      "eaves": {
+        "totalFt": 135,
+        "count": 5
+      },
+      "dripEdge": {
+        "totalFt": 257,
+        "count": 14
+      },
+      "flashing": {
+        "totalFt": 27,
+        "count": 2
+      },
+      "stepFlashing": {
+        "totalFt": 14,
+        "count": 2
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "7/12",
+        "areaSqFt": 2546.8,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 2547,
+        "squares": 25.66
+      },
+      {
+        "wastePercent": 4,
+        "areaSqFt": 2649,
+        "squares": 26.66
+      },
+      {
+        "wastePercent": 7,
+        "areaSqFt": 2726,
+        "squares": 27.33
+      },
+      {
+        "wastePercent": 9,
+        "areaSqFt": 2777,
+        "squares": 28.0
+      },
+      {
+        "wastePercent": 11,
+        "areaSqFt": 2828,
+        "squares": 28.33
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 2904,
+        "squares": 29.33
+      },
+      {
+        "wastePercent": 19,
+        "areaSqFt": 3031,
+        "squares": 30.33
+      },
+      {
+        "wastePercent": 24,
+        "areaSqFt": 3159,
+        "squares": 31.66
+      },
+      {
+        "wastePercent": 29,
+        "areaSqFt": 3286,
+        "squares": 33.0
+      }
+    ],
+    "suggestedWastePercent": 29,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68100649",
+    "address": "4221 NE 18th St, Oklahoma City, OK 73121",
+    "latitude": 35.488603,
+    "longitude": -97.440517,
+    "reportDate": "11/1/2025",
+    "claimNumber": "XXXX",
+    "dateOfLoss": "2025-10-23",
+    "totalRoofAreaSqFt": 1232,
+    "totalRoofFacets": 9,
+    "predominantPitch": "4/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 109,
+    "lengths": {
+      "ridges": {
+        "totalFt": 71,
+        "count": 4
+      },
+      "hips": {
+        "totalFt": 28,
+        "count": 2
+      },
+      "valleys": {
+        "totalFt": 55,
+        "count": 6
+      },
+      "rakes": {
+        "totalFt": 66,
+        "count": 8
+      },
+      "eaves": {
+        "totalFt": 104,
+        "count": 11
+      },
+      "dripEdge": {
+        "totalFt": 170,
+        "count": 19
+      },
+      "flashing": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "stepFlashing": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "4/12",
+        "areaSqFt": 1231.5,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 1232,
+        "squares": 12.33
+      },
+      {
+        "wastePercent": 4,
+        "areaSqFt": 1282,
+        "squares": 13.0
+      },
+      {
+        "wastePercent": 9,
+        "areaSqFt": 1343,
+        "squares": 13.66
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 1405,
+        "squares": 14.33
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 1442,
+        "squares": 14.66
+      },
+      {
+        "wastePercent": 19,
+        "areaSqFt": 1467,
+        "squares": 15.0
+      },
+      {
+        "wastePercent": 21,
+        "areaSqFt": 1491,
+        "squares": 15.0
+      },
+      {
+        "wastePercent": 24,
+        "areaSqFt": 1528,
+        "squares": 15.33
+      },
+      {
+        "wastePercent": 29,
+        "areaSqFt": 1590,
+        "squares": 16.0
+      }
+    ],
+    "suggestedWastePercent": 29,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68160186",
+    "address": "18600 Antler Way, Edmond, OK 73012",
+    "latitude": 35.6598808,
+    "longitude": -97.625688,
+    "reportDate": "11/6/2025",
+    "claimNumber": "OKHO-00013001",
+    "dateOfLoss": "2025-06-14",
+    "totalRoofAreaSqFt": 6159,
+    "totalRoofFacets": 24,
+    "predominantPitch": "9/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 4927,
+    "lengths": {
+      "ridges": {
+        "totalFt": 122,
+        "count": 11
+      },
+      "hips": {
+        "totalFt": 235,
+        "count": 16
+      },
+      "valleys": {
+        "totalFt": 181,
+        "count": 12
+      },
+      "rakes": {
+        "totalFt": 101,
+        "count": 10
+      },
+      "eaves": {
+        "totalFt": 326,
+        "count": 22
+      },
+      "dripEdge": {
+        "totalFt": 427,
+        "count": 32
+      },
+      "flashing": {
+        "totalFt": 11,
+        "count": 6
+      },
+      "stepFlashing": {
+        "totalFt": 37,
+        "count": 11
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "3/12",
+        "areaSqFt": 0.6,
+        "percentOfRoof": 0.0
+      },
+      {
+        "pitch": "9/12",
+        "areaSqFt": 6157.6,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 6159,
+        "squares": 61.66
+      },
+      {
+        "wastePercent": 5,
+        "areaSqFt": 6467,
+        "squares": 65.0
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 6775,
+        "squares": 68.0
+      },
+      {
+        "wastePercent": 13,
+        "areaSqFt": 6960,
+        "squares": 69.66
+      },
+      {
+        "wastePercent": 15,
+        "areaSqFt": 7083,
+        "squares": 71.0
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 7207,
+        "squares": 72.33
+      },
+      {
+        "wastePercent": 20,
+        "areaSqFt": 7391,
+        "squares": 74.0
+      },
+      {
+        "wastePercent": 25,
+        "areaSqFt": 7699,
+        "squares": 77.0
+      },
+      {
+        "wastePercent": 30,
+        "areaSqFt": 8007,
+        "squares": 80.33
+      }
+    ],
+    "suggestedWastePercent": 30,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68235426",
+    "address": "3208 Sawgrass Rd, Edmond, OK 73034",
+    "latitude": 35.6820685,
+    "longitude": -97.4378864,
+    "reportDate": "11/12/2025",
+    "claimNumber": "XXXX",
+    "totalRoofAreaSqFt": 6089,
+    "totalRoofFacets": 77,
+    "predominantPitch": "12/12",
+    "numberOfStories": ">1",
+    "estimatedAtticSqFt": 4343,
+    "lengths": {
+      "ridges": {
+        "totalFt": 134,
+        "count": 11
+      },
+      "hips": {
+        "totalFt": 303,
+        "count": 42
+      },
+      "valleys": {
+        "totalFt": 286,
+        "count": 44
+      },
+      "rakes": {
+        "totalFt": 168,
+        "count": 37
+      },
+      "eaves": {
+        "totalFt": 311,
+        "count": 51
+      },
+      "dripEdge": {
+        "totalFt": 479,
+        "count": 88
+      },
+      "flashing": {
+        "totalFt": 29,
+        "count": 19
+      },
+      "stepFlashing": {
+        "totalFt": 95,
+        "count": 19
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "0/12",
+        "areaSqFt": 10.0,
+        "percentOfRoof": 0.2
+      },
+      {
+        "pitch": "2/12",
+        "areaSqFt": 24.3,
+        "percentOfRoof": 0.4
+      },
+      {
+        "pitch": "4/12",
+        "areaSqFt": 8.0,
+        "percentOfRoof": 0.1
+      },
+      {
+        "pitch": "6/12",
+        "areaSqFt": 35.0,
+        "percentOfRoof": 0.6
+      },
+      {
+        "pitch": "7/12",
+        "areaSqFt": 15.3,
+        "percentOfRoof": 0.3
+      },
+      {
+        "pitch": "8/12",
+        "areaSqFt": 199.6,
+        "percentOfRoof": 3.3
+      },
+      {
+        "pitch": "9/12",
+        "areaSqFt": 5.5,
+        "percentOfRoof": 0.1
+      },
+      {
+        "pitch": "11/12",
+        "areaSqFt": 31.7,
+        "percentOfRoof": 0.5
+      },
+      {
+        "pitch": "12/12",
+        "areaSqFt": 5732.6,
+        "percentOfRoof": 94.1
+      },
+      {
+        "pitch": "13/12",
+        "areaSqFt": 17.4,
+        "percentOfRoof": 0.3
+      },
+      {
+        "pitch": "14/12",
+        "areaSqFt": 9.2,
+        "percentOfRoof": 0.2
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 6055,
+        "squares": 60.66
+      },
+      {
+        "wastePercent": 5,
+        "areaSqFt": 6358,
+        "squares": 63.66
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 6661,
+        "squares": 66.66
+      },
+      {
+        "wastePercent": 15,
+        "areaSqFt": 6964,
+        "squares": 69.66
+      },
+      {
+        "wastePercent": 18,
+        "areaSqFt": 7145,
+        "squares": 71.66
+      },
+      {
+        "wastePercent": 20,
+        "areaSqFt": 7266,
+        "squares": 72.66
+      },
+      {
+        "wastePercent": 22,
+        "areaSqFt": 7388,
+        "squares": 74.0
+      },
+      {
+        "wastePercent": 25,
+        "areaSqFt": 7569,
+        "squares": 76.0
+      },
+      {
+        "wastePercent": 30,
+        "areaSqFt": 7872,
+        "squares": 79.0
+      }
+    ],
+    "suggestedWastePercent": 30,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68353768",
+    "address": "417 SE 33rd St, Moore, OK 73160",
+    "latitude": 35.3077431,
+    "longitude": -97.465983,
+    "reportDate": "11/24/2025",
+    "claimNumber": "3687R698W",
+    "dateOfLoss": "2025-04-01",
+    "totalRoofAreaSqFt": 3692,
+    "totalRoofFacets": 8,
+    "predominantPitch": "8/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 3072,
+    "lengths": {
+      "ridges": {
+        "totalFt": 56,
+        "count": 4
+      },
+      "hips": {
+        "totalFt": 124,
+        "count": 6
+      },
+      "valleys": {
+        "totalFt": 43,
+        "count": 3
+      },
+      "rakes": {
+        "totalFt": 52,
+        "count": 4
+      },
+      "eaves": {
+        "totalFt": 217,
+        "count": 8
+      },
+      "dripEdge": {
+        "totalFt": 269,
+        "count": 12
+      },
+      "flashing": {
+        "totalFt": 3,
+        "count": 2
+      },
+      "stepFlashing": {
+        "totalFt": 6,
+        "count": 2
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "8/12",
+        "areaSqFt": 3691.9,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 3692,
+        "squares": 37.0
+      },
+      {
+        "wastePercent": 2,
+        "areaSqFt": 3766,
+        "squares": 37.66
+      },
+      {
+        "wastePercent": 7,
+        "areaSqFt": 3951,
+        "squares": 39.66
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 4062,
+        "squares": 40.66
+      },
+      {
+        "wastePercent": 12,
+        "areaSqFt": 4136,
+        "squares": 41.66
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 4209,
+        "squares": 42.33
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 4320,
+        "squares": 43.33
+      },
+      {
+        "wastePercent": 22,
+        "areaSqFt": 4505,
+        "squares": 45.33
+      },
+      {
+        "wastePercent": 27,
+        "areaSqFt": 4689,
+        "squares": 47.0
+      }
+    ],
+    "suggestedWastePercent": 27,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68632581",
+    "address": "11728 Hackney Lane, Yukon, OK 73099",
+    "latitude": 35.5853341,
+    "longitude": -97.7343386,
+    "reportDate": "12/24/2025",
+    "claimNumber": "OKHO-00013175",
+    "dateOfLoss": "2025-11-19",
+    "totalRoofAreaSqFt": 4234,
+    "totalRoofFacets": 10,
+    "predominantPitch": "7/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 3658,
+    "lengths": {
+      "ridges": {
+        "totalFt": 174,
+        "count": 5
+      },
+      "hips": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "valleys": {
+        "totalFt": 159,
+        "count": 9
+      },
+      "rakes": {
+        "totalFt": 208,
+        "count": 15
+      },
+      "eaves": {
+        "totalFt": 143,
+        "count": 9
+      },
+      "dripEdge": {
+        "totalFt": 351,
+        "count": 24
+      },
+      "flashing": {
+        "totalFt": 6,
+        "count": 3
+      },
+      "stepFlashing": {
+        "totalFt": 19,
+        "count": 5
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "7/12",
+        "areaSqFt": 4233.9,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 4234,
+        "squares": 42.66
+      },
+      {
+        "wastePercent": 1,
+        "areaSqFt": 4277,
+        "squares": 43.0
+      },
+      {
+        "wastePercent": 6,
+        "areaSqFt": 4489,
+        "squares": 45.0
+      },
+      {
+        "wastePercent": 9,
+        "areaSqFt": 4616,
+        "squares": 46.33
+      },
+      {
+        "wastePercent": 11,
+        "areaSqFt": 4700,
+        "squares": 47.0
+      },
+      {
+        "wastePercent": 13,
+        "areaSqFt": 4785,
+        "squares": 48.0
+      },
+      {
+        "wastePercent": 16,
+        "areaSqFt": 4912,
+        "squares": 49.33
+      },
+      {
+        "wastePercent": 21,
+        "areaSqFt": 5124,
+        "squares": 51.33
+      },
+      {
+        "wastePercent": 26,
+        "areaSqFt": 5335,
+        "squares": 53.66
+      }
+    ],
+    "suggestedWastePercent": 26,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68695630",
+    "address": "702 S Williams Ave, El Reno, OK 73036",
+    "latitude": 35.5274931,
+    "longitude": -97.9487134,
+    "reportDate": "1/3/2026",
+    "totalRoofAreaSqFt": 808,
+    "totalRoofFacets": 4,
+    "predominantPitch": "10/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 621,
+    "lengths": {
+      "ridges": {
+        "totalFt": 27,
+        "count": 1
+      },
+      "hips": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "valleys": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "rakes": {
+        "totalFt": 58,
+        "count": 4
+      },
+      "eaves": {
+        "totalFt": 97,
+        "count": 4
+      },
+      "dripEdge": {
+        "totalFt": 155,
+        "count": 8
+      },
+      "flashing": {
+        "totalFt": 38,
+        "count": 2
+      },
+      "stepFlashing": {
+        "totalFt": 8,
+        "count": 4
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "10/12",
+        "areaSqFt": 807.9,
+        "percentOfRoof": 100.0
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 808,
+        "squares": 8.33
+      },
+      {
+        "wastePercent": 2,
+        "areaSqFt": 825,
+        "squares": 8.33
+      },
+      {
+        "wastePercent": 7,
+        "areaSqFt": 865,
+        "squares": 8.66
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 889,
+        "squares": 9.0
+      },
+      {
+        "wastePercent": 12,
+        "areaSqFt": 905,
+        "squares": 9.33
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 922,
+        "squares": 9.33
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 946,
+        "squares": 9.66
+      },
+      {
+        "wastePercent": 22,
+        "areaSqFt": 986,
+        "squares": 10.0
+      },
+      {
+        "wastePercent": 27,
+        "areaSqFt": 1027,
+        "squares": 10.33
+      }
+    ],
+    "suggestedWastePercent": 27,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68801388",
+    "address": "11704 NW 120th St, Oklahoma City, OK 73099",
+    "latitude": 35.5919157,
+    "longitude": -97.7339733,
+    "reportDate": "1/12/2026",
+    "claimNumber": "3693T178J",
+    "dateOfLoss": "2025-11-19",
+    "totalRoofAreaSqFt": 4478,
+    "totalRoofFacets": 22,
+    "predominantPitch": "8/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 3725,
+    "lengths": {
+      "ridges": {
+        "totalFt": 82,
+        "count": 8
+      },
+      "hips": {
+        "totalFt": 213,
+        "count": 17
+      },
+      "valleys": {
+        "totalFt": 141,
+        "count": 11
+      },
+      "rakes": {
+        "totalFt": 62,
+        "count": 10
+      },
+      "eaves": {
+        "totalFt": 279,
+        "count": 20
+      },
+      "dripEdge": {
+        "totalFt": 341,
+        "count": 30
+      },
+      "flashing": {
+        "totalFt": 15,
+        "count": 10
+      },
+      "stepFlashing": {
+        "totalFt": 33,
+        "count": 12
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "3/12",
+        "areaSqFt": 58.7,
+        "percentOfRoof": 1.3
+      },
+      {
+        "pitch": "8/12",
+        "areaSqFt": 4418.4,
+        "percentOfRoof": 98.7
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 4478,
+        "squares": 45.0
+      },
+      {
+        "wastePercent": 2,
+        "areaSqFt": 4568,
+        "squares": 46.0
+      },
+      {
+        "wastePercent": 7,
+        "areaSqFt": 4792,
+        "squares": 48.0
+      },
+      {
+        "wastePercent": 12,
+        "areaSqFt": 5016,
+        "squares": 50.33
+      },
+      {
+        "wastePercent": 15,
+        "areaSqFt": 5150,
+        "squares": 51.66
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 5240,
+        "squares": 52.66
+      },
+      {
+        "wastePercent": 19,
+        "areaSqFt": 5329,
+        "squares": 53.33
+      },
+      {
+        "wastePercent": 22,
+        "areaSqFt": 5464,
+        "squares": 54.66
+      },
+      {
+        "wastePercent": 27,
+        "areaSqFt": 5688,
+        "squares": 57.0
+      }
+    ],
+    "suggestedWastePercent": 27,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "68915398",
+    "address": "112 Pickard Dr, Mcloud, OK 74851",
+    "latitude": 35.379858,
+    "longitude": -97.1218673,
+    "reportDate": "1/20/2026",
+    "totalRoofAreaSqFt": 4590,
+    "totalRoofFacets": 10,
+    "predominantPitch": "4/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 4420,
+    "lengths": {
+      "ridges": {
+        "totalFt": 38,
+        "count": 2
+      },
+      "hips": {
+        "totalFt": 106,
+        "count": 4
+      },
+      "valleys": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "rakes": {
+        "totalFt": 102,
+        "count": 6
+      },
+      "eaves": {
+        "totalFt": 267,
+        "count": 7
+      },
+      "dripEdge": {
+        "totalFt": 369,
+        "count": 13
+      },
+      "flashing": {
+        "totalFt": 44,
+        "count": 2
+      },
+      "stepFlashing": {
+        "totalFt": 16,
+        "count": 2
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "1/12",
+        "areaSqFt": 766.1,
+        "percentOfRoof": 20.3
+      },
+      {
+        "pitch": "4/12",
+        "areaSqFt": 3016.9,
+        "percentOfRoof": 79.7
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 3017,
+        "squares": 30.33
+      },
+      {
+        "wastePercent": 2,
+        "areaSqFt": 3078,
+        "squares": 31.0
+      },
+      {
+        "wastePercent": 7,
+        "areaSqFt": 3229,
+        "squares": 32.33
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 3319,
+        "squares": 33.33
+      },
+      {
+        "wastePercent": 12,
+        "areaSqFt": 3380,
+        "squares": 34.0
+      },
+      {
+        "wastePercent": 14,
+        "areaSqFt": 3440,
+        "squares": 34.66
+      },
+      {
+        "wastePercent": 17,
+        "areaSqFt": 3530,
+        "squares": 35.33
+      },
+      {
+        "wastePercent": 22,
+        "areaSqFt": 3681,
+        "squares": 37.0
+      },
+      {
+        "wastePercent": 27,
+        "areaSqFt": 3832,
+        "squares": 38.33
+      }
+    ],
+    "suggestedWastePercent": 27,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "69142902",
+    "address": "2808 N Donald Ave, Oklahoma City, OK 73127",
+    "latitude": 35.4983519,
+    "longitude": -97.6264502,
+    "reportDate": "2/5/2026",
+    "claimNumber": "08144577011",
+    "dateOfLoss": "2025-05-17",
+    "totalRoofAreaSqFt": 2798,
+    "totalRoofFacets": 5,
+    "predominantPitch": "5/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 2602,
+    "lengths": {
+      "ridges": {
+        "totalFt": 88,
+        "count": 2
+      },
+      "hips": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "valleys": {
+        "totalFt": 36,
+        "count": 2
+      },
+      "rakes": {
+        "totalFt": 139,
+        "count": 16
+      },
+      "eaves": {
+        "totalFt": 113,
+        "count": 7
+      },
+      "dripEdge": {
+        "totalFt": 252,
+        "count": 23
+      },
+      "flashing": {
+        "totalFt": 4,
+        "count": 2
+      },
+      "stepFlashing": {
+        "totalFt": 5,
+        "count": 2
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "1/12",
+        "areaSqFt": 259.6,
+        "percentOfRoof": 9.3
+      },
+      {
+        "pitch": "5/12",
+        "areaSqFt": 2537.6,
+        "percentOfRoof": 90.7
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 2538,
+        "squares": 25.66
+      },
+      {
+        "wastePercent": 3,
+        "areaSqFt": 2615,
+        "squares": 26.33
+      },
+      {
+        "wastePercent": 6,
+        "areaSqFt": 2691,
+        "squares": 27.0
+      },
+      {
+        "wastePercent": 8,
+        "areaSqFt": 2742,
+        "squares": 27.66
+      },
+      {
+        "wastePercent": 10,
+        "areaSqFt": 2792,
+        "squares": 28.0
+      },
+      {
+        "wastePercent": 13,
+        "areaSqFt": 2868,
+        "squares": 29.0
+      },
+      {
+        "wastePercent": 18,
+        "areaSqFt": 2995,
+        "squares": 30.0
+      },
+      {
+        "wastePercent": 23,
+        "areaSqFt": 3122,
+        "squares": 31.33
+      },
+      {
+        "wastePercent": 28,
+        "areaSqFt": 3249,
+        "squares": 32.66
+      }
+    ],
+    "suggestedWastePercent": 28,
+    "structureComplexity": "Complex"
+  },
+  {
+    "reportId": "69282420",
+    "address": "699 Richland Rd, Ardmore, OK 73401",
+    "latitude": 34.2720171,
+    "longitude": -97.1545617,
+    "reportDate": "2/13/2026",
+    "claimNumber": "01008721659",
+    "dateOfLoss": "2025-04-03",
+    "totalRoofAreaSqFt": 2483,
+    "totalRoofFacets": 7,
+    "predominantPitch": "5/12",
+    "numberOfStories": "<=1",
+    "estimatedAtticSqFt": 2326,
+    "lengths": {
+      "ridges": {
+        "totalFt": 59,
+        "count": 2
+      },
+      "hips": {
+        "totalFt": 12,
+        "count": 1
+      },
+      "valleys": {
+        "totalFt": 0,
+        "count": 0
+      },
+      "rakes": {
+        "totalFt": 126,
+        "count": 10
+      },
+      "eaves": {
+        "totalFt": 160,
+        "count": 6
+      },
+      "dripEdge": {
+        "totalFt": 286,
+        "count": 16
+      },
+      "flashing": {
+        "totalFt": 29,
+        "count": 1
+      },
+      "stepFlashing": {
+        "totalFt": 37,
+        "count": 4
+      },
+      "parapets": {
+        "totalFt": 0,
+        "count": 0
+      }
+    },
+    "pitchBreakdown": [
+      {
+        "pitch": "1/12",
+        "areaSqFt": 83.2,
+        "percentOfRoof": 3.4
+      },
+      {
+        "pitch": "2/12",
+        "areaSqFt": 443.2,
+        "percentOfRoof": 17.8
+      },
+      {
+        "pitch": "5/12",
+        "areaSqFt": 1956.0,
+        "percentOfRoof": 78.8
+      }
+    ],
+    "wasteTable": [
+      {
+        "wastePercent": 0,
+        "areaSqFt": 1956,
+        "squares": 19.66
+      },
+      {
+        "wastePercent": 1,
+        "areaSqFt": 1976,
+        "squares": 20.0
+      },
+      {
+        "wastePercent": 4,
+        "areaSqFt": 2035,
+        "squares": 20.66
+      },
+      {
+        "wastePercent": 6,
+        "areaSqFt": 2074,
+        "squares": 21.0
+      },
+      {
+        "wastePercent": 8,
+        "areaSqFt": 2113,
+        "squares": 21.33
+      },
+      {
+        "wastePercent": 11,
+        "areaSqFt": 2172,
+        "squares": 22.0
+      },
+      {
+        "wastePercent": 16,
+        "areaSqFt": 2269,
+        "squares": 23.0
+      },
+      {
+        "wastePercent": 21,
+        "areaSqFt": 2367,
+        "squares": 24.0
+      },
+      {
+        "wastePercent": 26,
+        "areaSqFt": 2465,
+        "squares": 24.66
+      }
+    ],
+    "suggestedWastePercent": 26,
+    "structureComplexity": "Complex"
+  }
+]
