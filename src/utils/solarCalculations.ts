@@ -1,7 +1,6 @@
 import type { RoofFacet, RoofMeasurement } from '../types';
 import type {
   SolarBuildingInsights,
-  SolarFinancialAnalysis,
   SolarMoney,
   SolarPanelConfig as ApiSolarPanelConfig,
 } from '../types/solar';

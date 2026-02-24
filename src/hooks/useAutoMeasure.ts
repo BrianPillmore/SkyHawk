@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
-import type { AutoMeasureProgress, ReconstructedRoof, SolarRoofSegment, FluxMapAnalysis, PitchVerificationResult } from '../types/solar';
+import type { AutoMeasureProgress, ReconstructedRoof, SolarRoofSegment, FluxMapAnalysis } from '../types/solar';
 import { fetchBuildingInsights, fetchDataLayers, fetchGeoTiff, SolarApiError } from '../services/solarApi';
 import { capturePropertyImage, detectRoofEdges } from '../services/visionApi';
 import type { EdgeType } from '../types';

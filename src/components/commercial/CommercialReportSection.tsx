@@ -8,7 +8,6 @@ import {
   BUILDING_TYPE_LABELS,
   CONDITION_COLORS,
   COPING_TYPE_LABELS,
-  DRAIN_TYPE_LABELS,
   PONDING_RISK_COLORS,
 } from '../../types/commercial';
 import { mergeCommercialSections, calculateParapetLength, calculateRooftopPenetrations } from '../../utils/commercialRoof';

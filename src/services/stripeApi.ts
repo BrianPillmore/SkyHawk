@@ -34,12 +34,11 @@ function getUserId(): string | null {
 }
 
 class StripeApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
+  status: number;
+  constructor(status: number, message: string) {
     super(message);
     this.name = 'StripeApiError';
+    this.status = status;
   }
 }
 

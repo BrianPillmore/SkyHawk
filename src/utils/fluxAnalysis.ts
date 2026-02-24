@@ -414,7 +414,7 @@ export function analyzeShading(
   fluxMap: ParsedFluxMap,
   monthlyFlux: ParsedMonthlyFlux,
 ): ShadeAnalysisResult {
-  const { data, width, height, noDataValue } = fluxMap;
+  const { data, noDataValue } = fluxMap;
 
   // Compute monthly mean flux across all valid roof pixels
   const monthlyTotals = new Array(12).fill(0);

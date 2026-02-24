@@ -185,7 +185,7 @@ export function renderSummaryPage(
 
     // Card background
     doc.setFillColor(...COLORS.lightBg);
-    doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 2, 2, 'F');
+    doc.rect(cardX, cardY, cardWidth, cardHeight, 'F');
 
     // Accent bar on left
     doc.setFillColor(...COLORS.primary);

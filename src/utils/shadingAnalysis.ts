@@ -360,8 +360,6 @@ export function validatePanelPlacement(
   const sp = insights.solarPotential;
   const panels = sp.solarPanels ?? [];
   const segments = sp.roofSegmentStats ?? [];
-  const configs = sp.solarPanelConfigs ?? [];
-
   // Count panels per segment from the panels array
   const segmentCounts = new Map<number, number>();
   const segmentEnergy = new Map<number, number>();
@@ -372,9 +370,6 @@ export function validatePanelPlacement(
   }
 
   const googlePanelCount = panels.length;
-  // Use the max config for SkyHawk comparison
-  const maxConfig = configs.length > 0 ? configs[configs.length - 1] : null;
-
   const segmentPanelCounts = segments.map((_, i) => ({
     segmentIndex: i,
     panelCount: segmentCounts.get(i) ?? 0,
