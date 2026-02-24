@@ -27,7 +27,7 @@ async function getAppliedMigrations(): Promise<Set<string>> {
   const result = await pool.query<{ name: string }>(
     'SELECT name FROM _migrations ORDER BY id',
   );
-  return new Set(result.rows.map((r) => r.name));
+  return new Set(result.rows.map((r: { name: string }) => r.name));
 }
 
 async function runMigrations(): Promise<void> {

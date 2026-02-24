@@ -17,7 +17,7 @@ export function getPool(): pg.Pool {
       connectionTimeoutMillis: 5000,
     });
 
-    pool.on('error', (err) => {
+    pool.on('error', (err: Error) => {
       console.error('Unexpected database pool error:', err);
     });
   }

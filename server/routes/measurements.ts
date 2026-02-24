@@ -170,14 +170,14 @@ router.get('/:mid', requireUuidParam('mid'), async (req: Request, res: Response)
     const facetVertices = await query(
       `SELECT facet_id, vertex_id FROM facet_vertices
        WHERE facet_id = ANY($1::uuid[]) ORDER BY sort_order`,
-      [facets.rows.map((f) => f.id)],
+      [(facets.rows as any[]).map((f) => f.id)],
     );
 
     // Get facet-edge mappings
     const facetEdges = await query(
       `SELECT facet_id, edge_id FROM facet_edges
        WHERE facet_id = ANY($1::uuid[])`,
-      [facets.rows.map((f) => f.id)],
+      [(facets.rows as any[]).map((f) => f.id)],
     );
 
     // Assemble facets with vertexIds and edgeIds
@@ -194,7 +194,7 @@ router.get('/:mid', requireUuidParam('mid'), async (req: Request, res: Response)
       facetEdgeMap.set(fe.facet_id, arr);
     }
 
-    const assembledFacets = facets.rows.map((f) => ({
+    const assembledFacets = (facets.rows as any[]).map((f) => ({
       id: f.id,
       name: f.name,
       pitch: f.pitch,
@@ -236,12 +236,12 @@ router.get('/:mid', requireUuidParam('mid'), async (req: Request, res: Response)
       buildingHeightFt: measurement.building_height_ft,
       stories: measurement.stories,
       dataSource: measurement.data_source,
-      vertices: vertices.rows.map((v) => ({
+      vertices: (vertices.rows as any[]).map((v) => ({
         id: v.id,
         lat: v.lat,
         lng: v.lng,
       })),
-      edges: edges.rows.map((e) => ({
+      edges: (edges.rows as any[]).map((e) => ({
         id: e.id,
         startVertexId: e.start_vertex_id,
         endVertexId: e.end_vertex_id,
