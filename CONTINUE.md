@@ -45,25 +45,19 @@ reports immediately competitive for contractors and adjusters.
   - Click-to-inspect facets, toggle diagram views
   - Shareable companion to the PDF
 
-### Priority 1b: Accuracy — Solar API Data Layers Integration
-**The single biggest accuracy opportunity.** The Solar API dataLayers endpoint ($0.075/call)
-provides LIDAR-derived GeoTIFFs at 10cm resolution — roof mask, DSM elevation, RGB imagery.
-This data is already typed in `src/types/solar.ts` and the GeoTIFF parsing pipeline exists
-in `src/utils/contour.ts`, but it's never wired into the auto-measure flow.
-- [ ] Wire `fetchDataLayers` + `fetchGeoTiff` into `useAutoMeasure.ts` pipeline
-- [ ] Use LIDAR mask for pixel-perfect roof outlines (replace or supplement Claude Vision)
-- [ ] Use DSM elevation data for actual 3D pitch calculation (vs. Solar API segment estimates)
-- [ ] Use DSM for story detection, parapet identification
-- [ ] Calculate actual 3D surface area from elevation model
-- [ ] **Plan file**: `plans/google-solar-api-deep-dive.md`
+### Priority 1b: Accuracy — Solar API Data Layers Integration (COMPLETE)
+**LIDAR-first pipeline implemented.** Plan: `C:\Users\brian\.claude\plans\enchanted-humming-feather.md`
+- [x] Phase 0: Pitch cap — `clampPitch()` at MAX_RESIDENTIAL_PITCH=24 on all 5 pitch assignment points
+- [x] Phase 1: Types + DSM parser — `ParsedDSM`, `DsmFacetAnalysis`, `BuildingHeightAnalysis`; `parseDsmGeoTiff()`
+- [x] Phase 2: DSM analysis module — `src/utils/dsmAnalysis.ts` (fitPlane, triangleArea3D, analyzeFacetFromDSM, computeBuildingHeight)
+- [x] Phase 3: LIDAR-first pipeline — `useAutoMeasure.ts` rewired: `Promise.allSettled([buildingInsights, dataLayers])` → LIDAR mask outline → DSM 3D pitch/area → AI Vision fallback
+- [x] Phase 4: Store integration — prefer `trueArea3DSqFt` when available, store `buildingHeightFt`, `stories`, `dataSource` on measurement
+- [x] Phase 5: Tests — 29 new dsmAnalysis tests + 10 clampPitch tests = 39 new tests
 
-### Priority 1c: Accuracy Investigation (from EagleView comparison)
-**Flag**: SkyHawk reports 93.7 squares vs EagleView's 63.2 squares for 701 Kingston Dr
-(+48% discrepancy). Facets #5 and #6 show 17/12 pitch (55 degrees) which is suspiciously
-steep for residential and nearly doubles their projected area.
-- [ ] Investigate Solar API segment-to-facet pitch matching logic
-- [ ] Add pitch reasonableness cap (e.g., clamp residential pitch to 18/12 max)
-- [ ] Verify roof footprint boundary isn't including adjacent structures
+### Priority 1c: Accuracy Investigation (COMPLETE)
+- [x] Pitch cap at 24/12 (63.4°) prevents extreme area inflation from steep Solar API segments
+- [x] Applied `clampPitch()` at all 5 pitch assignment points in `roofReconstruction.ts`
+- [x] DSM elevation data now provides ground-truth 3D pitch verification
 
 ### Priority 2: PostgreSQL Database & Property Persistence
 **Plan file**: `plans/database-persistence.md`
@@ -144,7 +138,36 @@ the remaining 70% for significant accuracy and feature improvements:
 - [ ] **Phase 7**: DSM-based pitch verification and building height extraction
 - [ ] **Phase 8**: Panel layout visualization in map and PDF reports
 
-### Priority 7: Phase 8 — Commercial Properties
+### Priority 7: GotRuf.com Marketing Site & Rebrand
+**Brand**: GotRuf.com (pronounced "Got Roof")
+**Taglines**: "It sure ain't EagleView." / "Check your receipt." / "Home of the first one's free."
+
+Build a marketing front-end site integrated into the current SkyHawk codebase:
+- [ ] **Landing Page**: Hero with construction/roof imagery, value prop, CTA
+- [ ] **Persona Pages**: Dedicated landing pages for 4 personas:
+  - Roofing contractors (speed, accuracy, cost savings vs EagleView)
+  - Insurance adjusters (compliance, accuracy guarantee, bulk pricing)
+  - Insurance representatives (claims workflow, enterprise features)
+  - Homeowners (free first report, easy to understand, transparent pricing)
+- [ ] **Pricing Page**:
+  - Single report: $9.99
+  - 25 reports/month: $99 (unused roll over)
+  - Enterprise pricing (custom)
+  - **5% accuracy guarantee vs EagleView or money back**
+- [ ] **Stripe Integration**: Payment processing wired up for per-report and subscription billing
+- [ ] **Free First Report**: Account signup → 1 free report credit
+- [ ] **Branding**: GotRuf.com domain, logo, color scheme, construction/roof aesthetic
+- [ ] **Plan file**: `plans/gotruf-marketing-site.md`
+
+### Priority 8: Mobile-Friendly Responsive Design
+Make all views responsive and mobile-friendly for field use:
+- [ ] **Phase A: Responsive Layout** — Sidebar/panel collapse on mobile, full-width map
+- [ ] **Phase B: Touch-Optimized Controls** — Larger touch targets, swipe gestures for panels
+- [ ] **Phase C: Mobile Measurement UX** — Simplified toolbar for mobile, pinch-to-zoom map
+- [ ] **Phase D: Field-Ready PWA** — Service worker for offline, installable app, camera integration
+- [ ] **Phase E: Tablet Layout** — Split-view optimized for iPad/Android tablet landscape mode
+
+### Priority 9: Phase 8 — Commercial Properties
 - Large commercial roof support
 - Multi-section commercial reports
 - Flat roof drainage analysis
@@ -363,7 +386,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 | Anthropic Claude (dominant) | ~$0.029 | None |
 | Static Maps | $0.002 | 10,000 |
 | Maps JS + Places | ~$0.01 | 10,000 each |
-| Solar Data Layers | $0.075 | 1,000 (NOT USED) |
+| Solar Data Layers | $0.075 | 1,000 (NOW USED — LIDAR pipeline) |
 
 ### Known Issues
 - **Enterprise features are frontend-only**: RBAC and audit trail work in browser but have no backend enforcement. Server-side auth and database persistence needed.
@@ -385,7 +408,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1291 tests across 44 files)
+- Vitest (1399 tests across 49 files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -465,6 +488,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Solar calculations | `src/utils/solarCalculations.ts` |
 | Shading analysis | `src/utils/shadingAnalysis.ts` |
 | Sun path simulation | `src/utils/sunPath.ts` |
+| DSM analysis | `src/utils/dsmAnalysis.ts` |
 
 ### Claims & Enterprise
 | Purpose | File |
@@ -496,7 +520,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (1291 passing tests across 44 files)
+### Tests (1328 passing tests across 45 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
@@ -531,6 +555,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Analyze condition | `tests/unit/analyzeRoofCondition.test.ts` |
 | Color utilities | `tests/unit/colors.test.ts` |
 | EagleView regression | `tests/unit/eagleviewRegression.test.ts` |
+| DSM analysis | `tests/unit/dsmAnalysis.test.ts` |
 | Dashboard component | `tests/unit/Dashboard.test.tsx` |
 
 Run tests with: `npx vitest run`

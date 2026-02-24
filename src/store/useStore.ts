@@ -848,7 +848,10 @@ export const useStore = create<AppState>()(
               .map((idx) => vertices[idx])
               .filter((v): v is RoofVertex => v !== undefined);
             const flatArea = calculatePolygonAreaSqFt(facetVertices);
-            const trueArea = adjustAreaForPitch(flatArea, f.pitch);
+            // Prefer DSM 3D area when available (LIDAR path), otherwise use pitch-adjusted area
+            const trueArea = f.trueArea3DSqFt && f.trueArea3DSqFt > 0
+              ? f.trueArea3DSqFt
+              : adjustAreaForPitch(flatArea, f.pitch);
 
             return {
               id: uuidv4(),
@@ -864,6 +867,15 @@ export const useStore = create<AppState>()(
           measurement.vertices = vertices;
           measurement.edges = edges;
           measurement.facets = facets;
+
+          // Store LIDAR metadata when available
+          if (reconstructed.buildingHeight) {
+            measurement.buildingHeightFt = reconstructed.buildingHeight.heightFt;
+            measurement.stories = reconstructed.buildingHeight.stories;
+          }
+          if (reconstructed.dataSource) {
+            measurement.dataSource = reconstructed.dataSource;
+          }
 
           set({
             activeMeasurement: measurement,
@@ -1227,8 +1239,8 @@ export const useStore = create<AppState>()(
     {
       name: 'skyhawk-storage',
       version: 1,
-      storage: safeLocalStorage(),
-      partialize: (state) => ({
+      storage: safeLocalStorage() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
+      partialize: (state: AppState) => ({
         token: state.token,
         username: state.username,
         isAuthenticated: state.isAuthenticated,

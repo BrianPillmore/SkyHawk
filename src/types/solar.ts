@@ -83,6 +83,29 @@ export interface ParsedMask {
   affine: GeoTiffAffine;
 }
 
+export interface ParsedDSM {
+  /** Float32 elevation data in meters (row-major) */
+  data: Float32Array;
+  width: number;
+  height: number;
+  affine: GeoTiffAffine;
+}
+
+export interface DsmFacetAnalysis {
+  pitchDegrees: number;
+  azimuthDegrees: number;
+  trueAreaSqFt3D: number;
+  avgElevationMeters: number;
+  sampleCount: number;
+}
+
+export interface BuildingHeightAnalysis {
+  heightFt: number;
+  stories: number;
+  hasParapet: boolean;
+  parapetHeightFt: number;
+}
+
 export type RoofType = 'flat' | 'shed' | 'gable' | 'hip' | 'cross-gable' | 'complex';
 
 export interface ReconstructedRoof {
@@ -96,15 +119,19 @@ export interface ReconstructedRoof {
     vertexIndices: number[];
     pitch: number;
     name: string;
+    trueArea3DSqFt?: number;
   }[];
   roofType: RoofType;
   confidence: 'high' | 'medium' | 'low';
+  dataSource?: 'lidar-mask' | 'ai-vision' | 'hybrid';
+  buildingHeight?: BuildingHeightAnalysis;
+  facetDsmAnalysis?: DsmFacetAnalysis[];
 }
 
 export interface DetectedRoofEdge {
   startIndex: number;
   endIndex: number;
-  type: 'ridge' | 'hip' | 'valley' | 'rake' | 'eave' | 'flashing';
+  type: 'ridge' | 'hip' | 'valley' | 'rake' | 'eave' | 'flashing' | 'step-flashing';
 }
 
 export interface DetectedRoofEdges {

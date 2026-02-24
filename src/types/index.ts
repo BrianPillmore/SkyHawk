@@ -61,6 +61,10 @@ export interface RoofMeasurement {
   estimatedAtticSqFt: number;
   // Pitch breakdown table
   pitchBreakdown: PitchBreakdownEntry[];
+  // LIDAR / DSM data
+  buildingHeightFt?: number;
+  stories?: number;
+  dataSource?: 'lidar-mask' | 'ai-vision' | 'hybrid';
 }
 
 export interface Property {

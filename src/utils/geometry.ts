@@ -79,6 +79,18 @@ export function degreesToPitch(degrees: number): number {
   return Math.tan(toRadians(degrees)) * 12;
 }
 
+/** Maximum reasonable residential roof pitch: 24/12 (63.4 degrees) */
+export const MAX_RESIDENTIAL_PITCH = 24;
+
+/**
+ * Clamp pitch to a reasonable residential range [0, max].
+ * Pitches above 24/12 are physically unreasonable for residential and
+ * create extreme area multipliers via the pitch factor.
+ */
+export function clampPitch(pitch: number, max: number = MAX_RESIDENTIAL_PITCH): number {
+  return Math.max(0, Math.min(max, pitch));
+}
+
 /**
  * Convert lat/lng to local x,y in feet relative to a reference point
  */

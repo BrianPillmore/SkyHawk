@@ -89,7 +89,21 @@ export function createMeasurement(
     totalEaveLf: overrides?.totalEaveLf ?? 0,
     totalFlashingLf: overrides?.totalFlashingLf ?? 0,
     totalDripEdgeLf: overrides?.totalDripEdgeLf ?? 0,
+    totalStepFlashingLf: overrides?.totalStepFlashingLf ?? 0,
     suggestedWastePercent: overrides?.suggestedWastePercent ?? 10,
+    ridgeCount: overrides?.ridgeCount ?? 0,
+    hipCount: overrides?.hipCount ?? 0,
+    valleyCount: overrides?.valleyCount ?? 0,
+    rakeCount: overrides?.rakeCount ?? 0,
+    eaveCount: overrides?.eaveCount ?? 0,
+    flashingCount: overrides?.flashingCount ?? 0,
+    stepFlashingCount: overrides?.stepFlashingCount ?? 0,
+    structureComplexity: overrides?.structureComplexity ?? 'Simple',
+    estimatedAtticSqFt: overrides?.estimatedAtticSqFt ?? 0,
+    pitchBreakdown: overrides?.pitchBreakdown ?? [],
+    buildingHeightFt: overrides?.buildingHeightFt,
+    stories: overrides?.stories,
+    dataSource: overrides?.dataSource,
   };
 }
 

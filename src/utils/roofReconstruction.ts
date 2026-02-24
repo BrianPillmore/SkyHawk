@@ -1,6 +1,6 @@
 import type { LatLng } from '../types';
 import type { SolarRoofSegment, RoofType, ReconstructedRoof } from '../types/solar';
-import { degreesToPitch, toRadians, getCentroid, latLngToLocalFt, haversineDistanceFt } from './geometry';
+import { degreesToPitch, toRadians, getCentroid, latLngToLocalFt, haversineDistanceFt, clampPitch } from './geometry';
 import { localFtToLatLng, bearing, findLinePolygonIntersections } from './geometryHelpers';
 
 /**
@@ -174,8 +174,8 @@ export function reconstructGableRoof(
   }
 
   // Create two facets
-  const pitch0 = degreesToPitch(segments[0].pitchDegrees);
-  const pitch1 = degreesToPitch(segments[1].pitchDegrees);
+  const pitch0 = clampPitch(degreesToPitch(segments[0].pitchDegrees));
+  const pitch1 = clampPitch(degreesToPitch(segments[1].pitchDegrees));
 
   if (side1.length >= 2) {
     facets.push({
@@ -279,7 +279,7 @@ export function reconstructHipRoof(
   // Create 4 facets (approximate)
   const facets: ReconstructedRoof['facets'] = [];
   const avgPitch = segments.reduce((s, seg) => s + seg.pitchDegrees, 0) / segments.length;
-  const pitch = Math.round(degreesToPitch(avgPitch) * 10) / 10;
+  const pitch = clampPitch(Math.round(degreesToPitch(avgPitch) * 10) / 10);
 
   // Split outline into 4 groups based on quadrant relative to ridge
   const allOutlineIndices = outline.map((_, i) => i);
@@ -379,7 +379,7 @@ export function reconstructSimpleRoof(
     edges,
     facets: [{
       vertexIndices: outline.map((_, i) => i),
-      pitch: Math.round(degreesToPitch(pitchDeg) * 10) / 10,
+      pitch: clampPitch(Math.round(degreesToPitch(pitchDeg) * 10) / 10),
       name: 'Facet 1',
     }],
     roofType: segments.length <= 1 && pitchDeg >= 5 ? 'shed' : 'flat',
@@ -402,7 +402,7 @@ export function reconstructComplexRoof(
     return reconstructSimpleRoof(outline, segments);
   }
 
-  const centroid = getCentroid(outline);
+  void getCentroid(outline); // used in future multi-facet voronoi
   const vertices: LatLng[] = [...outline];
   const edges: ReconstructedRoof['edges'] = [];
   const facets: ReconstructedRoof['facets'] = [];
@@ -458,7 +458,7 @@ export function reconstructComplexRoof(
   for (let s = 0; s < segments.length; s++) {
     const group = segGroups[s];
     if (group.length < 2) continue;
-    const pitch = Math.round(degreesToPitch(segments[s].pitchDegrees) * 10) / 10;
+    const pitch = clampPitch(Math.round(degreesToPitch(segments[s].pitchDegrees) * 10) / 10);
     facets.push({
       vertexIndices: [...group, segCenterIndices[s]],
       pitch,

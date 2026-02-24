@@ -22,6 +22,8 @@ import {
   getCentroid,
   isPointInPolygon,
   getMidpoint,
+  clampPitch,
+  MAX_RESIDENTIAL_PITCH,
 } from '../../src/utils/geometry';
 import type { RoofFacet, RoofEdge } from '../../src/types';
 
@@ -370,5 +372,59 @@ describe('getMidpoint', () => {
     const mid = getMidpoint({ lat: 0, lng: 0 }, { lat: 2, lng: 4 });
     expect(mid.lat).toBe(1);
     expect(mid.lng).toBe(2);
+  });
+});
+
+describe('MAX_RESIDENTIAL_PITCH', () => {
+  it('should be 24', () => {
+    expect(MAX_RESIDENTIAL_PITCH).toBe(24);
+  });
+});
+
+describe('clampPitch', () => {
+  it('should pass through values within range', () => {
+    expect(clampPitch(0)).toBe(0);
+    expect(clampPitch(6)).toBe(6);
+    expect(clampPitch(12)).toBe(12);
+    expect(clampPitch(24)).toBe(24);
+  });
+
+  it('should clamp values above max to 24', () => {
+    expect(clampPitch(25)).toBe(24);
+    expect(clampPitch(30)).toBe(24);
+    expect(clampPitch(100)).toBe(24);
+  });
+
+  it('should clamp negative values to 0', () => {
+    expect(clampPitch(-1)).toBe(0);
+    expect(clampPitch(-10)).toBe(0);
+  });
+
+  it('should use custom max when provided', () => {
+    expect(clampPitch(15, 12)).toBe(12);
+    expect(clampPitch(8, 12)).toBe(8);
+    expect(clampPitch(30, 18)).toBe(18);
+  });
+
+  it('should handle edge case: 0 max', () => {
+    expect(clampPitch(5, 0)).toBe(0);
+    expect(clampPitch(0, 0)).toBe(0);
+  });
+
+  it('should cap extreme pitch from degreesToPitch', () => {
+    // 75 degrees → ~44.8/12 pitch → should cap to 24
+    const extremePitch = degreesToPitch(75);
+    expect(extremePitch).toBeGreaterThan(24);
+    expect(clampPitch(extremePitch)).toBe(24);
+  });
+
+  it('should not change normal residential pitches', () => {
+    // 30 degrees → ~6.9/12
+    const normalPitch = degreesToPitch(30);
+    expect(clampPitch(normalPitch)).toBeCloseTo(normalPitch, 5);
+
+    // 45 degrees → 12/12
+    const steepPitch = degreesToPitch(45);
+    expect(clampPitch(steepPitch)).toBeCloseTo(steepPitch, 5);
   });
 });

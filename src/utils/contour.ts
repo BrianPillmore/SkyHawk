@@ -1,5 +1,5 @@
 import type { GeoTIFFImage } from 'geotiff';
-import type { GeoTiffAffine, ParsedMask } from '../types/solar';
+import type { GeoTiffAffine, ParsedMask, ParsedDSM } from '../types/solar';
 import type { LatLng } from '../types';
 
 /**
@@ -490,6 +490,41 @@ function perpendicularDistance(
     dy * point.col - dx * point.row + lineEnd.col * lineStart.row - lineEnd.row * lineStart.col
   );
   return num / Math.sqrt(lineLenSq);
+}
+
+/**
+ * Parse a GeoTIFF DSM (Digital Surface Model) buffer into Float32 elevation data + affine.
+ * Preserves raw elevation values (meters) instead of binarizing.
+ */
+export async function parseDsmGeoTiff(buffer: ArrayBuffer): Promise<ParsedDSM> {
+  const { fromArrayBuffer } = await import('geotiff');
+  const tiff = await fromArrayBuffer(buffer);
+  const image = await tiff.getImage();
+  const rasters = await image.readRasters();
+  const rawData = rasters[0] as Float32Array | Float64Array | Uint8Array;
+
+  const width = image.getWidth();
+  const height = image.getHeight();
+
+  // Convert to Float32Array preserving elevation values
+  const data = new Float32Array(width * height);
+  for (let i = 0; i < rawData.length; i++) {
+    data[i] = rawData[i];
+  }
+
+  const affineParams = getAffineFromImage(image);
+
+  return {
+    data,
+    width,
+    height,
+    affine: {
+      originX: affineParams[0],
+      originY: affineParams[3],
+      pixelWidth: affineParams[1],
+      pixelHeight: affineParams[5],
+    },
+  };
 }
 
 /**
