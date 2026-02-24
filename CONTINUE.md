@@ -16,29 +16,37 @@ The gap is **visual presentation** — EagleView's PDF opens with a hero wirefra
 on satellite imagery. Our PDF is text-only on page 1. Closing this gap makes SkyHawk
 reports immediately competitive for contractors and adjusters.
 
-- [ ] **Phase 1: Wireframe Screenshot in PDF** (HIGH impact, LOW effort ~2-3 hrs)
-  - Capture map's Report View using `html2canvas` before PDF generation
-  - Embed as hero image on page 1 (existing `mapScreenshot` option is already wired but never populated)
-  - Files: `ReportPanel.tsx`, `reportGenerator.ts`, possibly `package.json`
+- [x] **Phase 1: Wireframe Screenshot in PDF** (COMPLETE)
+  - Hero image moved to page 1 — satellite imagery with wireframe overlay is now the first visual element
+  - Confidence badge ("SkyHawk Verified — High/Medium/Standard Confidence") with data source attribution
+  - Page reorder: Header → Property Info → Confidence Badge → Hero Image → Overview → Summary → Details
+  - Files modified: `reportGenerator.ts`, `ReportPanel.tsx`
 
-- [ ] **Phase 2: Labeled Wireframe Diagrams** (MEDIUM-HIGH impact, MEDIUM effort ~4-6 hrs)
-  - New `diagramRenderer.ts` — programmatic canvas rendering of wireframe
-  - Length Diagram: edges labeled with measurements in feet
-  - Area Diagram: facets labeled with `#N — XXXX sf`
-  - Pitch Diagram: facets color-coded by pitch, labeled `X/12`
-  - Embed as additional PDF pages
+- [x] **Phase 2: Labeled Wireframe Diagrams** (COMPLETE)
+  - New `src/utils/diagramRenderer.ts` with three diagram renderers:
+    - `renderLengthDiagram()` — edges colored by type with length labels at midpoints
+    - `renderAreaDiagram()` — facets filled with distinct colors, labeled "#N — XXXX sf" at centroid
+    - `renderPitchDiagram()` — facets color-coded green→red by pitch, labeled "X/12"
+  - Each diagram: 800x600 canvas, dark background, compass rose, edge/pitch legend
+  - Embedded as dedicated PDF pages with title and subtitle
+  - Checkboxes in ReportPanel to include/exclude each diagram type
+  - 24 unit tests in `tests/unit/diagramRenderer.test.ts`
 
-- [ ] **Phase 3: Oblique Imagery** (MEDIUM impact, MEDIUM effort ~3-4 hrs)
-  - Capture 4-direction satellite views (N/S/E/W) via Google Maps Static API with heading offsets
-  - New `imageryApi.ts` service
-  - Embed as 2x2 grid page in PDF (like EagleView pages 2-3)
+- [x] **Phase 3: Oblique Imagery** (COMPLETE)
+  - New `src/services/imageryApi.ts` — `captureObliqueViews(lat, lng, apiKey)`
+  - Fetches 4-direction satellite views (N/S/E/W) via Google Maps Static API with heading offsets
+  - Parallel fetch with Promise.allSettled, graceful failure handling
+  - Embedded as 2x2 grid page in PDF with direction labels
+  - Checkbox in ReportPanel to include/exclude oblique views
+  - 18 unit tests in `tests/unit/imageryApi.test.ts`
 
-- [ ] **Phase 4: Report Polish & Branding** (MEDIUM impact, LOW effort ~2-3 hrs)
-  - SkyHawk logo in header (base64 embedded)
-  - Confidence/accuracy badge ("SkyHawk Verified — High Confidence")
-  - Page reorder: hero image first, then summary, then details
-  - Facet table totals row, per-facet squares column
-  - Attribution footer ("Powered by Google Solar API + AI Vision")
+- [x] **Phase 4: Report Polish & Branding** (COMPLETE)
+  - Confidence badge: "SkyHawk Verified — [High/Medium/Standard] Confidence" + data source
+  - Facet Details table: added "Squares" column (trueAreaSqFt / 100) per facet
+  - Facet Details table: added totals row with blue highlight (flat area, true area, squares)
+  - Attribution footer: "Measurements powered by Google Solar API + AI Vision | Imagery © Google"
+  - Footer height increased to accommodate dual-line attribution
+  - Files modified: `reportGenerator.ts`
 
 - [ ] **Phase 5: Interactive HTML Export** (STRETCH — LOW impact, HIGH effort ~8+ hrs)
   - Self-contained HTML with embedded Google Maps + wireframe overlay
@@ -412,7 +420,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1399 tests across 49 files)
+- Vitest (1435 tests across 51 files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -478,6 +486,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Pitch detection | `src/utils/pitchDetection.ts` |
 | Roof condition | `src/utils/roofCondition.ts` |
 | Map capture utility | `src/utils/mapCapture.ts` |
+| Diagram renderer | `src/utils/diagramRenderer.ts` |
 | Export data utility | `src/utils/exportData.ts` |
 | ESX format export | `src/utils/esxExport.ts` |
 
@@ -487,6 +496,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Solar API types | `src/types/solar.ts` |
 | Solar API client | `src/services/solarApi.ts` |
 | Vision API (Claude) | `src/services/visionApi.ts` |
+| Oblique imagery | `src/services/imageryApi.ts` |
 | Contour algorithms | `src/utils/contour.ts` |
 | Roof reconstruction | `src/utils/roofReconstruction.ts` |
 | Solar calculations | `src/utils/solarCalculations.ts` |
@@ -516,7 +526,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Phase 4 (AI) | `plans/completed/PHASE4_AI.md` | COMPLETE |
 | EagleView Calibration | `plans/completed/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
 | GotRuf Marketing Site | `plans/active/gotruf-marketing-site.md` | Phase 1 COMPLETE |
-| EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | NOT STARTED |
+| EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | Phases 1-4 COMPLETE |
 | Database Persistence | `plans/active/database-persistence.md` | NOT STARTED |
 | Google Solar API Deep Dive | `plans/active/google-solar-api-deep-dive.md` | NEW |
 | Drone Integration | `plans/research/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
@@ -525,7 +535,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (1399 passing tests across 49 files)
+### Tests (1435 passing tests across 51 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
@@ -561,6 +571,8 @@ All keys are configured in `.env` (gitignored, not committed):
 | Color utilities | `tests/unit/colors.test.ts` |
 | EagleView regression | `tests/unit/eagleviewRegression.test.ts` |
 | DSM analysis | `tests/unit/dsmAnalysis.test.ts` |
+| Diagram renderer | `tests/unit/diagramRenderer.test.ts` |
+| Imagery API | `tests/unit/imageryApi.test.ts` |
 | Dashboard component | `tests/unit/Dashboard.test.tsx` |
 
 Run tests with: `npx vitest run`
