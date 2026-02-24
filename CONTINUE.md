@@ -9,7 +9,7 @@ Run this prompt at the start of each new Claude session to continue building.
 ## IMMEDIATE NEXT STEPS
 
 ### Priority 1: EagleView Report Parity (Visual Gap)
-**Plan file**: `plans/eagleview-parity-improvements.md`
+**Plan file**: `plans/active/eagleview-parity-improvements.md`
 
 Our data richness (materials, solar, damage, claims) already exceeds EagleView Premium.
 The gap is **visual presentation** — EagleView's PDF opens with a hero wireframe overlay
@@ -60,7 +60,7 @@ reports immediately competitive for contractors and adjusters.
 - [x] DSM elevation data now provides ground-truth 3D pitch verification
 
 ### Priority 2: PostgreSQL Database & Property Persistence
-**Plan file**: `plans/database-persistence.md`
+**Plan file**: `plans/active/database-persistence.md`
 
 All property data currently lives in browser localStorage (Zustand persist). This limits us to
 single-device, single-browser, ~5MB max. Need PostgreSQL on the Hetzner VPS to persist all
@@ -104,7 +104,7 @@ Remaining enterprise features:
 - White-label branding support
 
 ### Priority 5: Phase 7 — Drone Integration
-**Design document**: `plans/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md`
+**Design document**: `plans/research/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md`
 
 Comprehensive research doc covers hardware (DJI Mavic 3 Enterprise), photogrammetry pipeline
 (OpenDroneMap/WebODM), tile serving (TiTiler + COGs), API design, AI analytics layer,
@@ -124,7 +124,7 @@ FAA Part 107 requirements, cost estimates, and 4-phase implementation roadmap.
 - [ ] Autonomous inspection workflows
 
 ### Priority 6: Google Solar API Deep Integration
-**Plan file**: `plans/google-solar-api-deep-dive.md`
+**Plan file**: `plans/active/google-solar-api-deep-dive.md`
 
 SkyHawk currently uses ~30% of the Solar API's available data. An 8-phase plan to leverage
 the remaining 70% for significant accuracy and feature improvements:
@@ -138,26 +138,30 @@ the remaining 70% for significant accuracy and feature improvements:
 - [ ] **Phase 7**: DSM-based pitch verification and building height extraction
 - [ ] **Phase 8**: Panel layout visualization in map and PDF reports
 
-### Priority 7: GotRuf.com Marketing Site & Rebrand
+### Priority 7: GotRuf.com Marketing Site & Rebrand (PHASE 1 COMPLETE)
 **Brand**: GotRuf.com (pronounced "Got Roof")
 **Taglines**: "It sure ain't EagleView." / "Check your receipt." / "Home of the first one's free."
+**Plan file**: `plans/active/gotruf-marketing-site.md`
 
-Build a marketing front-end site integrated into the current SkyHawk codebase:
-- [ ] **Landing Page**: Hero with construction/roof imagery, value prop, CTA
-- [ ] **Persona Pages**: Dedicated landing pages for 4 personas:
-  - Roofing contractors (speed, accuracy, cost savings vs EagleView)
-  - Insurance adjusters (compliance, accuracy guarantee, bulk pricing)
-  - Insurance representatives (claims workflow, enterprise features)
-  - Homeowners (free first report, easy to understand, transparent pricing)
-- [ ] **Pricing Page**:
-  - Single report: $9.99
-  - 25 reports/month: $99 (unused roll over)
-  - Enterprise pricing (custom)
-  - **5% accuracy guarantee vs EagleView or money back**
-- [ ] **Stripe Integration**: Payment processing wired up for per-report and subscription billing
-- [ ] **Free First Report**: Account signup → 1 free report credit
-- [ ] **Branding**: GotRuf.com domain, logo, color scheme, construction/roof aesthetic
-- [ ] **Plan file**: `plans/gotruf-marketing-site.md`
+Phase 1 — Marketing Pages (COMPLETE, deployed):
+- [x] **Landing Page**: Hero, value prop comparison, audience cards, features grid, accuracy guarantee, CTA
+- [x] **Persona Pages**: Dedicated pages for 4 personas:
+  - Roofing contractors (pain points, ROI calculator, contractor features)
+  - Insurance adjusters (accuracy, compliance, claims workflow scenario)
+  - Insurance agents/reps (enterprise features, cost comparison table)
+  - Homeowners (plain English explanations, trust section, free report)
+- [x] **Pricing Page**: 3 tiers ($9.99 single, $99/mo Pro, Enterprise custom), FAQ, accuracy guarantee
+- [x] **Signup Page**: Account creation with free first report incentive
+- [x] **Branding**: GotRuf orange color scheme, responsive nav + footer, mobile hamburger menu
+- [x] **Routes**: All pages under `/gotruf/*` (public, no auth required)
+- [x] **Plan file**: `plans/active/gotruf-marketing-site.md`
+
+Phase 2 — Remaining:
+- [ ] **Stripe Integration**: Payment processing (Stripe Checkout + webhooks on backend)
+- [ ] **Domain Setup**: DNS, nginx, SSL, Google Maps API key for gotruf.com
+- [ ] **Logo Design**: Professional logo (currently text-only)
+- [ ] **SEO/Social**: Meta tags, Open Graph, structured data
+- [ ] **Analytics**: Google Analytics or Plausible integration
 
 ### Priority 8: Mobile-Friendly Responsive Design
 Make all views responsive and mobile-friendly for field use:
@@ -505,22 +509,23 @@ All keys are configured in `.env` (gitignored, not committed):
 ### Plans & Specs
 | Document | File | Status |
 |----------|------|--------|
-| Auto-Measurement Plan | `plans/AUTO_MEASUREMENT.md` | COMPLETE |
-| Phase 1 (Core) | `plans/PHASE1_CORE_MEASUREMENT.md` | COMPLETE |
-| Phase 2 (3D) | `plans/PHASE2_3D_ENHANCED.md` | COMPLETE |
-| Phase 3 (Insurance) | `plans/PHASE3_INSURANCE.md` | COMPLETE |
-| Phase 4 (AI) | `plans/PHASE4_AI.md` | COMPLETE |
-| EagleView Calibration | `plans/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
-| EagleView Parity Plan | `plans/eagleview-parity-improvements.md` | NOT STARTED |
-| Database Persistence | `plans/database-persistence.md` | NOT STARTED |
-| Drone Integration | `plans/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
-| Google Solar API Deep Dive | `plans/google-solar-api-deep-dive.md` | NEW |
+| Auto-Measurement Plan | `plans/completed/AUTO_MEASUREMENT.md` | COMPLETE |
+| Phase 1 (Core) | `plans/completed/PHASE1_CORE_MEASUREMENT.md` | COMPLETE |
+| Phase 2 (3D) | `plans/completed/PHASE2_3D_ENHANCED.md` | COMPLETE |
+| Phase 3 (Insurance) | `plans/completed/PHASE3_INSURANCE.md` | COMPLETE |
+| Phase 4 (AI) | `plans/completed/PHASE4_AI.md` | COMPLETE |
+| EagleView Calibration | `plans/completed/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
+| GotRuf Marketing Site | `plans/active/gotruf-marketing-site.md` | Phase 1 COMPLETE |
+| EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | NOT STARTED |
+| Database Persistence | `plans/active/database-persistence.md` | NOT STARTED |
+| Google Solar API Deep Dive | `plans/active/google-solar-api-deep-dive.md` | NEW |
+| Drone Integration | `plans/research/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
 | API Spec | `specs/API_SPEC.md` | |
 | Measurement Spec | `specs/MEASUREMENT_SPEC.md` | |
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (1328 passing tests across 45 files)
+### Tests (1399 passing tests across 49 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
