@@ -4,9 +4,11 @@ import { generateReport } from '../../utils/reportGenerator';
 import { captureMapScreenshot } from '../../utils/mapCapture';
 import { renderLengthDiagram, renderAreaDiagram, renderPitchDiagram } from '../../utils/diagramRenderer';
 import { captureObliqueViews } from '../../services/imageryApi';
+import { downloadHtmlReport } from '../../utils/htmlReportExporter';
+import type { HtmlReportData } from '../../utils/htmlReportExporter';
 
 export default function ReportPanel() {
-  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights, reportCredits, useCredit, isAuthenticated } = useStore();
+  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights, reportCredits, useCredit, isAuthenticated, roofCondition } = useStore();
   const [generating, setGenerating] = useState(false);
   const [creditError, setCreditError] = useState('');
   const [companyName, setCompanyName] = useState('GotRuf Reports');
@@ -21,6 +23,9 @@ export default function ReportPanel() {
   const [includePitchDiagram, setIncludePitchDiagram] = useState(true);
   const [includeObliqueViews, setIncludeObliqueViews] = useState(false);
   const [includeSolarPanelLayout, setIncludeSolarPanelLayout] = useState(true);
+  const [includeHtmlExport, setIncludeHtmlExport] = useState(true);
+  const [exportingHtml, setExportingHtml] = useState(false);
+  const [htmlTooltipVisible, setHtmlTooltipVisible] = useState(false);
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
   const hasSolarPanels = !!(solarInsights?.solarPotential?.solarPanels?.length);
@@ -109,11 +114,67 @@ export default function ReportPanel() {
         pitchDiagramImage,
         includeObliqueViews,
         obliqueViews,
+        roofCondition,
       });
     } catch (err) {
       console.error('Report generation failed:', err);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleExportHtml = () => {
+    if (!property || !hasData || !activeMeasurement) return;
+    setExportingHtml(true);
+    try {
+      saveMeasurement();
+
+      const dataSourceLabel = activeMeasurement.dataSource === 'lidar-mask' ? 'LIDAR + Solar API'
+        : activeMeasurement.dataSource === 'hybrid' ? 'Solar API + AI Vision'
+        : activeMeasurement.dataSource === 'ai-vision' ? 'AI Vision'
+        : 'Manual Measurement';
+      const confidenceLevel = activeMeasurement.dataSource === 'lidar-mask' ? 'High'
+        : activeMeasurement.dataSource === 'hybrid' ? 'High'
+        : activeMeasurement.dataSource === 'ai-vision' ? 'Medium'
+        : 'Standard';
+
+      const reportData: HtmlReportData = {
+        property: {
+          address: `${property.address}, ${property.city}, ${property.state} ${property.zip}`,
+          lat: property.lat,
+          lng: property.lng,
+        },
+        measurement: {
+          vertices: activeMeasurement.vertices.map((v) => ({ id: v.id, lat: v.lat, lng: v.lng })),
+          edges: activeMeasurement.edges.map((e) => ({
+            id: e.id,
+            startVertexId: e.startVertexId,
+            endVertexId: e.endVertexId,
+            type: e.type,
+            lengthFt: e.lengthFt,
+          })),
+          facets: activeMeasurement.facets.map((f) => ({
+            id: f.id,
+            name: f.name,
+            pitch: f.pitch,
+            areaSqFt: f.areaSqFt,
+            trueAreaSqFt: f.trueAreaSqFt,
+            vertexIds: f.vertexIds,
+          })),
+          totalArea: activeMeasurement.totalAreaSqFt,
+          totalTrueArea: activeMeasurement.totalTrueAreaSqFt,
+          suggestedWaste: activeMeasurement.suggestedWastePercent,
+        },
+        generatedAt: new Date().toISOString(),
+        confidence: confidenceLevel,
+        dataSource: dataSourceLabel,
+      };
+
+      downloadHtmlReport(reportData);
+    } catch (err) {
+      console.error('HTML export failed:', err);
+    } finally {
+      setExportingHtml(false);
     }
   };
 
@@ -294,6 +355,19 @@ export default function ReportPanel() {
                 <span>Solar panel layout diagram</span>
               </label>
             )}
+
+            <div className="mt-2 pt-2 border-t border-gray-700/50">
+              <span className="text-gray-500 text-[10px] uppercase tracking-wider">Export Formats</span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeHtmlExport}
+                onChange={(e) => setIncludeHtmlExport(e.target.checked)}
+                className="accent-gotruf-500"
+              />
+              <span>Interactive HTML export</span>
+            </label>
           </div>
         </section>
       )}
@@ -327,6 +401,26 @@ export default function ReportPanel() {
         >
           {generating ? 'Generating...' : reportCredits <= 0 && needsCredit ? 'No Credits - Upload EagleView PDF' : 'Generate PDF Report'}
         </button>
+
+        {includeHtmlExport && (
+          <div className="relative">
+            <button
+              onClick={handleExportHtml}
+              disabled={!hasData || exportingHtml}
+              onMouseEnter={() => setHtmlTooltipVisible(true)}
+              onMouseLeave={() => setHtmlTooltipVisible(false)}
+              className="w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {exportingHtml ? 'Exporting...' : 'Export Interactive HTML'}
+            </button>
+            {htmlTooltipVisible && (
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-gray-200 text-xs rounded-lg shadow-lg whitespace-nowrap z-10">
+                Self-contained HTML file with interactive map
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-gray-900 rotate-45" />
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {!hasData && (

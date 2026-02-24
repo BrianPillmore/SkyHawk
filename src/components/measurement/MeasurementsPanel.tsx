@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import type { RoofMeasurement, Property, EdgeType } from '../../types';
 import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils/geometry';
@@ -7,6 +7,7 @@ import { calculateWasteTable } from '../../utils/geometry';
 import { estimateMaterials } from '../../utils/materials';
 import { exportMeasurementJSON, exportMeasurementGeoJSON, exportMeasurementCSV } from '../../utils/exportData';
 import { exportESX } from '../../utils/esxExport';
+import { computeAccuracyScore } from '../../utils/accuracyScore';
 import PitchDiagram from './PitchDiagram';
 import DamagePanel from './DamagePanel';
 import RoofViewer3D from './RoofViewer3D';
@@ -26,12 +27,17 @@ export default function MeasurementsPanel() {
     selectedEdgeId,
     properties,
     activePropertyId,
+    solarInsights,
   } = useStore();
 
   if (!activeMeasurement) return null;
 
   const { facets, edges } = activeMeasurement;
   const wasteTable = calculateWasteTable(activeMeasurement.totalTrueAreaSqFt, activeMeasurement.suggestedWastePercent);
+  const accuracyScore = useMemo(
+    () => computeAccuracyScore(activeMeasurement, solarInsights),
+    [activeMeasurement, solarInsights],
+  );
 
   return (
     <div className="p-3 space-y-4">
@@ -43,6 +49,58 @@ export default function MeasurementsPanel() {
           </h3>
           <ExportDropdown measurement={activeMeasurement} property={properties.find(p => p.id === activePropertyId)} />
         </div>
+        {/* Data source and quality badges */}
+        {activeMeasurement.dataSource && (
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+              {activeMeasurement.dataSource === 'lidar-mask' ? 'LIDAR + Solar API'
+                : activeMeasurement.dataSource === 'hybrid' ? 'Solar API + AI'
+                : activeMeasurement.dataSource === 'ai-vision' ? 'AI Vision'
+                : 'Manual'}
+            </span>
+            {activeMeasurement.imageryQuality === 'MEDIUM' && (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+                MEDIUM quality — reduced accuracy
+              </span>
+            )}
+            {activeMeasurement.imageryQuality === 'HIGH' && (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+                HIGH quality imagery
+              </span>
+            )}
+            {activeMeasurement.stories && (
+              <span className="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-medium">
+                {activeMeasurement.stories} {activeMeasurement.stories === 1 ? 'story' : 'stories'}
+              </span>
+            )}
+          </div>
+        )}
+        {/* Accuracy Score Badge */}
+        {activeMeasurement.facets.length > 0 && (
+          <div className={`flex items-center gap-2 mb-2 px-2.5 py-1.5 rounded-md text-xs ${
+            accuracyScore.overallScore >= 80 ? 'bg-green-50 border border-green-200' :
+            accuracyScore.overallScore >= 60 ? 'bg-blue-50 border border-blue-200' :
+            accuracyScore.overallScore >= 45 ? 'bg-amber-50 border border-amber-200' :
+            'bg-red-50 border border-red-200'
+          }`}>
+            <span className={`font-bold text-sm ${
+              accuracyScore.overallScore >= 80 ? 'text-green-700' :
+              accuracyScore.overallScore >= 60 ? 'text-blue-700' :
+              accuracyScore.overallScore >= 45 ? 'text-amber-700' :
+              'text-red-700'
+            }`}>
+              {accuracyScore.grade}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-gray-700">{accuracyScore.label} ({accuracyScore.overallScore}/100)</div>
+              {accuracyScore.areaDeltaPercent !== undefined && (
+                <div className="text-[10px] text-gray-500 truncate">
+                  Solar API cross-check: {accuracyScore.areaDeltaPercent.toFixed(1)}% deviation
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <SummaryCard label="Total Area" value={formatArea(activeMeasurement.totalTrueAreaSqFt)} />
           <SummaryCard label="Flat Area" value={formatArea(activeMeasurement.totalAreaSqFt)} />

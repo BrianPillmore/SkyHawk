@@ -946,6 +946,12 @@ export const useStore = create<AppState>()(
           if (reconstructed.dataSource) {
             measurement.dataSource = reconstructed.dataSource;
           }
+          if (reconstructed.imageryQuality) {
+            measurement.imageryQuality = reconstructed.imageryQuality;
+          }
+          if (reconstructed.solarApiAreaSqFt) {
+            measurement.solarApiAreaSqFt = reconstructed.solarApiAreaSqFt;
+          }
 
           set({
             activeMeasurement: measurement,
@@ -1311,18 +1317,22 @@ export const useStore = create<AppState>()(
       version: 1,
       storage: safeLocalStorage() as any, // eslint-disable-line @typescript-eslint/no-explicit-any
       partialize: (state: AppState) => ({
+        // Auth state — keep
         token: state.token,
         username: state.username,
         isAuthenticated: state.isAuthenticated,
         reportCredits: state.reportCredits,
         properties: state.properties,
         activePropertyId: state.activePropertyId,
-        activeMeasurement: state.activeMeasurement,
+        // UI preferences — keep
         mapType: state.mapType,
         mapCenter: state.mapCenter,
         mapZoom: state.mapZoom,
-        adjusters: state.adjusters,
-        inspections: state.inspections,
+        sidebarOpen: state.sidebarOpen,
+        activePanel: state.activePanel,
+        showVertexMarkers: state.showVertexMarkers,
+        // NOTE: properties, activeMeasurement, adjusters, and inspections
+        // are NO LONGER persisted — they are fetched from the server.
       }),
     }
   )

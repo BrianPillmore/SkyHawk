@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
-import type { AutoMeasureProgress, ReconstructedRoof, SolarRoofSegment } from '../types/solar';
+import type { AutoMeasureProgress, ReconstructedRoof, SolarRoofSegment, FluxMapAnalysis } from '../types/solar';
 import { fetchBuildingInsights, fetchDataLayers, fetchGeoTiff, SolarApiError } from '../services/solarApi';
 import { capturePropertyImage, detectRoofEdges } from '../services/visionApi';
 import type { EdgeType } from '../types';
@@ -9,6 +9,9 @@ import { parseMaskGeoTiff, parseDsmGeoTiff, extractBuildingOutline } from '../ut
 import { reconstructRoof } from '../utils/roofReconstruction';
 import { analyzeFacetFromDSM, computeBuildingHeight } from '../utils/dsmAnalysis';
 import { degreesToPitch, clampPitch } from '../utils/geometry';
+import { parseFluxGeoTiff, parseMonthlyFluxGeoTiff, analyzeFluxForFacets } from '../utils/fluxAnalysis';
+import { verifyPitchFromDSM } from '../utils/dsmPitchVerification';
+import { detectMultipleStructures } from '../utils/multiStructureDetection';
 
 export function useAutoMeasure() {
   const [progress, setProgress] = useState<AutoMeasureProgress>({
@@ -41,9 +44,18 @@ export function useAutoMeasure() {
       setSolarInsights(insights);
 
       const solarSegments: SolarRoofSegment[] = insights?.solarPotential?.roofSegmentStats || [];
+      const imageryQuality = insights?.imageryQuality;
       if (solarSegments.length > 0) {
         const sorted = [...solarSegments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2);
-        setProgress({ status: 'detecting', percent: 15, message: `Solar: ${solarSegments.length} segments, pitch ${sorted[0].pitchDegrees.toFixed(0)}°` });
+        const qualityNote = imageryQuality === 'MEDIUM' ? ' (MEDIUM quality — reduced accuracy)' : '';
+
+        // Detect multiple structures (detached garage, shed, etc.)
+        const multiStructure = detectMultipleStructures(solarSegments);
+        const structureNote = multiStructure.hasMultipleStructures
+          ? ` | ${multiStructure.structureCount} structures detected`
+          : '';
+
+        setProgress({ status: 'detecting', percent: 15, message: `Solar: ${solarSegments.length} segments, pitch ${sorted[0].pitchDegrees.toFixed(0)}°${qualityNote}${structureNote}` });
       }
 
       // Step 2: LIDAR path — if dataLayers available, use mask+DSM for high-accuracy measurement
@@ -104,13 +116,93 @@ export function useAutoMeasure() {
             reconstructed.dataSource = 'lidar-mask';
             reconstructed.buildingHeight = buildingHeight;
             reconstructed.facetDsmAnalysis = facetAnalyses.filter(Boolean) as typeof reconstructed.facetDsmAnalysis;
+            reconstructed.imageryQuality = imageryQuality;
+
+            // Attach Solar API total area for cross-validation
+            if (insights?.solarPotential?.wholeRoofStats?.areaMeters2) {
+              reconstructed.solarApiAreaSqFt = insights.solarPotential.wholeRoofStats.areaMeters2 * 10.7639;
+            }
+
+            // Phase 7: Pitch verification — compare Solar API pitch vs DSM pitch
+            setProgress({ status: 'processing', percent: 82, message: 'Verifying pitch from DSM...' });
+            try {
+              const pitchVerifications = verifyPitchFromDSM(parsedDsm, reconstructed, lng);
+              // Apply DSM pitch when recommendation is 'accept-dsm'
+              for (const pv of pitchVerifications) {
+                if (pv.recommendation === 'accept-dsm' && pv.confidence !== 'low') {
+                  reconstructed.facets[pv.facetIndex].pitch = pv.dsmPitch;
+                }
+              }
+              // Log verification results for diagnostics
+              const deviations = pitchVerifications.filter(pv => pv.pitchDifference >= 2);
+              if (deviations.length > 0) {
+                console.info(`[SkyHawk] Pitch verification: ${deviations.length} facet(s) deviate >2/12 between Solar API and DSM`);
+                for (const d of deviations) {
+                  console.info(`  Facet ${d.facetIndex}: Solar ${d.solarApiPitch}/12 vs DSM ${d.dsmPitch}/12 (R²=${d.rSquared}) → ${d.recommendation}`);
+                }
+              }
+            } catch (pvErr) {
+              console.warn('Pitch verification failed (non-blocking):', pvErr);
+            }
+
+            // Phase 6: Flux analysis — if flux data layers are available
+            let fluxResult: FluxMapAnalysis | null = null;
+            if (dataLayers.annualFluxUrl) {
+              setProgress({ status: 'processing', percent: 85, message: 'Analyzing solar flux data...' });
+              try {
+                const fluxBufferPromise = fetchGeoTiff(dataLayers.annualFluxUrl, googleApiKey);
+                const monthlyFluxBufferPromise = dataLayers.monthlyFluxUrl
+                  ? fetchGeoTiff(dataLayers.monthlyFluxUrl, googleApiKey)
+                  : Promise.resolve(null);
+
+                const [fluxBuffer, monthlyFluxBuffer] = await Promise.all([
+                  fluxBufferPromise,
+                  monthlyFluxBufferPromise,
+                ]);
+
+                const parsedFlux = await parseFluxGeoTiff(fluxBuffer);
+                const parsedMonthlyFlux = monthlyFluxBuffer
+                  ? await parseMonthlyFluxGeoTiff(monthlyFluxBuffer)
+                  : undefined;
+
+                // Build bounding box from building insights or outline
+                const buildingBounds = insights?.boundingBox
+                  ? {
+                      sw: { lat: insights.boundingBox.sw.latitude, lng: insights.boundingBox.sw.longitude },
+                      ne: { lat: insights.boundingBox.ne.latitude, lng: insights.boundingBox.ne.longitude },
+                    }
+                  : {
+                      sw: {
+                        lat: Math.min(...lidarOutline.map(v => v.lat)),
+                        lng: Math.min(...lidarOutline.map(v => v.lng)),
+                      },
+                      ne: {
+                        lat: Math.max(...lidarOutline.map(v => v.lat)),
+                        lng: Math.max(...lidarOutline.map(v => v.lng)),
+                      },
+                    };
+
+                fluxResult = analyzeFluxForFacets(
+                  parsedFlux,
+                  reconstructed.facets,
+                  reconstructed.vertices,
+                  buildingBounds,
+                  parsedMonthlyFlux,
+                );
+
+                console.info(`[SkyHawk] Flux analysis: ${fluxResult.totalRoofPixels} roof pixels, mean flux ${fluxResult.meanRoofFlux} kWh/kW/yr, ${fluxResult.overallShadingPercent}% shaded`);
+              } catch (fluxErr) {
+                console.warn('Flux analysis failed (non-blocking):', fluxErr);
+              }
+            }
 
             setProgress({ status: 'reconstructing', percent: 90, message: `LIDAR: ${capitalize(reconstructed.roofType)} roof — ${reconstructed.facets.length} facets, ${buildingHeight.stories} ${buildingHeight.stories === 1 ? 'story' : 'stories'}` });
 
             // Apply to store
             applyAutoMeasurement(reconstructed);
 
-            setProgress({ status: 'complete', percent: 100, message: `LIDAR ${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets, ${buildingHeight.heightFt.toFixed(0)} ft tall (${reconstructed.confidence} confidence)` });
+            const qualityWarning = imageryQuality === 'MEDIUM' ? ' ⚠ MEDIUM quality imagery' : '';
+            setProgress({ status: 'complete', percent: 100, message: `LIDAR ${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets, ${buildingHeight.heightFt.toFixed(0)} ft tall (${reconstructed.confidence} confidence)${qualityWarning}` });
 
             return reconstructed;
           }

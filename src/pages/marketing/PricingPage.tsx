@@ -1,4 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { createCheckoutSession, PRICE_IDS } from '../../services/stripeApi';
+import { useStore } from '../../store/useStore';
+import { updateDocumentMeta, setStructuredData, getProductSchema, getFAQSchema } from '../../utils/seo';
+import { trackEvent } from '../../utils/analytics';
 
 function HeroSection() {
   return (
@@ -21,9 +26,47 @@ function HeroSection() {
 }
 
 function PricingCardsSection() {
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const setShowLoginModal = useStore((s) => s.setShowLoginModal);
+
+  async function handleCheckout(plan: 'single' | 'pro') {
+    setError(null);
+
+    if (!isAuthenticated) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    const priceId = plan === 'single' ? PRICE_IDS.single : PRICE_IDS.pro;
+    if (!priceId) {
+      setError('Payment processing is not yet configured. Please try again later.');
+      return;
+    }
+
+    setLoadingPlan(plan);
+    trackEvent('checkout', 'begin_checkout', plan);
+
+    try {
+      await createCheckoutSession(priceId);
+      // Redirect happens inside createCheckoutSession
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong';
+      setError(message);
+      setLoadingPlan(null);
+    }
+  }
+
   return (
     <section className="py-20 lg:py-28 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {error && (
+          <div className="mb-8 max-w-xl mx-auto bg-red-50 border border-red-200 text-red-700 rounded-xl px-6 py-4 text-sm text-center">
+            {error}
+          </div>
+        )}
+
         <div className="grid md:grid-cols-3 gap-8">
           {/* Pay Per Report */}
           <div className="bg-white rounded-2xl border border-gray-200 p-8 flex flex-col">
@@ -59,12 +102,23 @@ function PricingCardsSection() {
               ))}
             </ul>
 
-            <Link
-              to="/signup"
-              className="mt-8 block text-center bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
+            <button
+              onClick={() => handleCheckout('single')}
+              disabled={loadingPlan !== null}
+              className="mt-8 block w-full text-center bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-6 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Get Started
-            </Link>
+              {loadingPlan === 'single' ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                'Get Started'
+              )}
+            </button>
             <p className="text-xs text-gray-400 text-center mt-2">First report free</p>
           </div>
 
@@ -105,12 +159,23 @@ function PricingCardsSection() {
               ))}
             </ul>
 
-            <Link
-              to="/signup"
-              className="mt-8 block text-center bg-gotruf-500 hover:bg-gotruf-600 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm"
+            <button
+              onClick={() => handleCheckout('pro')}
+              disabled={loadingPlan !== null}
+              className="mt-8 block w-full text-center bg-gotruf-500 hover:bg-gotruf-600 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Start Pro Plan
-            </Link>
+              {loadingPlan === 'pro' ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Processing...
+                </span>
+              ) : (
+                'Start Pro Plan'
+              )}
+            </button>
             <p className="text-xs text-gray-400 text-center mt-2">First report free, then $99/mo</p>
           </div>
 
@@ -196,38 +261,38 @@ function GuaranteeSection() {
   );
 }
 
-function FAQSection() {
-  const faqs = [
-    {
-      q: 'How can you be so much cheaper than EagleView?',
-      a: 'EagleView employs hundreds of people to manually review aerial imagery. We use AI and automation. Same source data (satellite imagery + LIDAR), different process. Our API cost per report is about $0.06. We charge $9.99. That\'s a healthy margin without charging $40.',
-    },
-    {
-      q: 'Do unused reports on the Pro plan really roll over?',
-      a: 'Yes. If you use 20 of your 25 reports in January, you\'ll have 30 available in February. Reports accumulate up to a maximum of 75 (3 months worth). We\'re not going to penalize you for having a slow month.',
-    },
-    {
-      q: 'What if I need more than 25 reports in a month?',
-      a: 'Additional reports beyond your plan are $7.99 each. Or if you consistently need more, contact us about Enterprise pricing — we\'ll build a plan that fits your volume.',
-    },
-    {
-      q: 'Is there a contract or commitment?',
-      a: 'No. The Pro plan is month-to-month. Cancel anytime. We\'d rather keep you because the product is good than because you\'re locked in.',
-    },
-    {
-      q: 'What areas do you cover?',
-      a: 'Anywhere Google has satellite imagery and Solar API coverage — which is most residential properties in the United States. If we can\'t generate a report for your address, you won\'t be charged.',
-    },
-    {
-      q: 'Can I white-label the reports with my company branding?',
-      a: 'On the Enterprise plan, yes. Your logo, your colors, your company name. The homeowner sees your brand, not ours. On Pay Per Report and Pro, reports are GotRuf branded.',
-    },
-    {
-      q: 'How long does a report take?',
-      a: 'Usually under 60 seconds. Enter the address, click measure, download your PDF. We\'ve timed it — it takes longer to read this FAQ than to generate a report.',
-    },
-  ];
+const PRICING_FAQS = [
+  {
+    q: 'How can you be so much cheaper than EagleView?',
+    a: 'EagleView employs hundreds of people to manually review aerial imagery. We use AI and automation. Same source data (satellite imagery + LIDAR), different process. Our API cost per report is about $0.06. We charge $9.99. That\'s a healthy margin without charging $40.',
+  },
+  {
+    q: 'Do unused reports on the Pro plan really roll over?',
+    a: 'Yes. If you use 20 of your 25 reports in January, you\'ll have 30 available in February. Reports accumulate up to a maximum of 75 (3 months worth). We\'re not going to penalize you for having a slow month.',
+  },
+  {
+    q: 'What if I need more than 25 reports in a month?',
+    a: 'Additional reports beyond your plan are $7.99 each. Or if you consistently need more, contact us about Enterprise pricing — we\'ll build a plan that fits your volume.',
+  },
+  {
+    q: 'Is there a contract or commitment?',
+    a: 'No. The Pro plan is month-to-month. Cancel anytime. We\'d rather keep you because the product is good than because you\'re locked in.',
+  },
+  {
+    q: 'What areas do you cover?',
+    a: 'Anywhere Google has satellite imagery and Solar API coverage — which is most residential properties in the United States. If we can\'t generate a report for your address, you won\'t be charged.',
+  },
+  {
+    q: 'Can I white-label the reports with my company branding?',
+    a: 'On the Enterprise plan, yes. Your logo, your colors, your company name. The homeowner sees your brand, not ours. On Pay Per Report and Pro, reports are GotRuf branded.',
+  },
+  {
+    q: 'How long does a report take?',
+    a: 'Usually under 60 seconds. Enter the address, click measure, download your PDF. We\'ve timed it — it takes longer to read this FAQ than to generate a report.',
+  },
+];
 
+function FAQSection() {
   return (
     <section className="py-20 lg:py-28 bg-gray-50">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -236,7 +301,7 @@ function FAQSection() {
         </h2>
 
         <div className="space-y-6">
-          {faqs.map((faq) => (
+          {PRICING_FAQS.map((faq) => (
             <div key={faq.q} className="bg-white rounded-xl border border-gray-200 p-6">
               <h3 className="font-bold text-gray-900">{faq.q}</h3>
               <p className="mt-2 text-sm text-gray-500 leading-relaxed">{faq.a}</p>
@@ -271,6 +336,28 @@ function CTASection() {
 }
 
 export default function PricingPage() {
+  useEffect(() => {
+    updateDocumentMeta({
+      title: 'Pricing',
+      description:
+        'GotRuf roof measurement reports starting at $9.99. First report free. No subscriptions required. Pro plan $99/mo for 25 reports.',
+      canonical: 'https://gotruf.com/pricing',
+      keywords: [
+        'roof measurement pricing',
+        'eagleview alternative cost',
+        'roof report price',
+        'affordable roof measurements',
+      ],
+    });
+
+    // Structured data
+    setStructuredData('product', getProductSchema());
+    setStructuredData(
+      'faq',
+      getFAQSchema(PRICING_FAQS.map((f) => ({ question: f.q, answer: f.a }))),
+    );
+  }, []);
+
   return (
     <>
       <HeroSection />

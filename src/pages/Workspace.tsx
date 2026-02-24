@@ -2,8 +2,10 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import MapView from '../components/map/MapView';
 import AddressSearch from '../components/map/AddressSearch';
+import TabletLayout from '../layouts/TabletLayout';
 import { useStore } from '../store/useStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboard';
+import { useIsTablet } from '../hooks/useMediaQuery';
 
 const tabs = [
   { id: 'tools' as const, label: 'Tools', icon: '✏️' },
@@ -21,6 +23,7 @@ const tabs = [
 
 export default function Workspace() {
   useKeyboardShortcuts();
+  const isTablet = useIsTablet();
   const { activePropertyId, startNewMeasurement, activeMeasurement, activePanel, setActivePanel, sidebarOpen, toggleSidebar } = useStore();
 
   return (
@@ -66,11 +69,15 @@ export default function Workspace() {
         ))}
       </div>
 
-      {/* Main content — on mobile, map takes full width; sidebar is a bottom sheet overlay */}
-      <div className="flex flex-1 overflow-hidden relative">
-        <Sidebar />
-        <MapView />
-      </div>
+      {/* Main content — tablet uses split-view; mobile uses bottom sheet overlay; desktop uses sidebar */}
+      {isTablet ? (
+        <TabletLayout />
+      ) : (
+        <div className="flex flex-1 overflow-hidden relative">
+          <Sidebar />
+          <MapView />
+        </div>
+      )}
     </div>
   );
 }

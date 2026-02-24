@@ -13,6 +13,8 @@ import AgentsPage from './pages/marketing/AgentsPage';
 import HomeownersPage from './pages/marketing/HomeownersPage';
 import PricingPage from './pages/marketing/PricingPage';
 import SignupPage from './pages/marketing/SignupPage';
+import CheckoutSuccess from './pages/marketing/CheckoutSuccess';
+import CheckoutCancel from './pages/marketing/CheckoutCancel';
 import LoginRedirect from './pages/Login';
 import AccountPage from './components/account/AccountPage';
 
@@ -64,7 +66,13 @@ export default function App() {
         <Route path="signup" element={<SignupPage />} />
       </Route>
 
-      {/* Legacy /gotruf/* redirects */}
+      {/* Checkout result pages (inside MarketingLayout) */}
+      <Route element={<MarketingLayout />}>
+        <Route path="gotruf/checkout/success" element={<CheckoutSuccess />} />
+        <Route path="gotruf/checkout/cancel" element={<CheckoutCancel />} />
+      </Route>
+
+      {/* Legacy /gotruf/* redirects (below checkout routes so they don't shadow) */}
       <Route path="/gotruf" element={<Navigate to="/" replace />} />
       <Route path="/gotruf/*" element={<Navigate to="/" replace />} />
 

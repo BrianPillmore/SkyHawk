@@ -1,12 +1,17 @@
 import jsPDF from 'jspdf';
-import type { Property, RoofMeasurement, DamageSeverity } from '../types';
-import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS } from '../types';
+import type { Property, RoofMeasurement, RoofConditionAssessment, DamageSeverity } from '../types';
+import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS, ROOF_MATERIAL_LABELS } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
 import { estimateMaterials } from './materials';
 import { analyzeSolarPotential, analyzeSolarPotentialFromApi, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
 import type { SolarSystemSummary } from './solarCalculations';
 import type { SolarBuildingInsights } from '../types/solar';
 import { computePanelLayout, renderPanelLayoutDiagram } from './solarPanelLayout';
+import { computeAccuracyScore } from './accuracyScore';
+import { generateTOC, renderTOCPage } from './reportTableOfContents';
+import type { TOCEntry } from './reportTableOfContents';
+import { renderSummaryPage, applyPageDecoration } from './reportPageTemplates';
+import type { ReportSummaryData } from './reportPageTemplates';
 
 interface ReportOptions {
   companyName: string;
@@ -27,6 +32,7 @@ interface ReportOptions {
   pitchDiagramImage?: string;  // base64 data URL
   obliqueViews?: { north?: string; south?: string; east?: string; west?: string }; // base64 data URLs
   includeSolarPanelLayout?: boolean;
+  roofCondition?: RoofConditionAssessment | null;
 }
 
 export async function generateReport(
@@ -109,23 +115,39 @@ export async function generateReport(
   y = addText(`Coordinates: ${property.lat.toFixed(6)}, ${property.lng.toFixed(6)}`, margin, y, 8, grayText);
   y += 4;
 
-  // ============ CONFIDENCE BADGE ============
+  // ============ CONFIDENCE BADGE WITH ACCURACY SCORE ============
+  const accuracy = computeAccuracyScore(measurement, options.solarInsights);
   const dataSourceLabel = measurement.dataSource === 'lidar-mask' ? 'LIDAR + Solar API'
     : measurement.dataSource === 'hybrid' ? 'Solar API + AI Vision'
     : measurement.dataSource === 'ai-vision' ? 'AI Vision'
     : 'Manual Measurement';
-  const confidenceLevel = measurement.dataSource === 'lidar-mask' ? 'High'
-    : measurement.dataSource === 'hybrid' ? 'High'
-    : measurement.dataSource === 'ai-vision' ? 'Medium'
-    : 'Standard';
+  const isMediumQuality = measurement.imageryQuality === 'MEDIUM';
 
-  doc.setFillColor(219, 234, 254);
-  doc.rect(margin, y, contentWidth, 12, 'F');
-  doc.setFillColor(37, 120, 235);
-  doc.rect(margin, y, 4, 12, 'F');
-  addText(`SkyHawk Verified — ${confidenceLevel} Confidence`, margin + 8, y + 5, 8, primaryColor, 'bold');
+  const badgeHeight = isMediumQuality ? 22 : 17;
+  const isHighAccuracy = accuracy.overallScore >= 80;
+  const badgeColor: [number, number, number] = isMediumQuality ? [254, 243, 199]
+    : isHighAccuracy ? [220, 252, 231] : [219, 234, 254];
+  const badgeAccentColor: [number, number, number] = isMediumQuality ? [234, 179, 8]
+    : isHighAccuracy ? [22, 163, 74] : [37, 120, 235];
+  doc.setFillColor(...badgeColor);
+  doc.rect(margin, y, contentWidth, badgeHeight, 'F');
+  doc.setFillColor(...badgeAccentColor);
+  doc.rect(margin, y, 4, badgeHeight, 'F');
+
+  // Accuracy score and grade on the right
+  const scoreText = `${accuracy.grade} — ${accuracy.overallScore}/100`;
+  const scoreWidth = doc.getTextWidth(scoreText) + 4;
+  addText(`SkyHawk Verified — ${accuracy.label}`, margin + 8, y + 5, 8, primaryColor, 'bold');
+  addText(scoreText, pageWidth - margin - scoreWidth, y + 5, 8, badgeAccentColor, 'bold');
   addText(`Source: ${dataSourceLabel}`, margin + 8, y + 10, 7, grayText);
-  y += 16;
+  if (accuracy.areaDeltaPercent !== undefined) {
+    addText(`Solar API cross-check: ${accuracy.areaDeltaPercent.toFixed(1)}% deviation`, margin + 8, y + 15, 6.5, grayText);
+  }
+  if (isMediumQuality) {
+    const warningColor: [number, number, number] = [161, 98, 7];
+    addText('Imagery quality: MEDIUM — measurements may have reduced accuracy', margin + 8, y + (accuracy.areaDeltaPercent !== undefined ? 20 : 15), 6.5, warningColor);
+  }
+  y += badgeHeight + 4;
 
   // ============ MAP SCREENSHOT (HERO IMAGE) ============
   if (options.mapScreenshot) {
@@ -147,6 +169,71 @@ export async function generateReport(
       y += 2;
     }
   }
+
+  // ============ TABLE OF CONTENTS (Page 2) ============
+  doc.addPage();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Build TOC entries — page numbers are approximate and assigned after layout.
+  // We use a simple incrementing page counter for the TOC. Page 1 = hero,
+  // page 2 = TOC, page 3+ = content. We'll correct page numbers at the end
+  // using the applyPageDecoration pass.
+  const tocSections: TOCEntry[] = [];
+  let tocPageNum = 3; // Content starts at page 3
+  tocSections.push({ title: 'Property Overview', pageNumber: tocPageNum, indent: 0 });
+  if (options.roofCondition) {
+    tocSections.push({ title: 'Property Intelligence', pageNumber: tocPageNum, indent: 0 });
+  }
+  tocSections.push({ title: 'Roof Measurement Summary', pageNumber: tocPageNum, indent: 0 });
+  tocPageNum++;
+  if (options.includeLengthDiagram || options.includeAreaDiagram || options.includePitchDiagram) {
+    tocSections.push({ title: 'Wireframe Diagrams', pageNumber: tocPageNum, indent: 0 });
+    if (options.includeLengthDiagram) {
+      tocSections.push({ title: 'Length Diagram', pageNumber: tocPageNum, indent: 1 });
+      tocPageNum++;
+    }
+    if (options.includeAreaDiagram) {
+      tocSections.push({ title: 'Area Diagram', pageNumber: tocPageNum, indent: 1 });
+      tocPageNum++;
+    }
+    if (options.includePitchDiagram) {
+      tocSections.push({ title: 'Pitch Diagram', pageNumber: tocPageNum, indent: 1 });
+      tocPageNum++;
+    }
+  }
+  tocSections.push({ title: 'Facet Details', pageNumber: tocPageNum, indent: 0 });
+  tocPageNum++;
+  if (options.includeObliqueViews && options.obliqueViews) {
+    tocSections.push({ title: 'Oblique Imagery', pageNumber: tocPageNum, indent: 0 });
+    tocPageNum++;
+  }
+  if (options.includeSolar) {
+    tocSections.push({ title: 'Solar Analysis', pageNumber: tocPageNum, indent: 0 });
+    tocPageNum++;
+  }
+  const damageAnnotationsForToc = property.damageAnnotations ?? [];
+  if (options.includeDamage !== false && damageAnnotationsForToc.length > 0) {
+    tocSections.push({ title: 'Damage Assessment', pageNumber: tocPageNum, indent: 0 });
+    tocPageNum++;
+  }
+  tocSections.push({ title: 'Material Estimate', pageNumber: tocPageNum, indent: 0 });
+  tocPageNum++;
+  tocSections.push({ title: 'Appendix: Methodology & Data Sources', pageNumber: tocPageNum, indent: 0 });
+
+  const tocEntries = generateTOC(tocSections);
+  renderTOCPage(doc, tocEntries, pageWidth, pageHeight);
+
+  // ============ KEY METRICS SUMMARY (Page 3) ============
+  doc.addPage();
+  const keyMetrics: ReportSummaryData = {
+    totalAreaSquares: measurement.totalSquares,
+    predominantPitch: measurement.predominantPitch,
+    numberOfFacets: measurement.facets.length,
+    totalRidgeHipLf: measurement.totalRidgeLf + measurement.totalHipLf,
+    totalValleyLf: measurement.totalValleyLf,
+    totalRakeEaveLf: measurement.totalRakeLf + measurement.totalEaveLf,
+  };
+  y = renderSummaryPage(doc, keyMetrics);
 
   // ============ FULL PROPERTY OVERVIEW ============
   checkPage(50);
@@ -182,6 +269,52 @@ export async function generateReport(
   }
   y += overviewData.length * 7 + 6;
 
+  // ============ PROPERTY INTELLIGENCE (Roof Condition) ============
+  if (options.roofCondition) {
+    const rc = options.roofCondition;
+    checkPage(50);
+    y = addText('PROPERTY INTELLIGENCE', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 4;
+
+    const conditionColor: [number, number, number] =
+      rc.category === 'excellent' || rc.category === 'good' ? [22, 163, 74]
+      : rc.category === 'fair' ? [234, 179, 8]
+      : [220, 38, 38];
+
+    const conditionData: string[][] = [
+      ['Roof Condition', `${rc.category.charAt(0).toUpperCase() + rc.category.slice(1)} (${rc.overallScore}/100)`],
+      ['Roof Material', ROOF_MATERIAL_LABELS[rc.materialType] || rc.materialType],
+      ['Estimated Roof Age', `${rc.estimatedAgeYears} years`],
+      ['Estimated Remaining Life', `${rc.estimatedRemainingLifeYears} years`],
+    ];
+
+    for (let i = 0; i < conditionData.length; i++) {
+      const rowY = y + i * 7;
+      if (i % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(conditionData[i][0], margin + 3, rowY, 9, grayText);
+      const valueColor = i === 0 ? conditionColor : darkText;
+      addText(conditionData[i][1], pageWidth - margin - 3 - doc.getTextWidth(conditionData[i][1]), rowY, 9, valueColor, i === 0 ? 'bold' : 'normal');
+    }
+    y += conditionData.length * 7 + 4;
+
+    // Key findings
+    if (rc.findings.length > 0) {
+      addText('Key Findings:', margin + 3, y, 8, darkText, 'bold');
+      y += 5;
+      for (const finding of rc.findings.slice(0, 4)) {
+        checkPage(8);
+        addText(`  • ${finding}`, margin + 5, y, 7.5, grayText);
+        y += 5;
+      }
+    }
+    y += 4;
+  }
+
   // ============ ROOF SUMMARY ============
   checkPage(60);
   y = addText('ROOF MEASUREMENT SUMMARY', margin, y, 12, primaryColor, 'bold');
@@ -190,7 +323,7 @@ export async function generateReport(
   y += 4;
 
   // Summary table
-  const summaryData = [
+  const summaryRows: string[][] = [
     ['Total Roof Area (True)', formatArea(measurement.totalTrueAreaSqFt)],
     ['Total Projected Area', formatArea(measurement.totalAreaSqFt)],
     ['Total Squares', formatNumber(measurement.totalSquares, 1)],
@@ -200,6 +333,18 @@ export async function generateReport(
     ['Estimated Attic Area', measurement.estimatedAtticSqFt ? formatArea(measurement.estimatedAtticSqFt) : 'N/A'],
     ['Suggested Waste Factor', `${measurement.suggestedWastePercent}%`],
   ];
+  // Add building height and imagery quality rows when available
+  if (measurement.buildingHeightFt) {
+    summaryRows.push(['Building Height', `${measurement.buildingHeightFt.toFixed(0)} ft (${measurement.stories ?? '?'} ${(measurement.stories ?? 0) === 1 ? 'story' : 'stories'})`]);
+  }
+  if (measurement.imageryQuality) {
+    summaryRows.push(['Imagery Quality', measurement.imageryQuality]);
+  }
+  if (measurement.solarApiAreaSqFt) {
+    summaryRows.push(['Solar API Cross-Check Area', formatArea(measurement.solarApiAreaSqFt)]);
+  }
+
+  const summaryData = summaryRows;
 
   for (let i = 0; i < summaryData.length; i++) {
     const rowY = y + i * 7;
@@ -404,16 +549,21 @@ export async function generateReport(
     const materials = estimateMaterials(measurement);
     const materialRows: [string, string, string][] = [
       ['Shingle Bundles', String(materials.shingleBundles), '3 bundles per square'],
+      ['Hip & Ridge Shingles', `${materials.hipRidgeBundles} bundles`, '1 bundle per 35 lf'],
       ['Underlayment', `${materials.underlaymentRolls} rolls`, '~4 squares per roll'],
       ['Ice & Water Shield', `${materials.iceWaterRolls} rolls`, 'At eave edges'],
       ['Starter Strip', `${materials.starterStripLf} lf`, 'Eave + rake perimeter'],
       ['Ridge Cap', `${materials.ridgeCapLf} lf`, 'Ridge + hip lines'],
+      ['Valley Metal', `${materials.valleyMetalLf} lf`, 'Valley edges (W-valley)'],
       ['Drip Edge', `${materials.dripEdgeLf} lf`, 'Eave + rake edges'],
       ['Step Flashing', `${materials.stepFlashingPcs} pcs`, 'Wall junctions'],
+      ['Roof-to-Wall Flashing', `${materials.roofToWallFlashingPcs} pcs`, '10 ft L-metal pieces'],
       ['Pipe Boots', `${materials.pipeBoots} pcs`, 'Est. 1 per 1,000 sq ft'],
-      ['Roofing Nails', `${materials.nailsLbs} lbs`, '~1.75 lbs per square'],
+      ['Coil Nails', `${materials.coilNailBoxes} boxes`, '7,200 nails/box'],
+      ['Hand Nails', `${materials.nailsLbs} lbs`, '~1.75 lbs per square'],
       ['Caulk', `${materials.caulkTubes} tubes`, '1 per 25 lf flashing'],
       ['Ridge Vent', `${materials.ridgeVentLf} lf`, 'Full ridge length'],
+      ['Sheathing (OSB)', `${materials.sheathingSheets} sheets`, '4x8 ft (tear-off)'],
     ];
 
     // Filter out zero-quantity rows
@@ -846,31 +996,108 @@ export async function generateReport(
     y += lines.length * 4 + 6;
   }
 
-  // ============ FOOTER ============
+  // ============ APPENDIX: METHODOLOGY & DATA SOURCES ============
+  doc.addPage();
+  y = margin;
+  y = addText('APPENDIX: METHODOLOGY & DATA SOURCES', margin, y, 12, primaryColor, 'bold');
+  y += 2;
+  y = addLine(y);
+  y += 6;
+
+  // Accuracy Score Section
+  y = addText('Measurement Accuracy', margin, y, 10, darkText, 'bold');
+  y += 5;
+
+  const methodologyLines = [
+    `Accuracy Score: ${accuracy.grade} (${accuracy.overallScore}/100) — ${accuracy.label}`,
+    '',
+    'Score Factors:',
+    `  Data Source (30%): ${accuracy.factors.dataSource.label} — ${accuracy.factors.dataSource.score}/${accuracy.factors.dataSource.weight}`,
+    `  Imagery Quality (20%): ${accuracy.factors.imageryQuality.label} — ${accuracy.factors.imageryQuality.score}/${accuracy.factors.imageryQuality.weight}`,
+    `  Facet Detection (15%): ${accuracy.factors.facetCount.label} — ${accuracy.factors.facetCount.score}/${accuracy.factors.facetCount.weight}`,
+    `  Area Cross-Validation (25%): ${accuracy.factors.areaValidation.label} — ${accuracy.factors.areaValidation.score}/${accuracy.factors.areaValidation.weight}`,
+    `  Pitch Consistency (10%): ${accuracy.factors.pitchConsistency.label} — ${accuracy.factors.pitchConsistency.score}/${accuracy.factors.pitchConsistency.weight}`,
+  ];
+
+  for (const line of methodologyLines) {
+    if (line === '') { y += 2; continue; }
+    addText(line, margin + 3, y, 7.5, grayText);
+    y += 4.5;
+  }
+  y += 6;
+
+  // Data Sources
+  y = addText('Data Sources', margin, y, 10, darkText, 'bold');
+  y += 5;
+
+  const dataSources = [
+    'Satellite Imagery: Google Maps Platform (high-resolution satellite tiles)',
+    'Roof Geometry: Google Solar API buildingInsights endpoint (roof segment pitch, azimuth, area)',
+    'Elevation Data: Google Solar API dataLayers endpoint (Digital Surface Model GeoTIFF)',
+    'Building Outline: LIDAR mask extraction via contour analysis on DSM/mask GeoTIFFs',
+    'AI Edge Detection: Anthropic Claude Vision API (ridge, hip, valley, rake, eave classification)',
+    'Solar Production: Google Solar API yearlyEnergyDcKwh (weather-validated irradiance model)',
+    'Financial Data: Google Solar API financialAnalyses (federal, state, utility incentives)',
+  ];
+  for (const src of dataSources) {
+    addText(`\u2022 ${src}`, margin + 3, y, 7.5, grayText);
+    y += 5;
+  }
+  y += 6;
+
+  // Methodology
+  y = addText('Measurement Methodology', margin, y, 10, darkText, 'bold');
+  y += 5;
+
+  const methodology = [
+    '1. Building outline extraction from LIDAR mask (contour tracing on Google Solar API roof mask GeoTIFF)',
+    '2. Roof segment matching using Solar API roofSegmentStats (pitch, azimuth, area per segment)',
+    '3. 3D pitch verification from Digital Surface Model elevation sampling (plane-fit R\u00B2 analysis)',
+    '4. Facet partitioning via hybrid strategy: azimuth-based assignment when segment centers are',
+    '   clustered, Voronoi distance-based when spread. Falls back to Solar API areas directly.',
+    '5. True surface area computed from pitch-adjusted flat area or DSM 3D triangulation',
+    '6. Waste factor derived from structure complexity analysis (facet count, hip/valley ratio, edge patterns)',
+    '7. Material quantities estimated using industry-standard ratios (3 bundles/square, etc.)',
+    '',
+    'Disclaimer: Measurements are derived from satellite imagery, LIDAR data, and AI analysis.',
+    'Actual conditions may vary. This report is intended as an estimate and should be verified',
+    'by on-site inspection for critical applications such as insurance claims or construction bids.',
+  ];
+  for (const line of methodology) {
+    if (line === '') { y += 2; continue; }
+    addText(line, margin + 3, y, 7.5, grayText);
+    y += 4.5;
+  }
+
+  // ============ FOOTER & PAGE DECORATION ============
+  // Apply consistent headers, footers, and page numbers to all pages (skip hero page 1)
+  applyPageDecoration(doc, fullAddress, reportDate, options.companyName, 2);
+
+  // Also add the legacy footer on page 1 (hero page)
   const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    const pageHeight = doc.internal.pageSize.getHeight();
+  doc.setPage(1);
+  {
+    const ph = doc.internal.pageSize.getHeight();
     doc.setFillColor(245, 245, 245);
-    doc.rect(0, pageHeight - 18, pageWidth, 18, 'F');
+    doc.rect(0, ph - 18, pageWidth, 18, 'F');
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
     doc.text(
-      `Generated by GotRuf Aerial Property Intelligence | ${reportDate} | Page ${i} of ${pageCount}`,
+      `Generated by SkyHawk Aerial Property Intelligence | ${reportDate} | Page 1 of ${pageCount}`,
       pageWidth / 2,
-      pageHeight - 11,
+      ph - 11,
       { align: 'center' }
     );
     doc.text(
       'Measurements powered by Google Solar API + AI Vision | Imagery \u00A9 Google',
       pageWidth / 2,
-      pageHeight - 6,
+      ph - 6,
       { align: 'center' }
     );
-    doc.text('CONFIDENTIAL', margin, pageHeight - 11);
+    doc.text('CONFIDENTIAL', margin, ph - 11);
   }
 
   // Save
-  const filename = `GotRuf-Roof-Report-${property.address.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const filename = `SkyHawk-Roof-Report-${property.address.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`;
   doc.save(filename);
 }

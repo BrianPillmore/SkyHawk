@@ -65,6 +65,9 @@ export interface RoofMeasurement {
   buildingHeightFt?: number;
   stories?: number;
   dataSource?: 'lidar-mask' | 'ai-vision' | 'hybrid';
+  // Imagery quality and cross-validation
+  imageryQuality?: 'HIGH' | 'MEDIUM' | 'LOW';
+  solarApiAreaSqFt?: number;
 }
 
 export interface Property {

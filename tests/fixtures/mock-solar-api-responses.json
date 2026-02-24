@@ -1,0 +1,620 @@
+[
+  {
+    "address": "3517 Lindee Lane, Oklahoma City, OK 73179",
+    "buildingInsights": {
+      "name": "buildings/3517-lindee-lane",
+      "center": { "latitude": 35.429144, "longitude": -97.687699 },
+      "boundingBox": {
+        "sw": { "latitude": 35.42895, "longitude": -97.68800 },
+        "ne": { "latitude": 35.42935, "longitude": -97.68740 }
+      },
+      "imageryDate": { "year": 2024, "month": 6, "day": 15 },
+      "imageryProcessedDate": { "year": 2024, "month": 7, "day": 1 },
+      "postalCode": "73179",
+      "administrativeArea": "OK",
+      "statisticalArea": "",
+      "regionCode": "US",
+      "solarPotential": {
+        "maxArrayPanelsCount": 42,
+        "maxArrayAreaMeters2": 72.0,
+        "maxSunshineHoursPerYear": 1680,
+        "carbonOffsetFactorKgPerMwh": 430,
+        "wholeRoofStats": {
+          "areaMeters2": 530.0,
+          "sunshineQuantiles": [800, 1000, 1100, 1200, 1300, 1400, 1500, 1550, 1600, 1650, 1680],
+          "groundAreaMeters2": 375.0
+        },
+        "roofSegmentStats": [
+          {
+            "pitchDegrees": 39.8,
+            "azimuthDegrees": 180,
+            "stats": {
+              "areaMeters2": 125.5,
+              "sunshineQuantiles": [1000, 1200, 1300, 1400, 1500, 1550, 1580, 1600, 1620, 1650, 1680],
+              "groundAreaMeters2": 96.5
+            },
+            "center": { "latitude": 35.429180, "longitude": -97.687720 },
+            "boundingBox": {
+              "sw": { "latitude": 35.42910, "longitude": -97.68790 },
+              "ne": { "latitude": 35.42930, "longitude": -97.68755 }
+            },
+            "planeHeightAtCenterMeters": 6.2
+          },
+          {
+            "pitchDegrees": 39.8,
+            "azimuthDegrees": 0,
+            "stats": {
+              "areaMeters2": 130.2,
+              "sunshineQuantiles": [900, 1050, 1150, 1250, 1350, 1400, 1450, 1480, 1500, 1520, 1550],
+              "groundAreaMeters2": 100.1
+            },
+            "center": { "latitude": 35.429110, "longitude": -97.687720 },
+            "boundingBox": {
+              "sw": { "latitude": 35.42900, "longitude": -97.68790 },
+              "ne": { "latitude": 35.42920, "longitude": -97.68755 }
+            },
+            "planeHeightAtCenterMeters": 6.0
+          },
+          {
+            "pitchDegrees": 45.0,
+            "azimuthDegrees": 270,
+            "stats": {
+              "areaMeters2": 85.3,
+              "sunshineQuantiles": [800, 950, 1050, 1150, 1250, 1300, 1350, 1380, 1400, 1420, 1450],
+              "groundAreaMeters2": 60.3
+            },
+            "center": { "latitude": 35.429150, "longitude": -97.687650 },
+            "boundingBox": {
+              "sw": { "latitude": 35.42905, "longitude": -97.68780 },
+              "ne": { "latitude": 35.42925, "longitude": -97.68750 }
+            },
+            "planeHeightAtCenterMeters": 7.1
+          },
+          {
+            "pitchDegrees": 45.0,
+            "azimuthDegrees": 90,
+            "stats": {
+              "areaMeters2": 82.7,
+              "sunshineQuantiles": [850, 1000, 1100, 1200, 1300, 1350, 1380, 1400, 1420, 1440, 1470],
+              "groundAreaMeters2": 58.5
+            },
+            "center": { "latitude": 35.429150, "longitude": -97.687750 },
+            "boundingBox": {
+              "sw": { "latitude": 35.42905, "longitude": -97.68790 },
+              "ne": { "latitude": 35.42925, "longitude": -97.68760 }
+            },
+            "planeHeightAtCenterMeters": 7.0
+          },
+          {
+            "pitchDegrees": 39.8,
+            "azimuthDegrees": 180,
+            "stats": {
+              "areaMeters2": 55.0,
+              "sunshineQuantiles": [900, 1100, 1200, 1300, 1400, 1450, 1480, 1500, 1520, 1540, 1560],
+              "groundAreaMeters2": 42.3
+            },
+            "center": { "latitude": 35.429200, "longitude": -97.687680 },
+            "boundingBox": {
+              "sw": { "latitude": 35.42915, "longitude": -97.68780 },
+              "ne": { "latitude": 35.42925, "longitude": -97.68755 }
+            },
+            "planeHeightAtCenterMeters": 5.8
+          },
+          {
+            "pitchDegrees": 39.8,
+            "azimuthDegrees": 0,
+            "stats": {
+              "areaMeters2": 48.3,
+              "sunshineQuantiles": [800, 950, 1050, 1150, 1250, 1300, 1340, 1370, 1400, 1420, 1440],
+              "groundAreaMeters2": 37.2
+            },
+            "center": { "latitude": 35.429090, "longitude": -97.687680 },
+            "boundingBox": {
+              "sw": { "latitude": 35.42900, "longitude": -97.68780 },
+              "ne": { "latitude": 35.42915, "longitude": -97.68755 }
+            },
+            "planeHeightAtCenterMeters": 5.5
+          }
+        ],
+        "buildingStats": {
+          "areaMeters2": 375.0,
+          "sunshineQuantiles": [800, 1000, 1100, 1200, 1300, 1400, 1500, 1550, 1600, 1650, 1680],
+          "groundAreaMeters2": 375.0
+        },
+        "solarPanels": [],
+        "solarPanelConfigs": []
+      },
+      "imageryQuality": "HIGH"
+    },
+    "eagleViewGroundTruth": {
+      "totalSquares": 60.66,
+      "predominantPitch": "12/12",
+      "facetCount": 36
+    }
+  },
+  {
+    "address": "15805 Harts Mill Rd, Edmond, OK 73013",
+    "buildingInsights": {
+      "name": "buildings/15805-harts-mill",
+      "center": { "latitude": 35.6307537, "longitude": -97.51587 },
+      "boundingBox": {
+        "sw": { "latitude": 35.63055, "longitude": -97.51610 },
+        "ne": { "latitude": 35.63095, "longitude": -97.51565 }
+      },
+      "imageryDate": { "year": 2024, "month": 5, "day": 20 },
+      "imageryProcessedDate": { "year": 2024, "month": 6, "day": 5 },
+      "postalCode": "73013",
+      "administrativeArea": "OK",
+      "statisticalArea": "",
+      "regionCode": "US",
+      "solarPotential": {
+        "maxArrayPanelsCount": 35,
+        "maxArrayAreaMeters2": 60.0,
+        "maxSunshineHoursPerYear": 1650,
+        "carbonOffsetFactorKgPerMwh": 430,
+        "wholeRoofStats": {
+          "areaMeters2": 405.0,
+          "sunshineQuantiles": [850, 1050, 1150, 1250, 1350, 1430, 1500, 1540, 1580, 1620, 1650],
+          "groundAreaMeters2": 340.0
+        },
+        "roofSegmentStats": [
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 175,
+            "stats": {
+              "areaMeters2": 112.0,
+              "sunshineQuantiles": [1000, 1200, 1300, 1400, 1480, 1520, 1560, 1580, 1600, 1620, 1650],
+              "groundAreaMeters2": 93.2
+            },
+            "center": { "latitude": 35.630800, "longitude": -97.515880 },
+            "boundingBox": {
+              "sw": { "latitude": 35.63065, "longitude": -97.51605 },
+              "ne": { "latitude": 35.63090, "longitude": -97.51575 }
+            },
+            "planeHeightAtCenterMeters": 4.8
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 355,
+            "stats": {
+              "areaMeters2": 108.5,
+              "sunshineQuantiles": [900, 1050, 1150, 1250, 1350, 1400, 1440, 1470, 1500, 1520, 1540],
+              "groundAreaMeters2": 90.3
+            },
+            "center": { "latitude": 35.630720, "longitude": -97.515880 },
+            "boundingBox": {
+              "sw": { "latitude": 35.63060, "longitude": -97.51605 },
+              "ne": { "latitude": 35.63085, "longitude": -97.51575 }
+            },
+            "planeHeightAtCenterMeters": 4.6
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 85,
+            "stats": {
+              "areaMeters2": 98.0,
+              "sunshineQuantiles": [900, 1050, 1150, 1250, 1350, 1400, 1440, 1470, 1500, 1520, 1540],
+              "groundAreaMeters2": 81.6
+            },
+            "center": { "latitude": 35.630750, "longitude": -97.515800 },
+            "boundingBox": {
+              "sw": { "latitude": 35.63060, "longitude": -97.51600 },
+              "ne": { "latitude": 35.63090, "longitude": -97.51570 }
+            },
+            "planeHeightAtCenterMeters": 4.5
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 265,
+            "stats": {
+              "areaMeters2": 95.5,
+              "sunshineQuantiles": [850, 1000, 1100, 1200, 1300, 1350, 1400, 1430, 1460, 1490, 1510],
+              "groundAreaMeters2": 79.5
+            },
+            "center": { "latitude": 35.630750, "longitude": -97.515950 },
+            "boundingBox": {
+              "sw": { "latitude": 35.63060, "longitude": -97.51610 },
+              "ne": { "latitude": 35.63090, "longitude": -97.51580 }
+            },
+            "planeHeightAtCenterMeters": 4.7
+          }
+        ],
+        "buildingStats": {
+          "areaMeters2": 340.0,
+          "sunshineQuantiles": [850, 1050, 1150, 1250, 1350, 1430, 1500, 1540, 1580, 1620, 1650],
+          "groundAreaMeters2": 340.0
+        },
+        "solarPanels": [],
+        "solarPanelConfigs": []
+      },
+      "imageryQuality": "HIGH"
+    },
+    "eagleViewGroundTruth": {
+      "totalSquares": 46.33,
+      "predominantPitch": "8/12",
+      "facetCount": 15
+    }
+  },
+  {
+    "address": "804 W Windmill Ct, Mustang, OK 73064",
+    "buildingInsights": {
+      "name": "buildings/804-w-windmill",
+      "center": { "latitude": 35.3999966, "longitude": -97.7406297 },
+      "boundingBox": {
+        "sw": { "latitude": 35.39980, "longitude": -97.74090 },
+        "ne": { "latitude": 35.40020, "longitude": -97.74040 }
+      },
+      "imageryDate": { "year": 2024, "month": 7, "day": 10 },
+      "imageryProcessedDate": { "year": 2024, "month": 8, "day": 1 },
+      "postalCode": "73064",
+      "administrativeArea": "OK",
+      "statisticalArea": "",
+      "regionCode": "US",
+      "solarPotential": {
+        "maxArrayPanelsCount": 30,
+        "maxArrayAreaMeters2": 52.0,
+        "maxSunshineHoursPerYear": 1670,
+        "carbonOffsetFactorKgPerMwh": 430,
+        "wholeRoofStats": {
+          "areaMeters2": 380.0,
+          "sunshineQuantiles": [820, 1020, 1120, 1220, 1320, 1400, 1480, 1520, 1560, 1610, 1670],
+          "groundAreaMeters2": 320.0
+        },
+        "roofSegmentStats": [
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 190,
+            "stats": {
+              "areaMeters2": 105.0,
+              "sunshineQuantiles": [1000, 1200, 1300, 1400, 1480, 1520, 1560, 1580, 1610, 1640, 1670],
+              "groundAreaMeters2": 87.4
+            },
+            "center": { "latitude": 35.400050, "longitude": -97.740650 },
+            "boundingBox": {
+              "sw": { "latitude": 35.39990, "longitude": -97.74085 },
+              "ne": { "latitude": 35.40015, "longitude": -97.74050 }
+            },
+            "planeHeightAtCenterMeters": 4.5
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 10,
+            "stats": {
+              "areaMeters2": 100.0,
+              "sunshineQuantiles": [880, 1050, 1150, 1250, 1350, 1400, 1440, 1470, 1500, 1530, 1550],
+              "groundAreaMeters2": 83.2
+            },
+            "center": { "latitude": 35.399950, "longitude": -97.740650 },
+            "boundingBox": {
+              "sw": { "latitude": 35.39980, "longitude": -97.74085 },
+              "ne": { "latitude": 35.40010, "longitude": -97.74050 }
+            },
+            "planeHeightAtCenterMeters": 4.3
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 100,
+            "stats": {
+              "areaMeters2": 88.0,
+              "sunshineQuantiles": [870, 1020, 1120, 1220, 1320, 1370, 1420, 1450, 1480, 1510, 1530],
+              "groundAreaMeters2": 73.2
+            },
+            "center": { "latitude": 35.400000, "longitude": -97.740580 },
+            "boundingBox": {
+              "sw": { "latitude": 35.39985, "longitude": -97.74080 },
+              "ne": { "latitude": 35.40015, "longitude": -97.74045 }
+            },
+            "planeHeightAtCenterMeters": 4.4
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 280,
+            "stats": {
+              "areaMeters2": 85.0,
+              "sunshineQuantiles": [820, 980, 1080, 1180, 1280, 1340, 1390, 1420, 1450, 1480, 1500],
+              "groundAreaMeters2": 70.8
+            },
+            "center": { "latitude": 35.400000, "longitude": -97.740720 },
+            "boundingBox": {
+              "sw": { "latitude": 35.39985, "longitude": -97.74090 },
+              "ne": { "latitude": 35.40015, "longitude": -97.74055 }
+            },
+            "planeHeightAtCenterMeters": 4.2
+          }
+        ],
+        "buildingStats": {
+          "areaMeters2": 320.0,
+          "sunshineQuantiles": [820, 1020, 1120, 1220, 1320, 1400, 1480, 1520, 1560, 1610, 1670],
+          "groundAreaMeters2": 320.0
+        },
+        "solarPanels": [],
+        "solarPanelConfigs": []
+      },
+      "imageryQuality": "HIGH"
+    },
+    "eagleViewGroundTruth": {
+      "totalSquares": 43.66,
+      "predominantPitch": "8/12",
+      "facetCount": 21
+    }
+  },
+  {
+    "address": "3113 Loren Dr, Moore, OK 73160",
+    "buildingInsights": {
+      "name": "buildings/3113-loren-dr",
+      "center": { "latitude": 35.3656683, "longitude": -97.4743772 },
+      "boundingBox": {
+        "sw": { "latitude": 35.36545, "longitude": -97.47460 },
+        "ne": { "latitude": 35.36585, "longitude": -97.47415 }
+      },
+      "imageryDate": { "year": 2024, "month": 8, "day": 5 },
+      "imageryProcessedDate": { "year": 2024, "month": 9, "day": 1 },
+      "postalCode": "73160",
+      "administrativeArea": "OK",
+      "statisticalArea": "",
+      "regionCode": "US",
+      "solarPotential": {
+        "maxArrayPanelsCount": 20,
+        "maxArrayAreaMeters2": 34.0,
+        "maxSunshineHoursPerYear": 1660,
+        "carbonOffsetFactorKgPerMwh": 430,
+        "wholeRoofStats": {
+          "areaMeters2": 232.0,
+          "sunshineQuantiles": [830, 1030, 1130, 1230, 1330, 1410, 1490, 1530, 1570, 1620, 1660],
+          "groundAreaMeters2": 195.0
+        },
+        "roofSegmentStats": [
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 170,
+            "stats": {
+              "areaMeters2": 82.0,
+              "sunshineQuantiles": [1000, 1200, 1300, 1400, 1480, 1520, 1550, 1580, 1600, 1630, 1660],
+              "groundAreaMeters2": 68.2
+            },
+            "center": { "latitude": 35.365700, "longitude": -97.474400 },
+            "boundingBox": {
+              "sw": { "latitude": 35.36555, "longitude": -97.47460 },
+              "ne": { "latitude": 35.36580, "longitude": -97.47425 }
+            },
+            "planeHeightAtCenterMeters": 4.0
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 350,
+            "stats": {
+              "areaMeters2": 78.0,
+              "sunshineQuantiles": [880, 1050, 1150, 1250, 1340, 1390, 1430, 1460, 1490, 1510, 1530],
+              "groundAreaMeters2": 64.9
+            },
+            "center": { "latitude": 35.365650, "longitude": -97.474400 },
+            "boundingBox": {
+              "sw": { "latitude": 35.36550, "longitude": -97.47460 },
+              "ne": { "latitude": 35.36580, "longitude": -97.47425 }
+            },
+            "planeHeightAtCenterMeters": 3.8
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 80,
+            "stats": {
+              "areaMeters2": 40.0,
+              "sunshineQuantiles": [860, 1020, 1120, 1220, 1310, 1370, 1410, 1440, 1470, 1500, 1520],
+              "groundAreaMeters2": 33.3
+            },
+            "center": { "latitude": 35.365680, "longitude": -97.474350 },
+            "boundingBox": {
+              "sw": { "latitude": 35.36558, "longitude": -97.47450 },
+              "ne": { "latitude": 35.36578, "longitude": -97.47420 }
+            },
+            "planeHeightAtCenterMeters": 3.9
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 260,
+            "stats": {
+              "areaMeters2": 38.0,
+              "sunshineQuantiles": [830, 990, 1090, 1190, 1280, 1340, 1390, 1420, 1450, 1470, 1500],
+              "groundAreaMeters2": 31.6
+            },
+            "center": { "latitude": 35.365680, "longitude": -97.474450 },
+            "boundingBox": {
+              "sw": { "latitude": 35.36558, "longitude": -97.47460 },
+              "ne": { "latitude": 35.36578, "longitude": -97.47430 }
+            },
+            "planeHeightAtCenterMeters": 3.7
+          }
+        ],
+        "buildingStats": {
+          "areaMeters2": 195.0,
+          "sunshineQuantiles": [830, 1030, 1130, 1230, 1330, 1410, 1490, 1530, 1570, 1620, 1660],
+          "groundAreaMeters2": 195.0
+        },
+        "solarPanels": [],
+        "solarPanelConfigs": []
+      },
+      "imageryQuality": "HIGH"
+    },
+    "eagleViewGroundTruth": {
+      "totalSquares": 27.0,
+      "predominantPitch": "8/12",
+      "facetCount": 7
+    }
+  },
+  {
+    "address": "4001 NE 142nd St, Edmond, OK 73013",
+    "buildingInsights": {
+      "name": "buildings/4001-ne-142nd",
+      "center": { "latitude": 35.6152636, "longitude": -97.4458357 },
+      "boundingBox": {
+        "sw": { "latitude": 35.61505, "longitude": -97.44610 },
+        "ne": { "latitude": 35.61545, "longitude": -97.44560 }
+      },
+      "imageryDate": { "year": 2024, "month": 4, "day": 25 },
+      "imageryProcessedDate": { "year": 2024, "month": 5, "day": 10 },
+      "postalCode": "73013",
+      "administrativeArea": "OK",
+      "statisticalArea": "",
+      "regionCode": "US",
+      "solarPotential": {
+        "maxArrayPanelsCount": 32,
+        "maxArrayAreaMeters2": 55.0,
+        "maxSunshineHoursPerYear": 1665,
+        "carbonOffsetFactorKgPerMwh": 430,
+        "wholeRoofStats": {
+          "areaMeters2": 375.0,
+          "sunshineQuantiles": [840, 1040, 1140, 1240, 1340, 1420, 1490, 1530, 1570, 1620, 1665],
+          "groundAreaMeters2": 312.0
+        },
+        "roofSegmentStats": [
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 185,
+            "stats": {
+              "areaMeters2": 102.0,
+              "sunshineQuantiles": [1010, 1210, 1310, 1400, 1480, 1530, 1570, 1590, 1610, 1640, 1665],
+              "groundAreaMeters2": 84.9
+            },
+            "center": { "latitude": 35.615300, "longitude": -97.445850 },
+            "boundingBox": {
+              "sw": { "latitude": 35.61515, "longitude": -97.44605 },
+              "ne": { "latitude": 35.61540, "longitude": -97.44570 }
+            },
+            "planeHeightAtCenterMeters": 4.6
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 5,
+            "stats": {
+              "areaMeters2": 98.0,
+              "sunshineQuantiles": [890, 1060, 1160, 1260, 1350, 1400, 1450, 1480, 1510, 1530, 1550],
+              "groundAreaMeters2": 81.6
+            },
+            "center": { "latitude": 35.615220, "longitude": -97.445850 },
+            "boundingBox": {
+              "sw": { "latitude": 35.61510, "longitude": -97.44605 },
+              "ne": { "latitude": 35.61535, "longitude": -97.44570 }
+            },
+            "planeHeightAtCenterMeters": 4.4
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 95,
+            "stats": {
+              "areaMeters2": 90.0,
+              "sunshineQuantiles": [880, 1040, 1140, 1240, 1330, 1390, 1430, 1460, 1490, 1520, 1540],
+              "groundAreaMeters2": 74.9
+            },
+            "center": { "latitude": 35.615260, "longitude": -97.445780 },
+            "boundingBox": {
+              "sw": { "latitude": 35.61510, "longitude": -97.44600 },
+              "ne": { "latitude": 35.61540, "longitude": -97.44565 }
+            },
+            "planeHeightAtCenterMeters": 4.5
+          },
+          {
+            "pitchDegrees": 33.69,
+            "azimuthDegrees": 275,
+            "stats": {
+              "areaMeters2": 88.0,
+              "sunshineQuantiles": [830, 1000, 1100, 1200, 1300, 1360, 1400, 1430, 1460, 1490, 1510],
+              "groundAreaMeters2": 73.2
+            },
+            "center": { "latitude": 35.615260, "longitude": -97.445920 },
+            "boundingBox": {
+              "sw": { "latitude": 35.61510, "longitude": -97.44610 },
+              "ne": { "latitude": 35.61540, "longitude": -97.44575 }
+            },
+            "planeHeightAtCenterMeters": 4.3
+          }
+        ],
+        "buildingStats": {
+          "areaMeters2": 312.0,
+          "sunshineQuantiles": [840, 1040, 1140, 1240, 1340, 1420, 1490, 1530, 1570, 1620, 1665],
+          "groundAreaMeters2": 312.0
+        },
+        "solarPanels": [],
+        "solarPanelConfigs": []
+      },
+      "imageryQuality": "HIGH"
+    },
+    "eagleViewGroundTruth": {
+      "totalSquares": 42.66,
+      "predominantPitch": "8/12",
+      "facetCount": 20
+    }
+  },
+  {
+    "address": "702 S Williams Ave, El Reno, OK 73036",
+    "buildingInsights": {
+      "name": "buildings/702-s-williams",
+      "center": { "latitude": 35.5274931, "longitude": -97.9487134 },
+      "boundingBox": {
+        "sw": { "latitude": 35.52730, "longitude": -97.94895 },
+        "ne": { "latitude": 35.52770, "longitude": -97.94850 }
+      },
+      "imageryDate": { "year": 2024, "month": 3, "day": 15 },
+      "imageryProcessedDate": { "year": 2024, "month": 4, "day": 1 },
+      "postalCode": "73036",
+      "administrativeArea": "OK",
+      "statisticalArea": "",
+      "regionCode": "US",
+      "solarPotential": {
+        "maxArrayPanelsCount": 8,
+        "maxArrayAreaMeters2": 14.0,
+        "maxSunshineHoursPerYear": 1640,
+        "carbonOffsetFactorKgPerMwh": 430,
+        "wholeRoofStats": {
+          "areaMeters2": 70.5,
+          "sunshineQuantiles": [810, 1010, 1110, 1210, 1310, 1390, 1460, 1500, 1540, 1590, 1640],
+          "groundAreaMeters2": 54.5
+        },
+        "roofSegmentStats": [
+          {
+            "pitchDegrees": 39.8,
+            "azimuthDegrees": 180,
+            "stats": {
+              "areaMeters2": 36.5,
+              "sunshineQuantiles": [990, 1190, 1290, 1390, 1470, 1510, 1550, 1580, 1600, 1620, 1640],
+              "groundAreaMeters2": 28.1
+            },
+            "center": { "latitude": 35.527530, "longitude": -97.948730 },
+            "boundingBox": {
+              "sw": { "latitude": 35.52740, "longitude": -97.94890 },
+              "ne": { "latitude": 35.52765, "longitude": -97.94855 }
+            },
+            "planeHeightAtCenterMeters": 3.5
+          },
+          {
+            "pitchDegrees": 39.8,
+            "azimuthDegrees": 0,
+            "stats": {
+              "areaMeters2": 35.0,
+              "sunshineQuantiles": [860, 1030, 1130, 1230, 1320, 1380, 1420, 1450, 1480, 1510, 1530],
+              "groundAreaMeters2": 27.0
+            },
+            "center": { "latitude": 35.527450, "longitude": -97.948730 },
+            "boundingBox": {
+              "sw": { "latitude": 35.52735, "longitude": -97.94890 },
+              "ne": { "latitude": 35.52758, "longitude": -97.94855 }
+            },
+            "planeHeightAtCenterMeters": 3.3
+          }
+        ],
+        "buildingStats": {
+          "areaMeters2": 54.5,
+          "sunshineQuantiles": [810, 1010, 1110, 1210, 1310, 1390, 1460, 1500, 1540, 1590, 1640],
+          "groundAreaMeters2": 54.5
+        },
+        "solarPanels": [],
+        "solarPanelConfigs": []
+      },
+      "imageryQuality": "MEDIUM"
+    },
+    "eagleViewGroundTruth": {
+      "totalSquares": 8.33,
+      "predominantPitch": "10/12",
+      "facetCount": 4
+    }
+  }
+]

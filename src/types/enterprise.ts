@@ -60,6 +60,7 @@ export interface Organization {
   updatedAt: string;
   memberCount: number;
   plan: 'free' | 'pro' | 'enterprise';
+  members?: OrganizationMember[];
 }
 
 export interface OrganizationMember {
@@ -67,10 +68,58 @@ export interface OrganizationMember {
   organizationId: string;
   userId: string;
   userName: string;
+  username?: string;
   email: string;
   role: UserRole;
   joinedAt: string;
   lastActiveAt: string;
+}
+
+export interface SharedReport {
+  id: string;
+  propertyId: string;
+  sharedByUsername: string;
+  sharedWithEmail?: string;
+  shareToken: string;
+  permissions: 'view' | 'comment' | 'edit';
+  expiresAt?: string;
+  createdAt: string;
+  propertyAddress?: string;
+}
+
+export interface Webhook {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  lastTriggeredAt?: string;
+  failureCount: number;
+  createdAt?: string;
+}
+
+export type WebhookEvent =
+  | 'property.created'
+  | 'property.updated'
+  | 'measurement.completed'
+  | 'report.generated'
+  | 'claim.updated';
+
+export const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
+  'property.created': 'Property Created',
+  'property.updated': 'Property Updated',
+  'measurement.completed': 'Measurement Completed',
+  'report.generated': 'Report Generated',
+  'claim.updated': 'Claim Updated',
+};
+
+export interface WhiteLabelConfig {
+  companyName?: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
+  headerText?: string;
+  footerText?: string;
+  customDomain?: string;
 }
 
 export type AuditAction =

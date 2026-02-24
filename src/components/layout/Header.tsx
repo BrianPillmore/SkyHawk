@@ -1,7 +1,24 @@
 import { useStore } from '../../store/useStore';
+import { useSync } from '../../hooks/useSync';
+import type { SyncStatus } from '../../hooks/useSync';
+
+const SYNC_DOT_STYLES: Record<SyncStatus, string> = {
+  synced: 'bg-green-500',
+  syncing: 'bg-yellow-500 animate-pulse',
+  offline: 'bg-red-500',
+  error: 'bg-red-500',
+};
+
+const SYNC_LABELS: Record<SyncStatus, string> = {
+  synced: 'Synced',
+  syncing: 'Syncing...',
+  offline: 'Offline',
+  error: 'Sync error',
+};
 
 export default function Header() {
   const { toggleSidebar, activePropertyId, properties } = useStore();
+  const { status: syncStatus } = useSync();
   const activeProperty = activePropertyId
     ? properties.find((p) => p.id === activePropertyId)
     : null;
@@ -48,6 +65,15 @@ export default function Header() {
             {activeProperty.address.split(',')[0]}
           </span>
         )}
+        <div className="flex items-center gap-1.5" title={SYNC_LABELS[syncStatus]}>
+          <span
+            className={`inline-block w-2 h-2 rounded-full ${SYNC_DOT_STYLES[syncStatus]}`}
+            aria-label={SYNC_LABELS[syncStatus]}
+          />
+          <span className="text-xs text-gray-400 hidden md:inline">
+            {SYNC_LABELS[syncStatus]}
+          </span>
+        </div>
         <span className="text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded hidden sm:inline">v1.0.0</span>
       </div>
     </header>

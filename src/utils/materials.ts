@@ -23,6 +23,16 @@ export interface MaterialEstimate {
   caulkTubes: number;
   /** Ventilation (linear feet of ridge vent) */
   ridgeVentLf: number;
+  /** Hip & ridge shingle bundles: 1 bundle per ~35 linear feet */
+  hipRidgeBundles: number;
+  /** Valley metal/ice & water: linear feet of valley */
+  valleyMetalLf: number;
+  /** Plywood/OSB sheathing: 4x8 sheets (32 sq ft each) */
+  sheathingSheets: number;
+  /** Coil nails for nail gun: boxes (7200 nails/box, ~320 per square) */
+  coilNailBoxes: number;
+  /** Roof-to-wall flashing (L-metal): 10ft pieces */
+  roofToWallFlashingPcs: number;
 }
 
 /**
@@ -75,6 +85,21 @@ export function estimateMaterials(
 
     // Ridge vent: typically runs full ridge length
     ridgeVentLf: Math.ceil(measurement.totalRidgeLf * wasteMult),
+
+    // Hip & ridge shingle bundles: 1 bundle covers ~35 linear feet
+    hipRidgeBundles: Math.ceil((ridgeHipLf * wasteMult) / 35),
+
+    // Valley metal (pre-bent W-valley) or ice & water in valleys
+    valleyMetalLf: Math.ceil(measurement.totalValleyLf * wasteMult),
+
+    // Plywood/OSB sheathing: 4x8 sheets = 32 sq ft each (for tear-off replacement)
+    sheathingSheets: Math.ceil((measurement.totalTrueAreaSqFt * wasteMult) / 32),
+
+    // Coil nails: ~320 nails per square, 7200 per box
+    coilNailBoxes: Math.max(1, Math.ceil((squares * 320) / 7200)),
+
+    // Roof-to-wall flashing (L-metal or step flashing) in 10ft pieces
+    roofToWallFlashingPcs: Math.ceil((flashingLf + (measurement.totalStepFlashingLf || 0)) * wasteMult / 10),
   };
 }
 
