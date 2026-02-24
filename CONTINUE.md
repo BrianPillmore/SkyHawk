@@ -418,6 +418,25 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - **reconstructComplexRoof creates 1 facet**: When all Solar API segment centers are identical or very close, the Voronoi partition assigns all vertices to one segment — affects properties where Google reports overlapping segments.
 - **Waste algorithm divergence**: Our waste calculation uses structural heuristics but differs from EagleView's proprietary algorithm. Mean error ~±10%, max ±15% on the 18 calibration properties.
 
+### EagleView vs Solar API Regression Results (Feb 2026)
+Ran all 18 EagleView calibration addresses through Google Solar API `buildingInsights`.
+Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-comparison.json`
+
+**Area accuracy (raw Solar API vs EagleView ground truth):**
+- Within 5%: 9/18 (50%) | Within 10%: 14/18 (78%) | Within 15%: 16/18 (89%)
+- Mean absolute diff: 8.3% | Median: 5.1%
+- Predominant pitch match: 16/18 (89%)
+- Solar API consistently has fewer segments than EagleView facets (mean -8.3)
+
+**FAIL cases (both MEDIUM quality imagery):**
+- 702 S Williams Ave, El Reno (-43.9%) — tiny house, MEDIUM quality, pitch also wrong
+- 112 Pickard Dr, Mcloud (-22.9%) — MEDIUM quality, mixed low-pitch sections unresolved
+
+**Recommended iterations:**
+1. **Flag MEDIUM quality in the UI** — warn users about reduced accuracy when Solar API returns MEDIUM quality imagery instead of HIGH
+2. **Fix `reconstructComplexRoof`** — the critical bottleneck; Solar API area data is good but our reconstruction creates 1 facet instead of many for 16/18 properties, making edge lengths (ridge/hip/valley/rake/eave) completely wrong
+3. **Use Solar API area directly as fallback** — when reconstruction fails or produces bad results, fall back to summing Solar API segment areas directly (already within 5% for half the properties)
+
 ---
 
 ## TECH STACK

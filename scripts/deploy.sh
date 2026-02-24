@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SERVER="root@89.167.94.69"
-SSH_KEY="C:/Users/brian/GitHub/SkyHawk-1/.ssh/id_ed25519"
+SSH_KEY="C:/Users/brian/GitHub/SkyHawk/.ssh/id_ed25519"
 FRONTEND_DIR="/var/www/skyhawk"
 SERVER_DIR="/var/www/skyhawk-server"
 SSH_CMD="ssh -i $SSH_KEY $SERVER"
