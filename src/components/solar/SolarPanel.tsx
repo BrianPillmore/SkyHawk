@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import {
   analyzeSolarPotential,
+  analyzeSolarPotentialFromApi,
   DEFAULT_SOLAR_CONFIG,
   type SolarPanelConfig,
   type SolarFacetAnalysis,
@@ -38,7 +39,7 @@ function formatNumber(value: number): string {
 }
 
 export default function SolarPanel() {
-  const { activeMeasurement, activePropertyId, properties } = useStore();
+  const { activeMeasurement, activePropertyId, properties, solarInsights } = useStore();
 
   const [activeTab, setActiveTab] = useState<SolarTab>('overview');
   const [panelWattage, setPanelWattage] = useState(DEFAULT_SOLAR_CONFIG.panelWattage);
@@ -57,11 +58,14 @@ export default function SolarPanel() {
     electricityRate,
   }), [panelWattage, costPerWatt, electricityRate]);
 
-  // Calculate solar analysis
+  // Calculate solar analysis — prefer Google API data when available
   const analysis: SolarSystemSummary | null = useMemo(() => {
     if (!activeMeasurement || activeMeasurement.facets.length === 0) return null;
+    if (solarInsights?.solarPotential?.solarPanelConfigs?.length) {
+      return analyzeSolarPotentialFromApi(solarInsights, activeMeasurement, config);
+    }
     return analyzeSolarPotential(activeMeasurement, config, latitude);
-  }, [activeMeasurement, config, latitude]);
+  }, [activeMeasurement, config, latitude, solarInsights]);
 
   // Don't render if no measurement or no facets
   if (!activeMeasurement || activeMeasurement.facets.length === 0) {
@@ -91,13 +95,22 @@ export default function SolarPanel() {
 
   const maxMonthly = Math.max(...analysis.monthlyProductionKwh, 1);
 
+  const isApiSourced = !!(solarInsights?.solarPotential?.solarPanelConfigs?.length);
+
   return (
     <div className="p-3 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-          Solar Analysis
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            Solar Analysis
+          </h3>
+          {isApiSourced && (
+            <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-blue-900/30 text-blue-400 border border-blue-700/50">
+              Google Solar API
+            </span>
+          )}
+        </div>
         <span
           className={`px-2 py-0.5 text-[10px] font-medium rounded border ${RATING_BG[systemRating]}`}
         >

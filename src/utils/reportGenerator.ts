@@ -3,8 +3,9 @@ import type { Property, RoofMeasurement, DamageSeverity } from '../types';
 import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
 import { estimateMaterials } from './materials';
-import { analyzeSolarPotential, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
+import { analyzeSolarPotential, analyzeSolarPotentialFromApi, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
 import type { SolarSystemSummary } from './solarCalculations';
+import type { SolarBuildingInsights } from '../types/solar';
 
 interface ReportOptions {
   companyName: string;
@@ -15,6 +16,7 @@ interface ReportOptions {
   includeMultiStructure?: boolean;
   includeSolar?: boolean;
   latitude?: number;
+  solarInsights?: SolarBuildingInsights | null;
   includeLengthDiagram?: boolean;
   includeAreaDiagram?: boolean;
   includePitchDiagram?: boolean;
@@ -592,11 +594,9 @@ export async function generateReport(
 
   // ============ SOLAR ANALYSIS ============
   if (options.includeSolar && options.latitude !== undefined && measurement.facets.length > 0) {
-    const solar: SolarSystemSummary = analyzeSolarPotential(
-      measurement,
-      DEFAULT_SOLAR_CONFIG,
-      options.latitude,
-    );
+    const solar: SolarSystemSummary = options.solarInsights?.solarPotential?.solarPanelConfigs?.length
+      ? analyzeSolarPotentialFromApi(options.solarInsights, measurement, DEFAULT_SOLAR_CONFIG)
+      : analyzeSolarPotential(measurement, DEFAULT_SOLAR_CONFIG, options.latitude);
 
     if (solar.totalPanels > 0) {
       checkPage(80);

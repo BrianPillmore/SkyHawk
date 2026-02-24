@@ -18,6 +18,7 @@ export function useAutoMeasure() {
   });
 
   const applyAutoMeasurement = useStore((s) => s.applyAutoMeasurement);
+  const setSolarInsights = useStore((s) => s.setSolarInsights);
 
   const detect = useCallback(async (
     lat: number,
@@ -35,6 +36,9 @@ export function useAutoMeasure() {
 
       const insights = insightsResult.status === 'fulfilled' ? insightsResult.value : null;
       const dataLayers = layersResult.status === 'fulfilled' ? layersResult.value : null;
+
+      // Cache building insights for solar panel analysis
+      setSolarInsights(insights);
 
       const solarSegments: SolarRoofSegment[] = insights?.solarPotential?.roofSegmentStats || [];
       if (solarSegments.length > 0) {

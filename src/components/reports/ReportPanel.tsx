@@ -6,7 +6,7 @@ import { renderLengthDiagram, renderAreaDiagram, renderPitchDiagram } from '../.
 import { captureObliqueViews } from '../../services/imageryApi';
 
 export default function ReportPanel() {
-  const { activeMeasurement, activePropertyId, properties, saveMeasurement } = useStore();
+  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights } = useStore();
   const [generating, setGenerating] = useState(false);
   const [companyName, setCompanyName] = useState('GotRuf Reports');
   const [notes, setNotes] = useState('');
@@ -76,6 +76,7 @@ export default function ReportPanel() {
         includeMultiStructure,
         includeSolar,
         latitude: property.lat,
+        solarInsights,
         includeLengthDiagram,
         includeAreaDiagram,
         includePitchDiagram,

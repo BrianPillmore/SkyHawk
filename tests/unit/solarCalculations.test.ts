@@ -12,10 +12,13 @@ import {
   calculateMonthlyProduction,
   analyzeFacet,
   analyzeSolarPotential,
+  analyzeSolarPotentialFromApi,
+  solarMoneyToNumber,
   DEFAULT_SOLAR_CONFIG,
 } from '../../src/utils/solarCalculations';
 import type { SolarPanelConfig } from '../../src/utils/solarCalculations';
 import type { RoofFacet, RoofMeasurement } from '../../src/types';
+import type { SolarBuildingInsights } from '../../src/types/solar';
 
 // ─── Helpers ────────────────────────────────────────────────────────
 
@@ -51,8 +54,19 @@ function createMeasurement(overrides: Partial<RoofMeasurement> = {}): RoofMeasur
     totalRakeLf: 50,
     totalEaveLf: 80,
     totalFlashingLf: 10,
+    totalStepFlashingLf: 0,
     totalDripEdgeLf: 90,
     suggestedWastePercent: 15,
+    ridgeCount: 2,
+    hipCount: 2,
+    valleyCount: 1,
+    rakeCount: 4,
+    eaveCount: 4,
+    flashingCount: 1,
+    stepFlashingCount: 0,
+    structureComplexity: 'Simple',
+    estimatedAtticSqFt: 1800,
+    pitchBreakdown: [],
     ...overrides,
   };
 }
@@ -551,5 +565,259 @@ describe('analyzeSolarPotential', () => {
     const result = analyzeSolarPotential(measurement, config, latitude);
     expect(result.facetAnalyses).toHaveLength(10);
     expect(result.totalPanels).toBeGreaterThan(0);
+  });
+});
+
+// ─── solarMoneyToNumber ──────────────────────────────────────────
+
+describe('solarMoneyToNumber', () => {
+  it('should return 0 for null/undefined', () => {
+    expect(solarMoneyToNumber(null)).toBe(0);
+    expect(solarMoneyToNumber(undefined)).toBe(0);
+  });
+
+  it('should convert units string to number', () => {
+    expect(solarMoneyToNumber({ currencyCode: 'USD', units: '1500' })).toBe(1500);
+  });
+
+  it('should add nanos as fractional', () => {
+    expect(solarMoneyToNumber({ currencyCode: 'USD', units: '10', nanos: 500000000 })).toBeCloseTo(10.5, 5);
+  });
+
+  it('should handle zero nanos', () => {
+    expect(solarMoneyToNumber({ currencyCode: 'USD', units: '42', nanos: 0 })).toBe(42);
+  });
+
+  it('should handle empty string units as 0', () => {
+    expect(solarMoneyToNumber({ currencyCode: 'USD', units: '' })).toBe(0);
+  });
+});
+
+// ─── analyzeSolarPotentialFromApi ────────────────────────────────
+
+describe('analyzeSolarPotentialFromApi', () => {
+  const config = DEFAULT_SOLAR_CONFIG;
+
+  function createInsights(overrides: Partial<SolarBuildingInsights> = {}): SolarBuildingInsights {
+    return {
+      name: 'buildings/test',
+      center: { latitude: 35, longitude: -97 },
+      boundingBox: {
+        sw: { latitude: 34.99, longitude: -97.01 },
+        ne: { latitude: 35.01, longitude: -96.99 },
+      },
+      imageryDate: { year: 2023, month: 6, day: 15 },
+      imageryProcessedDate: { year: 2023, month: 7, day: 1 },
+      postalCode: '73034',
+      administrativeArea: 'OK',
+      statisticalArea: '',
+      regionCode: 'US',
+      imageryQuality: 'HIGH',
+      solarPotential: {
+        maxArrayPanelsCount: 40,
+        maxArrayAreaMeters2: 80,
+        maxSunshineHoursPerYear: 1800,
+        carbonOffsetFactorKgPerMwh: 417,
+        panelCapacityWatts: 400,
+        panelHeightMeters: 1.65,
+        panelWidthMeters: 0.99,
+        panelLifetimeYears: 25,
+        wholeRoofStats: { areaMeters2: 200, sunshineQuantiles: [], groundAreaMeters2: 180 },
+        roofSegmentStats: [
+          {
+            pitchDegrees: 27,
+            azimuthDegrees: 180,
+            stats: { areaMeters2: 100, sunshineQuantiles: [], groundAreaMeters2: 90 },
+            center: { latitude: 35.001, longitude: -97.001 },
+            boundingBox: {
+              sw: { latitude: 34.999, longitude: -97.002 },
+              ne: { latitude: 35.002, longitude: -97.0 },
+            },
+            planeHeightAtCenterMeters: 5,
+          },
+          {
+            pitchDegrees: 27,
+            azimuthDegrees: 0,
+            stats: { areaMeters2: 80, sunshineQuantiles: [], groundAreaMeters2: 70 },
+            center: { latitude: 35.001, longitude: -97.001 },
+            boundingBox: {
+              sw: { latitude: 34.999, longitude: -97.002 },
+              ne: { latitude: 35.002, longitude: -97.0 },
+            },
+            planeHeightAtCenterMeters: 5,
+          },
+        ],
+        buildingStats: { areaMeters2: 200, sunshineQuantiles: [], groundAreaMeters2: 180 },
+        solarPanelConfigs: [
+          {
+            panelsCount: 10,
+            yearlyEnergyDcKwh: 5000,
+            roofSegmentSummaries: [
+              { pitchDegrees: 27, azimuthDegrees: 180, panelsCount: 10, yearlyEnergyDcKwh: 5000, segmentIndex: 0 },
+            ],
+          },
+          {
+            panelsCount: 30,
+            yearlyEnergyDcKwh: 12000,
+            roofSegmentSummaries: [
+              { pitchDegrees: 27, azimuthDegrees: 180, panelsCount: 20, yearlyEnergyDcKwh: 8000, segmentIndex: 0 },
+              { pitchDegrees: 27, azimuthDegrees: 0, panelsCount: 10, yearlyEnergyDcKwh: 4000, segmentIndex: 1 },
+            ],
+          },
+        ],
+        financialAnalyses: [
+          {
+            monthlyBill: { currencyCode: 'USD', units: '150' },
+            defaultBill: true,
+            averageKwhPerMonth: 900,
+            panelConfigIndex: 1,
+            financialDetails: {
+              initialAcKwhPerYear: 10320,
+              remainingLifetimeUtilityBill: { currencyCode: 'USD', units: '5000' },
+              federalIncentive: { currencyCode: 'USD', units: '7500' },
+              stateIncentive: { currencyCode: 'USD', units: '0' },
+              utilityIncentive: { currencyCode: 'USD', units: '0' },
+              lifetimeSrecTotal: { currencyCode: 'USD', units: '0' },
+              costOfElectricityWithoutSolar: { currencyCode: 'USD', units: '45000' },
+              netMeteringAllowed: true,
+              solarPercentage: 85,
+              percentageExportedToGrid: 20,
+            },
+            cashPurchaseSavings: {
+              outOfPocketCost: { currencyCode: 'USD', units: '17500' },
+              upfrontCost: { currencyCode: 'USD', units: '25000' },
+              rebateValue: { currencyCode: 'USD', units: '7500' },
+              paybackYears: 8.5,
+              savings: {
+                savingsYear1: { currencyCode: 'USD', units: '1800' },
+                savingsYear20: { currencyCode: 'USD', units: '42000' },
+                presentValueOfSavingsYear20: { currencyCode: 'USD', units: '30000' },
+                savingsLifetime: { currencyCode: 'USD', units: '55000' },
+                presentValueOfSavingsLifetime: { currencyCode: 'USD', units: '38000' },
+              },
+            },
+          },
+        ],
+        solarPanels: [],
+      },
+      ...overrides,
+    };
+  }
+
+  it('should use the last (max panel) config by default', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    expect(result.totalPanels).toBe(30);
+  });
+
+  it('should use a specific config when configIndex is provided', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config, 0);
+    expect(result.totalPanels).toBe(10);
+  });
+
+  it('should apply system losses to DC energy for annual production', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    // 12000 DC * (1 - 0.14) = 10320 AC
+    expect(result.annualProductionKwh).toBe(Math.round(12000 * (1 - config.systemLosses)));
+  });
+
+  it('should return 12 monthly production values', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    expect(result.monthlyProductionKwh).toHaveLength(12);
+  });
+
+  it('should use Google financial data when available', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    expect(result.systemCost).toBe(25000);
+    expect(result.netCost).toBe(17500);
+    expect(result.federalTaxCredit).toBe(7500);
+    expect(result.annualSavings).toBe(1800);
+    expect(result.paybackYears).toBe(8.5);
+  });
+
+  it('should fall back to our financial model when API lacks cashPurchaseSavings', () => {
+    const insights = createInsights();
+    insights.solarPotential.financialAnalyses = [];
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    // Should still compute financials
+    expect(result.systemCost).toBeGreaterThan(0);
+    expect(result.annualSavings).toBeGreaterThan(0);
+  });
+
+  it('should produce per-segment facet analyses from API roof summaries', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet(), createFacet({ id: 'f2', name: 'North Facet' })] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    expect(result.facetAnalyses).toHaveLength(2);
+    expect(result.facetAnalyses[0].azimuthDeg).toBe(180);
+    expect(result.facetAnalyses[1].azimuthDeg).toBe(0);
+  });
+
+  it('should calculate capacity from API panelCapacityWatts', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    // 30 panels * 400W / 1000 = 12 kW
+    expect(result.totalCapacityKw).toBe(12);
+  });
+
+  it('should calculate environmental impact', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    expect(result.carbonOffsetLbs).toBe(Math.round(result.annualProductionKwh * 1.22));
+    expect(result.treesEquivalent).toBe(Math.round(result.carbonOffsetLbs / 48));
+  });
+
+  it('should fall back to analyzeSolarPotential when no panel configs', () => {
+    const insights = createInsights();
+    insights.solarPotential.solarPanelConfigs = [];
+    const facet = createFacet({ name: 'South', trueAreaSqFt: 800 });
+    const measurement = createMeasurement({ facets: [facet] });
+    const apiResult = analyzeSolarPotentialFromApi(insights, measurement, config);
+    const handResult = analyzeSolarPotential(measurement, config, 35);
+    // Should produce identical results since it falls back
+    expect(apiResult.totalPanels).toBe(handResult.totalPanels);
+    expect(apiResult.annualProductionKwh).toBe(handResult.annualProductionKwh);
+  });
+
+  it('should clamp configIndex to available configs', () => {
+    const insights = createInsights();
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    // Config index 999 should clamp to last config (index 1)
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config, 999);
+    expect(result.totalPanels).toBe(30);
+  });
+
+  it('should fall back to local facet analyses when no segment summaries', () => {
+    const insights = createInsights();
+    insights.solarPotential.solarPanelConfigs = [
+      { panelsCount: 20, yearlyEnergyDcKwh: 8000, roofSegmentSummaries: [] },
+    ];
+    const facet = createFacet({ name: 'South', trueAreaSqFt: 800 });
+    const measurement = createMeasurement({ facets: [facet] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config, 0);
+    // Should fall back to analyzeFacet for per-facet details
+    expect(result.facetAnalyses).toHaveLength(1);
+    expect(result.facetAnalyses[0].facetName).toBe('South');
+  });
+
+  it('should use panelCapacityWatts from API over config panelWattage', () => {
+    const insights = createInsights();
+    insights.solarPotential.panelCapacityWatts = 350;
+    const measurement = createMeasurement({ facets: [createFacet()] });
+    const result = analyzeSolarPotentialFromApi(insights, measurement, config);
+    // 30 panels * 350W / 1000 = 10.5 kW
+    expect(result.totalCapacityKw).toBe(10.5);
   });
 });

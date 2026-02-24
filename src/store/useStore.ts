@@ -23,7 +23,7 @@ import type {
   InspectionStatus,
   RoofConditionAssessment,
 } from '../types';
-import type { ReconstructedRoof } from '../types/solar';
+import type { ReconstructedRoof, SolarBuildingInsights } from '../types/solar';
 import {
   calculatePolygonAreaSqFt,
   adjustAreaForPitch,
@@ -73,6 +73,10 @@ interface AppState {
 
   // Roof condition assessment
   roofCondition: RoofConditionAssessment | null;
+
+  // Solar API insights (cached from auto-measure)
+  solarInsights: SolarBuildingInsights | null;
+  setSolarInsights: (insights: SolarBuildingInsights | null) => void;
 
   // Report view (clean wireframe without vertex markers)
   showVertexMarkers: boolean;
@@ -320,6 +324,8 @@ export const useStore = create<AppState>()(
         adjusters: [],
         inspections: [],
         roofCondition: null,
+        solarInsights: null,
+        setSolarInsights: (insights) => set({ solarInsights: insights }),
         showVertexMarkers: true,
 
         toggleVertexMarkers: () => set((s) => ({ showVertexMarkers: !s.showVertexMarkers })),
