@@ -13,6 +13,19 @@
   --color-skyhawk-900: #1e458a;
   --color-skyhawk-950: #172b54;
 
+  /* GotRuf brand colors */
+  --color-gotruf-50: #fff7ed;
+  --color-gotruf-100: #ffedd5;
+  --color-gotruf-200: #fed7aa;
+  --color-gotruf-300: #fdba74;
+  --color-gotruf-400: #fb923c;
+  --color-gotruf-500: #f97316;
+  --color-gotruf-600: #ea580c;
+  --color-gotruf-700: #c2410c;
+  --color-gotruf-800: #9a3412;
+  --color-gotruf-900: #7c2d12;
+  --color-gotruf-950: #431407;
+
   --color-roof-outline: #f59e0b;
   --color-roof-ridge: #ef4444;
   --color-roof-hip: #8b5cf6;

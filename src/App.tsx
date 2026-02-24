@@ -6,6 +6,14 @@ import Dashboard from './components/dashboard/Dashboard';
 import AddressSearch from './components/map/AddressSearch';
 import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
+import MarketingLayout from './pages/marketing/MarketingLayout';
+import LandingPage from './pages/marketing/LandingPage';
+import ContractorsPage from './pages/marketing/ContractorsPage';
+import AdjustersPage from './pages/marketing/AdjustersPage';
+import AgentsPage from './pages/marketing/AgentsPage';
+import HomeownersPage from './pages/marketing/HomeownersPage';
+import PricingPage from './pages/marketing/PricingPage';
+import SignupPage from './pages/marketing/SignupPage';
 
 function DashboardPage() {
   const { activePropertyId } = useStore();
@@ -44,6 +52,18 @@ function DashboardPage() {
 export default function App() {
   return (
     <Routes>
+      {/* Marketing pages (public) */}
+      <Route path="/gotruf" element={<MarketingLayout />}>
+        <Route index element={<LandingPage />} />
+        <Route path="contractors" element={<ContractorsPage />} />
+        <Route path="adjusters" element={<AdjustersPage />} />
+        <Route path="agents" element={<AgentsPage />} />
+        <Route path="homeowners" element={<HomeownersPage />} />
+        <Route path="pricing" element={<PricingPage />} />
+        <Route path="signup" element={<SignupPage />} />
+      </Route>
+
+      {/* App routes (authenticated) */}
       <Route path="/login" element={<Login />} />
       <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
