@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import type { MaterialEstimate } from './materials';
-import { formatArea, formatLength, formatPitch, formatNumber } from './geometry';
+import { formatArea, formatPitch, formatNumber } from './geometry';
 
 /**
  * EagleView-style page templates for PDF reports.

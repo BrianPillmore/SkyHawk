@@ -204,7 +204,7 @@ export async function generateReport(
 
   // ============ KEY METRICS SUMMARY (Page 3) ============
   doc.addPage();
-  const summaryData: ReportSummaryData = {
+  const keyMetrics: ReportSummaryData = {
     totalAreaSquares: measurement.totalSquares,
     predominantPitch: measurement.predominantPitch,
     numberOfFacets: measurement.facets.length,
@@ -212,7 +212,7 @@ export async function generateReport(
     totalValleyLf: measurement.totalValleyLf,
     totalRakeEaveLf: measurement.totalRakeLf + measurement.totalEaveLf,
   };
-  y = renderSummaryPage(doc, summaryData);
+  y = renderSummaryPage(doc, keyMetrics);
 
   // ============ FULL PROPERTY OVERVIEW ============
   checkPage(50);
