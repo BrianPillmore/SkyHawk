@@ -345,18 +345,18 @@ function ExportDropdown({ measurement, property }: { measurement: RoofMeasuremen
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="px-2 py-1 text-[10px] font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors border border-gray-700"
+        className="px-2.5 py-1.5 text-[10px] font-medium bg-gray-800 hover:bg-gray-700 active:bg-gray-600 text-gray-300 rounded transition-colors border border-gray-700 min-h-[32px]"
         title="Export measurement data"
       >
         Export {open ? '\u25B4' : '\u25BE'}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden min-w-[100px]">
+        <div className="absolute right-0 top-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden min-w-[120px]">
           {exports.map((e) => (
             <button
               key={e.label}
               onClick={() => { e.fn(); setOpen(false); }}
-              className="block w-full text-left px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+              className="block w-full text-left px-3 py-2.5 text-xs text-gray-300 hover:bg-gray-700 hover:text-white active:bg-gray-600 transition-colors min-h-[40px]"
             >
               {e.label}
             </button>

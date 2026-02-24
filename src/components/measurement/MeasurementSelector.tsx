@@ -25,7 +25,7 @@ export default function MeasurementSelector() {
           {activeMeasurement && (
             <button
               onClick={saveMeasurement}
-              className="px-2 py-1 text-[10px] font-medium bg-green-900/40 hover:bg-green-900/60 text-green-400 rounded transition-colors border border-green-900/50"
+              className="px-2.5 py-1.5 text-[10px] font-medium bg-green-900/40 hover:bg-green-900/60 active:bg-green-900/80 text-green-400 rounded transition-colors border border-green-900/50 min-h-[32px]"
               title="Save current measurement"
             >
               {hasUnsaved ? 'Save' : isModified ? 'Update' : 'Saved'}
@@ -33,7 +33,7 @@ export default function MeasurementSelector() {
           )}
           <button
             onClick={startNewMeasurement}
-            className="px-2 py-1 text-[10px] font-medium bg-gotruf-900/40 hover:bg-gotruf-900/60 text-gotruf-400 rounded transition-colors border border-gotruf-900/50"
+            className="px-2.5 py-1.5 text-[10px] font-medium bg-gotruf-900/40 hover:bg-gotruf-900/60 active:bg-gotruf-900/80 text-gotruf-400 rounded transition-colors border border-gotruf-900/50 min-h-[32px]"
             title="Start new measurement"
           >
             + New
@@ -51,10 +51,10 @@ export default function MeasurementSelector() {
             return (
               <div
                 key={m.id}
-                className={`flex items-center justify-between px-2 py-1.5 rounded text-xs cursor-pointer transition-all ${
+                className={`flex items-center justify-between px-2.5 py-2 rounded text-xs cursor-pointer transition-all min-h-[40px] ${
                   isActive
                     ? 'bg-gotruf-900/30 ring-1 ring-gotruf-700 text-gotruf-300'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-gray-300'
+                    : 'text-gray-400 hover:bg-gray-800 hover:text-gray-300 active:bg-gray-700'
                 }`}
                 onClick={() => { if (!isActive) loadMeasurement(m.id); }}
               >

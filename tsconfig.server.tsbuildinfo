@@ -1,1 +1,1 @@
-{"root":["./server/index.ts","./server/middleware/auth.ts","./server/middleware/ratelimit.ts","./server/routes/auth.ts","./server/routes/vision.ts"],"version":"5.9.3"}
+{"root":["./server/index.ts","./server/db/index.ts","./server/db/migrate.ts","./server/middleware/auth.ts","./server/middleware/rateLimit.ts","./server/middleware/validate.ts","./server/routes/auth.ts","./server/routes/claims.ts","./server/routes/measurements.ts","./server/routes/properties.ts","./server/routes/vision.ts"],"version":"5.9.3"}

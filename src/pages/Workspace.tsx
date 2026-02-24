@@ -21,20 +21,20 @@ const tabs = [
 
 export default function Workspace() {
   useKeyboardShortcuts();
-  const { activePropertyId, startNewMeasurement, activeMeasurement, activePanel, setActivePanel } = useStore();
+  const { activePropertyId, startNewMeasurement, activeMeasurement, activePanel, setActivePanel, sidebarOpen, toggleSidebar } = useStore();
 
   return (
     <div className="h-screen flex flex-col bg-gray-950 text-white overflow-hidden">
       <Header />
 
       {/* Address search bar */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-2.5 shrink-0">
-        <div className="flex items-center gap-3">
+      <div className="bg-gray-900 border-b border-gray-800 px-2 md:px-4 py-2 md:py-2.5 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3">
           <AddressSearch />
           {activePropertyId && !activeMeasurement && (
             <button
               onClick={startNewMeasurement}
-              className="px-4 py-2.5 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+              className="px-3 md:px-4 py-2 md:py-2.5 bg-gotruf-600 hover:bg-gotruf-500 text-white text-xs md:text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
             >
               New Measurement
             </button>
@@ -42,26 +42,32 @@ export default function Workspace() {
         </div>
       </div>
 
-      {/* Panel tab bar */}
-      <div className="flex bg-gray-900 border-b border-gray-800 shrink-0 overflow-x-auto">
+      {/* Panel tab bar — scrollable on both mobile and desktop */}
+      <div className="flex bg-gray-900 border-b border-gray-800 shrink-0 overflow-x-auto scrollbar-hide">
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActivePanel(tab.id)}
-            className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${
+            onClick={() => {
+              setActivePanel(tab.id);
+              // On mobile, open sidebar when clicking a tab
+              if (window.innerWidth < 768 && !sidebarOpen) {
+                toggleSidebar();
+              }
+            }}
+            className={`px-2.5 md:px-4 py-2 md:py-2.5 text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
               activePanel === tab.id
                 ? 'text-gotruf-400 border-b-2 border-gotruf-500 bg-gray-800/50'
                 : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
             }`}
           >
-            <span className="mr-1.5">{tab.icon}</span>
-            {tab.label}
+            <span className="mr-1 md:mr-1.5">{tab.icon}</span>
+            <span className="hidden sm:inline">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
+      {/* Main content — on mobile, map takes full width; sidebar is a bottom sheet overlay */}
+      <div className="flex flex-1 overflow-hidden relative">
         <Sidebar />
         <MapView />
       </div>

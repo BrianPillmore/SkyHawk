@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { useStore } from '../../store/useStore';
 import { generateReport } from '../../utils/reportGenerator';
 import { captureMapScreenshot } from '../../utils/mapCapture';
+import { renderLengthDiagram, renderAreaDiagram, renderPitchDiagram } from '../../utils/diagramRenderer';
+import { captureObliqueViews } from '../../services/imageryApi';
 
 export default function ReportPanel() {
-  const { activeMeasurement, activePropertyId, properties, saveMeasurement } = useStore();
+  const { activeMeasurement, activePropertyId, properties, saveMeasurement, solarInsights } = useStore();
   const [generating, setGenerating] = useState(false);
   const [companyName, setCompanyName] = useState('GotRuf Reports');
   const [notes, setNotes] = useState('');
@@ -13,12 +15,19 @@ export default function ReportPanel() {
   const [includeClaims, setIncludeClaims] = useState(true);
   const [includeMultiStructure, setIncludeMultiStructure] = useState(true);
   const [includeSolar, setIncludeSolar] = useState(true);
+  const [includeLengthDiagram, setIncludeLengthDiagram] = useState(true);
+  const [includeAreaDiagram, setIncludeAreaDiagram] = useState(true);
+  const [includePitchDiagram, setIncludePitchDiagram] = useState(true);
+  const [includeObliqueViews, setIncludeObliqueViews] = useState(false);
+  const [includeSolarPanelLayout, setIncludeSolarPanelLayout] = useState(true);
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
+  const hasSolarPanels = !!(solarInsights?.solarPotential?.solarPanels?.length);
 
   const damageCount = property?.damageAnnotations?.length ?? 0;
   const claimsCount = property?.claims?.length ?? 0;
   const structureCount = property?.measurements?.length ?? 0;
+  const hasEdges = (activeMeasurement?.edges.length ?? 0) > 0;
 
   if (!activeMeasurement) return null;
 
@@ -29,10 +38,37 @@ export default function ReportPanel() {
     setGenerating(true);
     try {
       saveMeasurement();
+
+      // Capture map screenshot
       let mapScreenshot: string | undefined;
       if (includeMap) {
         mapScreenshot = await captureMapScreenshot();
       }
+
+      // Render wireframe diagrams
+      let lengthDiagramImage: string | undefined;
+      let areaDiagramImage: string | undefined;
+      let pitchDiagramImage: string | undefined;
+
+      if (includeLengthDiagram && hasEdges) {
+        lengthDiagramImage = renderLengthDiagram(activeMeasurement) ?? undefined;
+      }
+      if (includeAreaDiagram && hasData) {
+        areaDiagramImage = renderAreaDiagram(activeMeasurement) ?? undefined;
+      }
+      if (includePitchDiagram && hasData) {
+        pitchDiagramImage = renderPitchDiagram(activeMeasurement) ?? undefined;
+      }
+
+      // Capture oblique views
+      let obliqueViews: { north?: string; south?: string; east?: string; west?: string } | undefined;
+      if (includeObliqueViews) {
+        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+        if (apiKey) {
+          obliqueViews = await captureObliqueViews(property.lat, property.lng, apiKey);
+        }
+      }
+
       await generateReport(property, activeMeasurement, {
         companyName,
         notes,
@@ -42,6 +78,16 @@ export default function ReportPanel() {
         includeMultiStructure,
         includeSolar,
         latitude: property.lat,
+        solarInsights,
+        includeSolarPanelLayout: includeSolarPanelLayout && hasSolarPanels,
+        includeLengthDiagram,
+        includeAreaDiagram,
+        includePitchDiagram,
+        lengthDiagramImage,
+        areaDiagramImage,
+        pitchDiagramImage,
+        includeObliqueViews,
+        obliqueViews,
       });
     } catch (err) {
       console.error('Report generation failed:', err);
@@ -103,22 +149,67 @@ export default function ReportPanel() {
               <span>Aerial view screenshot</span>
             </label>
             <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span> Property overview & address
+              <span className="text-green-400">&#10003;</span> Property overview & address
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span> Roof measurement summary
+              <span className="text-green-400">&#10003;</span> Roof measurement summary
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span> Pitch diagram & facet details
+              <span className="text-green-400">&#10003;</span> Facet details with squares
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span> Ridge, hip, valley, rake, eave lengths
+              <span className="text-green-400">&#10003;</span> Ridge, hip, valley, rake, eave lengths
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span> Waste factor calculation table
+              <span className="text-green-400">&#10003;</span> Waste factor calculation table
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-green-400">✓</span> Material estimation
+              <span className="text-green-400">&#10003;</span> Material estimation
+            </div>
+
+            {/* Wireframe Diagrams */}
+            <div className="mt-2 pt-2 border-t border-gray-700/50">
+              <span className="text-gray-500 text-[10px] uppercase tracking-wider">Diagram Pages</span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeLengthDiagram}
+                onChange={(e) => setIncludeLengthDiagram(e.target.checked)}
+                className="accent-gotruf-500"
+              />
+              <span>Length diagram (edge measurements)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeAreaDiagram}
+                onChange={(e) => setIncludeAreaDiagram(e.target.checked)}
+                className="accent-gotruf-500"
+              />
+              <span>Area diagram (facet areas)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includePitchDiagram}
+                onChange={(e) => setIncludePitchDiagram(e.target.checked)}
+                className="accent-gotruf-500"
+              />
+              <span>Pitch diagram (color-coded)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeObliqueViews}
+                onChange={(e) => setIncludeObliqueViews(e.target.checked)}
+                className="accent-gotruf-500"
+              />
+              <span>Oblique views (N/S/E/W satellite)</span>
+            </label>
+
+            <div className="mt-2 pt-2 border-t border-gray-700/50">
+              <span className="text-gray-500 text-[10px] uppercase tracking-wider">Additional Sections</span>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -171,6 +262,17 @@ export default function ReportPanel() {
               />
               <span>Solar potential analysis</span>
             </label>
+            {hasSolarPanels && (
+              <label className="flex items-center gap-2 cursor-pointer pl-5">
+                <input
+                  type="checkbox"
+                  checked={includeSolarPanelLayout}
+                  onChange={(e) => setIncludeSolarPanelLayout(e.target.checked)}
+                  className="accent-gotruf-500"
+                />
+                <span>Solar panel layout diagram</span>
+              </label>
+            )}
           </div>
         </section>
       )}

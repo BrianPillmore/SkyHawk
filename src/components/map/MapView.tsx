@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
 import { getMidpoint, getCentroid } from '../../utils/geometry';
+import { computePanelLayout, getPanelColor } from '../../utils/solarPanelLayout';
 import type { DrawingMode, EdgeType, RoofVertex, DamageAnnotation } from '../../types';
 import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
@@ -66,6 +67,7 @@ export default function MapView() {
   const edgeLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const facetLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const damageMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const solarPanelPolygonsRef = useRef<google.maps.Polygon[]>([]);
 
   const { loaded, error, apiKey } = useGoogleMaps();
 
@@ -81,6 +83,7 @@ export default function MapView() {
     addDamageAnnotation, activeDamageType, activeDamageSeverity,
     properties, activePropertyId, selectedDamageId, selectDamage,
     showVertexMarkers,
+    showSolarPanels, solarInsights,
   } = useStore();
 
   // Initialize map
@@ -795,6 +798,34 @@ export default function MapView() {
     }
   }, [damageAnnotations, selectedDamageId]);
 
+  // Solar panel overlay
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    // Clear existing panels
+    for (const poly of solarPanelPolygonsRef.current) poly.setMap(null);
+    solarPanelPolygonsRef.current = [];
+
+    if (!map || !showSolarPanels || !solarInsights?.solarPotential?.solarPanels?.length) return;
+
+    const panels = computePanelLayout(solarInsights);
+    const maxEnergy = Math.max(...panels.map(p => p.yearlyEnergyDcKwh), 1);
+
+    for (const panel of panels) {
+      const color = getPanelColor(panel.yearlyEnergyDcKwh, maxEnergy);
+      const polygon = new google.maps.Polygon({
+        paths: panel.corners,
+        fillColor: color,
+        fillOpacity: 0.5,
+        strokeColor: color,
+        strokeWeight: 1,
+        strokeOpacity: 0.8,
+        clickable: false,
+        map,
+      });
+      solarPanelPolygonsRef.current.push(polygon);
+    }
+  }, [showSolarPanels, solarInsights]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -807,6 +838,7 @@ export default function MapView() {
       for (const [, m] of edgeLabelsRef.current) m.setMap(null);
       for (const [, m] of facetLabelsRef.current) m.setMap(null);
       for (const [, m] of damageMarkersRef.current) m.setMap(null);
+      for (const poly of solarPanelPolygonsRef.current) poly.setMap(null);
       if (outlinePolylineRef.current) outlinePolylineRef.current.setMap(null);
       if (tempLineRef.current) tempLineRef.current.setMap(null);
       if (previewLineRef.current) previewLineRef.current.setMap(null);
@@ -835,12 +867,12 @@ export default function MapView() {
       <div ref={mapContainerRef} className="absolute inset-0" />
 
       {/* Map type selector */}
-      <div className="absolute top-3 right-3 bg-gray-900/90 backdrop-blur rounded-lg overflow-hidden flex border border-gray-700/50 z-10">
+      <div className="absolute top-2 right-2 md:top-3 md:right-3 bg-gray-900/90 backdrop-blur rounded-lg overflow-hidden flex border border-gray-700/50 z-10">
         {(['satellite', 'hybrid', 'roadmap'] as const).map((type) => (
           <button
             key={type}
             onClick={() => useStore.getState().setMapType(type)}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`px-2 md:px-3 py-1 md:py-1.5 text-[10px] md:text-xs font-medium transition-colors ${
               mapType === type
                 ? 'bg-gotruf-600 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
@@ -853,31 +885,31 @@ export default function MapView() {
 
       {/* Measurement stats overlay */}
       {activeMeasurement && activeMeasurement.facets.length > 0 && (
-        <div className="absolute top-3 left-3 bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700/50 z-10 px-3 py-2">
-          <div className="flex items-center gap-4 text-[10px]">
+        <div className="absolute top-2 left-2 md:top-3 md:left-3 bg-gray-900/90 backdrop-blur rounded-lg border border-gray-700/50 z-10 px-2 md:px-3 py-1.5 md:py-2">
+          <div className="flex items-center gap-2 md:gap-4 text-[9px] md:text-[10px]">
             <div className="text-center">
               <div className="text-gray-500 uppercase tracking-wider">Area</div>
-              <div className="text-white font-semibold text-xs">{Math.round(activeMeasurement.totalTrueAreaSqFt).toLocaleString()} sf</div>
+              <div className="text-white font-semibold text-[10px] md:text-xs">{Math.round(activeMeasurement.totalTrueAreaSqFt).toLocaleString()} sf</div>
             </div>
-            <div className="w-px h-6 bg-gray-700" />
+            <div className="w-px h-5 md:h-6 bg-gray-700" />
             <div className="text-center">
-              <div className="text-gray-500 uppercase tracking-wider">Squares</div>
-              <div className="text-white font-semibold text-xs">{activeMeasurement.totalSquares.toFixed(1)}</div>
+              <div className="text-gray-500 uppercase tracking-wider">Sq</div>
+              <div className="text-white font-semibold text-[10px] md:text-xs">{activeMeasurement.totalSquares.toFixed(1)}</div>
             </div>
-            <div className="w-px h-6 bg-gray-700" />
+            <div className="w-px h-5 md:h-6 bg-gray-700" />
             <div className="text-center">
               <div className="text-gray-500 uppercase tracking-wider">Pitch</div>
-              <div className="text-white font-semibold text-xs">{activeMeasurement.predominantPitch}/12</div>
+              <div className="text-white font-semibold text-[10px] md:text-xs">{activeMeasurement.predominantPitch}/12</div>
             </div>
-            <div className="w-px h-6 bg-gray-700" />
-            <div className="text-center">
+            <div className="w-px h-5 md:h-6 bg-gray-700 hidden sm:block" />
+            <div className="text-center hidden sm:block">
               <div className="text-gray-500 uppercase tracking-wider">Facets</div>
-              <div className="text-white font-semibold text-xs">{activeMeasurement.facets.length}</div>
+              <div className="text-white font-semibold text-[10px] md:text-xs">{activeMeasurement.facets.length}</div>
             </div>
-            <div className="w-px h-6 bg-gray-700" />
-            <div className="text-center">
+            <div className="w-px h-5 md:h-6 bg-gray-700 hidden sm:block" />
+            <div className="text-center hidden sm:block">
               <div className="text-gray-500 uppercase tracking-wider">Waste</div>
-              <div className="text-white font-semibold text-xs">{activeMeasurement.suggestedWastePercent}%</div>
+              <div className="text-white font-semibold text-[10px] md:text-xs">{activeMeasurement.suggestedWastePercent}%</div>
             </div>
           </div>
         </div>
@@ -885,8 +917,8 @@ export default function MapView() {
 
       {/* Drawing mode indicator */}
       {drawingMode !== 'pan' && drawingMode !== 'select' && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/90 backdrop-blur px-4 py-2 rounded-lg border border-gray-700/50 z-10">
-          <p className="text-sm text-gray-300">
+        <div className="absolute bottom-[32vh] md:bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/90 backdrop-blur px-3 md:px-4 py-1.5 md:py-2 rounded-lg border border-gray-700/50 z-10 max-w-[90vw]">
+          <p className="text-xs md:text-sm text-gray-300 text-center">
             <span className="text-gotruf-400 font-medium">
               {drawingMode === 'outline'
                 ? 'Drawing Outline'
@@ -894,20 +926,23 @@ export default function MapView() {
                   ? 'Damage Assessment'
                   : `Drawing ${drawingMode.charAt(0).toUpperCase() + drawingMode.slice(1)}`}
             </span>
-            {drawingMode === 'outline'
-              ? ' — Click to place points, click first point to close'
-              : drawingMode === 'damage'
-                ? ' — Click on the map to place damage markers'
-                : ' — Click anywhere to place points, snaps near existing'}
+            <span className="hidden sm:inline">
+              {drawingMode === 'outline'
+                ? ' — Click to place points, click first point to close'
+                : drawingMode === 'damage'
+                  ? ' — Click on the map to place damage markers'
+                  : ' — Click anywhere to place points, snaps near existing'}
+            </span>
           </p>
         </div>
       )}
 
       {/* Edge start indicator */}
       {edgeStartVertexId && (
-        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 bg-blue-900/90 backdrop-blur px-4 py-2 rounded-lg border border-blue-700/50 z-10">
-          <p className="text-sm text-blue-300">
-            Click anywhere to complete the {drawingMode} line (snaps near existing points)
+        <div className="absolute bottom-[36vh] md:bottom-14 left-1/2 -translate-x-1/2 bg-blue-900/90 backdrop-blur px-3 md:px-4 py-1.5 md:py-2 rounded-lg border border-blue-700/50 z-10 max-w-[90vw]">
+          <p className="text-xs md:text-sm text-blue-300 text-center">
+            <span className="hidden sm:inline">Click anywhere to complete the {drawingMode} line (snaps near existing points)</span>
+            <span className="sm:hidden">Tap to complete {drawingMode} line</span>
           </p>
         </div>
       )}

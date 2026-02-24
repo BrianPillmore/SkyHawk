@@ -4,19 +4,20 @@ import jwt from 'jsonwebtoken';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { query } from '../db/index.js';
 
 const router = Router();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-interface User {
+interface FileUser {
   username: string;
   passwordHash: string;
 }
 
 interface UsersFile {
-  users: User[];
+  users: FileUser[];
 }
 
 function getJwtSecret(): string {
@@ -25,16 +26,89 @@ function getJwtSecret(): string {
   return secret;
 }
 
-function loadUsers(): UsersFile {
-  const filePath = join(__dirname, '..', 'data', 'users.json');
-  const raw = readFileSync(filePath, 'utf-8');
-  return JSON.parse(raw) as UsersFile;
+/** Try loading users from flat file (legacy fallback) */
+function loadUsersFromFile(): UsersFile | null {
+  try {
+    const filePath = join(__dirname, '..', 'data', 'users.json');
+    const raw = readFileSync(filePath, 'utf-8');
+    return JSON.parse(raw) as UsersFile;
+  } catch {
+    return null;
+  }
 }
+
+/** Check if PostgreSQL is available */
+async function isDbAvailable(): Promise<boolean> {
+  if (!process.env.DATABASE_URL) return false;
+  try {
+    await query('SELECT 1');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * POST /api/auth/register
+ * Body: { username, password, email? }
+ * Creates a new user account. Requires DATABASE_URL.
+ */
+router.post('/register', async (req: Request, res: Response) => {
+  try {
+    const { username, password, email } = req.body;
+
+    if (!username || !password) {
+      res.status(400).json({ error: 'Username and password are required' });
+      return;
+    }
+
+    if (password.length < 8) {
+      res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return;
+    }
+
+    const dbReady = await isDbAvailable();
+    if (!dbReady) {
+      res.status(503).json({ error: 'Registration requires database. Contact administrator.' });
+      return;
+    }
+
+    // Check for existing user
+    const existing = await query(
+      'SELECT id FROM users WHERE username = $1',
+      [username],
+    );
+    if (existing.rows.length > 0) {
+      res.status(409).json({ error: 'Username already taken' });
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const result = await query(
+      `INSERT INTO users (username, email, password_hash)
+       VALUES ($1, $2, $3) RETURNING id, username, role, created_at`,
+      [username, email || null, passwordHash],
+    );
+
+    const user = result.rows[0];
+    const token = jwt.sign(
+      { username: user.username, userId: user.id },
+      getJwtSecret(),
+      { expiresIn: '24h' },
+    );
+
+    res.status(201).json({ token, username: user.username, userId: user.id });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 /**
  * POST /api/auth/login
  * Body: { username, password }
- * Returns: { token, username }
+ * Returns: { token, username, userId? }
+ * Tries PostgreSQL first, falls back to users.json if DB unavailable.
  */
 router.post('/login', async (req: Request, res: Response) => {
   try {
@@ -45,25 +119,77 @@ router.post('/login', async (req: Request, res: Response) => {
       return;
     }
 
-    const { users } = loadUsers();
-    const user = users.find((u) => u.username === username);
+    const dbReady = await isDbAvailable();
 
-    if (!user) {
+    if (dbReady) {
+      // Try database authentication
+      const result = await query<{ id: string; username: string; password_hash: string }>(
+        'SELECT id, username, password_hash FROM users WHERE username = $1',
+        [username],
+      );
+
+      if (result.rows.length > 0) {
+        const user = result.rows[0];
+        const valid = await bcrypt.compare(password, user.password_hash);
+        if (!valid) {
+          res.status(401).json({ error: 'Invalid username or password' });
+          return;
+        }
+
+        const token = jwt.sign(
+          { username: user.username, userId: user.id },
+          getJwtSecret(),
+          { expiresIn: '24h' },
+        );
+
+        res.json({ token, username: user.username, userId: user.id });
+        return;
+      }
+    }
+
+    // Fallback to flat-file users.json
+    const fileUsers = loadUsersFromFile();
+    if (!fileUsers) {
       res.status(401).json({ error: 'Invalid username or password' });
       return;
     }
 
-    const valid = await bcrypt.compare(password, user.passwordHash);
+    const fileUser = fileUsers.users.find((u) => u.username === username);
+    if (!fileUser) {
+      res.status(401).json({ error: 'Invalid username or password' });
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, fileUser.passwordHash);
     if (!valid) {
       res.status(401).json({ error: 'Invalid username or password' });
       return;
     }
 
-    const token = jwt.sign({ username: user.username }, getJwtSecret(), {
-      expiresIn: '24h',
-    });
+    // If DB is available, migrate this user on-the-fly
+    let userId: string | undefined;
+    if (dbReady) {
+      try {
+        const migrated = await query(
+          `INSERT INTO users (username, password_hash)
+           VALUES ($1, $2)
+           ON CONFLICT (username) DO UPDATE SET password_hash = $2
+           RETURNING id`,
+          [fileUser.username, fileUser.passwordHash],
+        );
+        userId = migrated.rows[0].id;
+      } catch (migErr) {
+        console.warn('Failed to migrate user to DB:', migErr);
+      }
+    }
 
-    res.json({ token, username: user.username });
+    const token = jwt.sign(
+      { username: fileUser.username, ...(userId ? { userId } : {}) },
+      getJwtSecret(),
+      { expiresIn: '24h' },
+    );
+
+    res.json({ token, username: fileUser.username, ...(userId ? { userId } : {}) });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -72,7 +198,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
 /**
  * POST /api/auth/logout
- * Client-side token removal; this is a no-op on the server.
+ * Client-side token removal; server no-op.
  */
 router.post('/logout', (_req: Request, res: Response) => {
   res.json({ success: true });
@@ -91,8 +217,11 @@ router.get('/me', (req: Request, res: Response) => {
 
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, getJwtSecret()) as { username: string };
-    res.json({ username: payload.username });
+    const payload = jwt.verify(token, getJwtSecret()) as {
+      username: string;
+      userId?: string;
+    };
+    res.json({ username: payload.username, userId: payload.userId });
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
   }

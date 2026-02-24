@@ -42,7 +42,7 @@ export default function ToolsPanel() {
       {/* Report / Edit View Toggle */}
       <button
         onClick={toggleVertexMarkers}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all mb-3 ${
+        className={`w-full flex items-center gap-3 px-3 py-2.5 md:py-2.5 rounded-lg text-sm font-medium transition-all mb-3 min-h-[44px] ${
           showVertexMarkers
             ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700'
             : 'bg-yellow-900/40 text-yellow-300 ring-1 ring-yellow-600 hover:bg-yellow-900/60'
@@ -50,7 +50,7 @@ export default function ToolsPanel() {
       >
         <span className="w-6 text-center text-base">{showVertexMarkers ? '\u{1F441}' : '\u{1F4CB}'}</span>
         <span className="flex-1 text-left">{showVertexMarkers ? 'Report View' : 'Edit View'}</span>
-        <span className="text-[10px] text-gray-500">{showVertexMarkers ? 'Hide markers' : 'Show markers'}</span>
+        <span className="text-[10px] text-gray-500 hidden sm:inline">{showVertexMarkers ? 'Hide markers' : 'Show markers'}</span>
       </button>
 
       <div className="mb-4 border-t border-gray-800" />
@@ -59,23 +59,24 @@ export default function ToolsPanel() {
         Manual Drawing Tools
       </h3>
 
-      <div className="space-y-1">
+      {/* Grid layout on mobile for compact display, list on desktop */}
+      <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
         {TOOLS.map((tool) => (
           <button
             key={tool.mode}
             onClick={() => setDrawingMode(tool.mode)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
+            className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 rounded-lg text-xs sm:text-sm transition-all min-h-[44px] ${
               drawingMode === tool.mode
                 ? 'bg-gotruf-900/50 text-gotruf-300 ring-1 ring-gotruf-700'
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             }`}
             title={tool.description}
           >
-            <span className="w-6 text-center text-base">{tool.icon}</span>
-            <span className="flex-1 text-left">{tool.label}</span>
+            <span className="w-5 sm:w-6 text-center text-sm sm:text-base shrink-0">{tool.icon}</span>
+            <span className="flex-1 text-left truncate">{tool.label}</span>
             {tool.color && (
               <span
-                className="w-3 h-3 rounded-full"
+                className="w-2.5 sm:w-3 h-2.5 sm:h-3 rounded-full shrink-0"
                 style={{ backgroundColor: tool.color }}
               />
             )}
@@ -174,9 +175,9 @@ export default function ToolsPanel() {
             <button
               onClick={undo}
               disabled={!canUndo}
-              className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors border ${
+              className={`flex-1 px-3 py-2.5 text-sm rounded-lg transition-colors border min-h-[44px] ${
                 canUndo
-                  ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
+                  ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 active:bg-gray-600'
                   : 'bg-gray-900 text-gray-600 border-gray-800 cursor-not-allowed'
               }`}
               title="Undo (Ctrl+Z)"
@@ -186,9 +187,9 @@ export default function ToolsPanel() {
             <button
               onClick={redo}
               disabled={!canRedo}
-              className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors border ${
+              className={`flex-1 px-3 py-2.5 text-sm rounded-lg transition-colors border min-h-[44px] ${
                 canRedo
-                  ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700'
+                  ? 'bg-gray-800 hover:bg-gray-700 text-gray-300 border-gray-700 active:bg-gray-600'
                   : 'bg-gray-900 text-gray-600 border-gray-800 cursor-not-allowed'
               }`}
               title="Redo (Ctrl+Shift+Z)"
@@ -198,15 +199,15 @@ export default function ToolsPanel() {
           </div>
           <button
             onClick={clearAll}
-            className="w-full px-3 py-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 text-sm rounded-lg transition-colors border border-red-900/50"
+            className="w-full px-3 py-2.5 bg-red-900/30 hover:bg-red-900/50 active:bg-red-900/70 text-red-400 text-sm rounded-lg transition-colors border border-red-900/50 min-h-[44px]"
           >
             Clear All Measurements
           </button>
         </div>
       </div>
 
-      {/* Keyboard shortcuts */}
-      <div className="mt-6 pt-4 border-t border-gray-800">
+      {/* Keyboard shortcuts — hidden on mobile (no keyboard) */}
+      <div className="mt-6 pt-4 border-t border-gray-800 hidden sm:block">
         <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
           Shortcuts
         </h3>

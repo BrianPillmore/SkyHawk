@@ -13,12 +13,12 @@ import ConditionPanel from '../measurement/ConditionPanel';
 import WallsPanel from '../measurement/WallsPanel';
 
 export default function Sidebar() {
-  const { sidebarOpen, activePanel, activeMeasurement, activePropertyId } = useStore();
+  const { sidebarOpen, activePanel, activeMeasurement, activePropertyId, toggleSidebar } = useStore();
 
   if (!sidebarOpen) return null;
 
-  return (
-    <aside className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col shrink-0 h-full overflow-hidden">
+  const panelContent = (
+    <>
       {/* Measurement selector */}
       {activePropertyId && <MeasurementSelector />}
 
@@ -50,6 +50,32 @@ export default function Sidebar() {
           )
         )}
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop: fixed-width side panel */}
+      <aside className="hidden md:flex w-80 bg-gray-900 border-r border-gray-800 flex-col shrink-0 h-full overflow-hidden">
+        {panelContent}
+      </aside>
+
+      {/* Mobile: bottom sheet overlay */}
+      <div className="md:hidden fixed inset-0 z-40 flex flex-col pointer-events-none">
+        {/* Backdrop — tap to dismiss */}
+        <div
+          className="flex-1 pointer-events-auto"
+          onClick={toggleSidebar}
+        />
+        {/* Bottom sheet */}
+        <div className="pointer-events-auto bg-gray-900 border-t border-gray-700 rounded-t-2xl max-h-[70vh] flex flex-col shadow-2xl">
+          {/* Drag handle */}
+          <div className="flex justify-center py-2 shrink-0 cursor-pointer" onClick={toggleSidebar}>
+            <div className="w-10 h-1 bg-gray-600 rounded-full" />
+          </div>
+          {panelContent}
+        </div>
+      </div>
+    </>
   );
 }

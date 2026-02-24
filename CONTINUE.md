@@ -16,29 +16,37 @@ The gap is **visual presentation** — EagleView's PDF opens with a hero wirefra
 on satellite imagery. Our PDF is text-only on page 1. Closing this gap makes SkyHawk
 reports immediately competitive for contractors and adjusters.
 
-- [ ] **Phase 1: Wireframe Screenshot in PDF** (HIGH impact, LOW effort ~2-3 hrs)
-  - Capture map's Report View using `html2canvas` before PDF generation
-  - Embed as hero image on page 1 (existing `mapScreenshot` option is already wired but never populated)
-  - Files: `ReportPanel.tsx`, `reportGenerator.ts`, possibly `package.json`
+- [x] **Phase 1: Wireframe Screenshot in PDF** (COMPLETE)
+  - Hero image moved to page 1 — satellite imagery with wireframe overlay is now the first visual element
+  - Confidence badge ("SkyHawk Verified — High/Medium/Standard Confidence") with data source attribution
+  - Page reorder: Header → Property Info → Confidence Badge → Hero Image → Overview → Summary → Details
+  - Files modified: `reportGenerator.ts`, `ReportPanel.tsx`
 
-- [ ] **Phase 2: Labeled Wireframe Diagrams** (MEDIUM-HIGH impact, MEDIUM effort ~4-6 hrs)
-  - New `diagramRenderer.ts` — programmatic canvas rendering of wireframe
-  - Length Diagram: edges labeled with measurements in feet
-  - Area Diagram: facets labeled with `#N — XXXX sf`
-  - Pitch Diagram: facets color-coded by pitch, labeled `X/12`
-  - Embed as additional PDF pages
+- [x] **Phase 2: Labeled Wireframe Diagrams** (COMPLETE)
+  - New `src/utils/diagramRenderer.ts` with three diagram renderers:
+    - `renderLengthDiagram()` — edges colored by type with length labels at midpoints
+    - `renderAreaDiagram()` — facets filled with distinct colors, labeled "#N — XXXX sf" at centroid
+    - `renderPitchDiagram()` — facets color-coded green→red by pitch, labeled "X/12"
+  - Each diagram: 800x600 canvas, dark background, compass rose, edge/pitch legend
+  - Embedded as dedicated PDF pages with title and subtitle
+  - Checkboxes in ReportPanel to include/exclude each diagram type
+  - 24 unit tests in `tests/unit/diagramRenderer.test.ts`
 
-- [ ] **Phase 3: Oblique Imagery** (MEDIUM impact, MEDIUM effort ~3-4 hrs)
-  - Capture 4-direction satellite views (N/S/E/W) via Google Maps Static API with heading offsets
-  - New `imageryApi.ts` service
-  - Embed as 2x2 grid page in PDF (like EagleView pages 2-3)
+- [x] **Phase 3: Oblique Imagery** (COMPLETE)
+  - New `src/services/imageryApi.ts` — `captureObliqueViews(lat, lng, apiKey)`
+  - Fetches 4-direction satellite views (N/S/E/W) via Google Maps Static API with heading offsets
+  - Parallel fetch with Promise.allSettled, graceful failure handling
+  - Embedded as 2x2 grid page in PDF with direction labels
+  - Checkbox in ReportPanel to include/exclude oblique views
+  - 18 unit tests in `tests/unit/imageryApi.test.ts`
 
-- [ ] **Phase 4: Report Polish & Branding** (MEDIUM impact, LOW effort ~2-3 hrs)
-  - SkyHawk logo in header (base64 embedded)
-  - Confidence/accuracy badge ("SkyHawk Verified — High Confidence")
-  - Page reorder: hero image first, then summary, then details
-  - Facet table totals row, per-facet squares column
-  - Attribution footer ("Powered by Google Solar API + AI Vision")
+- [x] **Phase 4: Report Polish & Branding** (COMPLETE)
+  - Confidence badge: "SkyHawk Verified — [High/Medium/Standard] Confidence" + data source
+  - Facet Details table: added "Squares" column (trueAreaSqFt / 100) per facet
+  - Facet Details table: added totals row with blue highlight (flat area, true area, squares)
+  - Attribution footer: "Measurements powered by Google Solar API + AI Vision | Imagery © Google"
+  - Footer height increased to accommodate dual-line attribution
+  - Files modified: `reportGenerator.ts`
 
 - [ ] **Phase 5: Interactive HTML Export** (STRETCH — LOW impact, HIGH effort ~8+ hrs)
   - Self-contained HTML with embedded Google Maps + wireframe overlay
@@ -66,29 +74,38 @@ All property data currently lives in browser localStorage (Zustand persist). Thi
 single-device, single-browser, ~5MB max. Need PostgreSQL on the Hetzner VPS to persist all
 property data server-side.
 
-- [ ] **Phase A: DB Setup & Migrations** (MEDIUM effort ~3-4 hrs)
-  - Install PostgreSQL 16 on VPS, create `skyhawk` database
-  - Connection pool (`server/db/index.ts`) + migration runner
-  - Full schema: properties, measurements, vertices, edges, facets, damage, claims, snapshots, solar cache, audit log
-  - Migrate users from `users.json` to `users` table
+- [x] **Phase A: DB Setup & Migrations** (COMPLETE)
+  - `server/db/index.ts` — Connection pool (`pg.Pool`) with query helper, transaction wrapper, slow query logging
+  - `server/db/migrations/001_initial_schema.sql` — Full schema: 18 tables (users, properties, measurements, vertices, edges, facets, facet_vertices, facet_edges, damage_annotations, image_snapshots, claims, adjusters, inspections, roof_condition_assessments, solar_api_cache, organizations, organization_members, audit_log, api_keys, _migrations)
+  - `server/db/migrate.ts` — Migration runner script (reads SQL files, tracks applied migrations)
+  - `server/middleware/validate.ts` — Request validation (requireFields, requireUuidParam, parseNumericQuery)
+  - Auth updated to support both PostgreSQL and flat-file fallback, with on-the-fly user migration
+  - Registration endpoint added (`POST /api/auth/register`)
+  - 10 tests in `tests/unit/dbIndex.test.ts`
 
-- [ ] **Phase B: Property CRUD API** (HIGH effort ~6-8 hrs)
-  - `server/routes/properties.ts` — CRUD for properties
-  - `server/routes/measurements.ts` — Save/load full measurement graph (vertices + edges + facets) in a transaction
-  - `server/routes/claims.ts` — Claims + inspections
-  - `server/routes/images.ts` — Image upload to filesystem, URL references in DB
-  - All endpoints enforce user ownership
+- [x] **Phase B: Property CRUD API** (COMPLETE)
+  - `server/routes/properties.ts` — Full CRUD + damage annotations (list, get, create, update, delete)
+  - `server/routes/measurements.ts` — Full measurement graph save (transactional: measurement + vertices + edges + facets + junction tables) and load (assembled with vertex/edge ID mappings)
+  - `server/routes/claims.ts` — Claims CRUD + inspection scheduling + inspection updates
+  - All endpoints enforce user ownership via JOIN against users table
+  - All params use Express 5 safe extraction (handles `string | string[]`)
+  - Server entry point updated to mount all new routes with auth middleware
+  - DB connection initialized on startup (graceful fallback if DATABASE_URL not set)
+  - 11 tests in `tests/unit/serverRoutes.test.ts`, 16 tests in `tests/unit/validate.test.ts`
 
-- [ ] **Phase C: Client Sync Layer** (HIGH effort ~6-8 hrs)
-  - `src/services/propertyApi.ts` — API client
-  - `src/hooks/useSync.ts` — Sync orchestration
-  - Dual-write: Zustand mutation + background API call (optimistic updates)
-  - Offline queue with retry on reconnect
+- [x] **Phase C: Client Sync Layer** (COMPLETE)
+  - `src/services/propertyApi.ts` — Full typed API client (properties, measurements, claims, damage, health check)
+  - `src/hooks/useSync.ts` — Sync orchestration with optimistic updates, offline queue, exponential backoff retry
+  - `pullFromServer()` — Fetch server properties and merge into local Zustand store
+  - `pushToServer()` — Push all localStorage properties to server (migration helper)
+  - Health check on mount to detect online/offline status
+  - 14 tests in `tests/unit/propertyApi.test.ts`
 
 - [ ] **Phase D: Data Migration & Cleanup** (LOW effort ~2-3 hrs)
   - One-time localStorage → server migration on first login
   - Sync status indicator in header (green/yellow/red)
   - Remove property data from localStorage persist whitelist
+  - **VPS setup required**: Install PostgreSQL 16, create database, set DATABASE_URL
 
 ### Priority 3: Phase 6 — Backend API (Remaining)
 Express backend server is deployed (Hetzner VPS at 89.167.94.69) with auth + vision proxy.
@@ -123,20 +140,20 @@ FAA Part 107 requirements, cost estimates, and 4-phase implementation roadmap.
 - [ ] Integration with SkyHawk measurement engine (replace Google satellite with drone orthomosaic)
 - [ ] Autonomous inspection workflows
 
-### Priority 6: Google Solar API Deep Integration
+### Priority 6: Google Solar API Deep Integration (Phases 1-5, 8 COMPLETE)
 **Plan file**: `plans/active/google-solar-api-deep-dive.md`
 
 SkyHawk currently uses ~30% of the Solar API's available data. An 8-phase plan to leverage
 the remaining 70% for significant accuracy and feature improvements:
 
-- [ ] **Phase 1**: Extend type definitions to capture full API response (solarPanels[], configs, financial)
-- [ ] **Phase 2**: Panel placement validation — cross-check facet areas against Google's panel counts
-- [ ] **Phase 3**: Replace hand-rolled solar calculator with Google's `yearlyEnergyDcKwh` (+20-40% accuracy)
-- [ ] **Phase 4**: Financial analysis integration — federal/state/utility incentives, lease/finance scenarios
-- [ ] **Phase 5**: Sunshine quantiles for per-segment shading quality scores
+- [x] **Phase 1**: Extend type definitions — `SolarPanel`, `SolarPanelConfig`, `SolarFinancialAnalysis`, `SolarMoney`, `SolarSavingsOverTime`, `SolarCashPurchaseSavings`, `SolarFinancedPurchaseSavings`, `SolarLeasingSavings`, `SolarFinancialDetails`, `SolarPanelConfigSegmentSummary` added to `src/types/solar.ts`; `SolarBuildingInsights.solarPotential` extended with optional `solarPanels[]`, `solarPanelConfigs[]`, `financialAnalyses[]`
+- [x] **Phase 2**: Panel placement validation — `validatePanelPlacement()` in `shadingAnalysis.ts` uses `solarPanels[]` to count actual panels per segment, detect obstructions (where Google places fewer than area suggests), compute obstruction impact %. UI shows Google vs area-based panel counts and per-segment obstruction detection
+- [x] **Phase 3**: API-driven solar calculator — `analyzeSolarPotentialFromApi()` in `solarCalculations.ts` uses Google's `yearlyEnergyDcKwh` (DC→AC with system losses), roof segment summaries for per-facet analysis, falls back to hand-rolled model when API data unavailable. `solarMoneyToNumber()` helper for Google's money format. Store gets `solarInsights` field cached from auto-measure. `SolarPanel.tsx` prefers API data with "Google Solar API" badge. `reportGenerator.ts` uses API data in PDF when available.
+- [x] **Phase 4**: Financial analysis integration — Google's `cashPurchaseSavings` (upfront cost, out-of-pocket, rebate, payback years, lifetime savings) and `federalIncentive` from `financialDetails` used when available; falls back to our cost-per-watt model otherwise
+- [x] **Phase 5**: Sunshine quantiles — `analyzeSunshineQuantiles()` + `analyzeSegmentShading()` in `shadingAnalysis.ts`. Computes per-segment shading quality (median/max), uniformity (IQR), rating (minimal/low/moderate/high). `ShadingPanel.tsx` shows measured data section, per-segment shading cards, and panel validation
 - [ ] **Phase 6**: GeoTIFF flux/shade processing — pixel-accurate energy and shading (most complex)
 - [ ] **Phase 7**: DSM-based pitch verification and building height extraction
-- [ ] **Phase 8**: Panel layout visualization in map and PDF reports
+- [x] **Phase 8**: Panel layout visualization — `solarPanelLayout.ts` computes panel rectangles from API lat/lng/orientation data, `MapView.tsx` renders color-coded panel polygons on satellite imagery (toggle via "Show Panel Layout" button), `reportGenerator.ts` embeds panel layout diagram in PDF. `getPanelColor()` color-codes by energy output (cyan→violet)
 
 ### Priority 7: GotRuf.com Marketing Site & Rebrand (PHASE 1 COMPLETE)
 **Brand**: GotRuf.com (pronounced "Got Roof")
@@ -165,8 +182,8 @@ Phase 2 — Remaining:
 
 ### Priority 8: Mobile-Friendly Responsive Design
 Make all views responsive and mobile-friendly for field use:
-- [ ] **Phase A: Responsive Layout** — Sidebar/panel collapse on mobile, full-width map
-- [ ] **Phase B: Touch-Optimized Controls** — Larger touch targets, swipe gestures for panels
+- [x] **Phase A: Responsive Layout** (COMPLETE) — Sidebar renders as bottom sheet overlay on mobile (<md), fixed w-80 on desktop. Header with compact h-12 on mobile, address hidden/truncated. Tab bar scrollable with icon-only on small screens, auto-opens sidebar on tab click. MapView stats overlay hides Facets/Waste on mobile, compact map type selector. Drawing mode and edge start indicators positioned above bottom sheet on mobile with shorter text.
+- [x] **Phase B: Touch-Optimized Controls** (COMPLETE) — All interactive elements have min-h-[44px] tap targets (Apple HIG minimum). ToolsPanel uses 2-column grid on mobile, list on desktop. Undo/redo/clear buttons with active states for touch feedback. MeasurementSelector with larger tap targets. Export dropdown with 40px minimum row height. Keyboard shortcuts section hidden on mobile (no keyboard). Active states (`active:bg-*`) added for touch feedback throughout.
 - [ ] **Phase C: Mobile Measurement UX** — Simplified toolbar for mobile, pinch-to-zoom map
 - [ ] **Phase D: Field-Ready PWA** — Service worker for offline, installable app, camera integration
 - [ ] **Phase E: Tablet Layout** — Split-view optimized for iPad/Android tablet landscape mode
@@ -380,8 +397,11 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - [x] Vision API proxy (Claude edge detection)
 - [x] Nginx reverse proxy with SSL
 - [x] Trust proxy configuration
-- [ ] Property CRUD API — NOT DONE
-- [ ] Database persistence — NOT DONE
+- [x] Property CRUD API (server/routes/properties.ts, measurements.ts, claims.ts)
+- [x] Database schema + migration runner (server/db/)
+- [x] Client-side API layer + sync hook (src/services/propertyApi.ts, src/hooks/useSync.ts)
+- [ ] PostgreSQL installation on VPS — NOT DONE (requires SSH access)
+- [ ] Data migration from localStorage — NOT DONE (Phase D)
 
 ### API Cost Per Property (~$0.05-0.06 beyond free tier)
 | API | Cost/Call | Free/Month |
@@ -412,7 +432,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1399 tests across 49 files)
+- Vitest (1539 tests across 56 files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -478,6 +498,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Pitch detection | `src/utils/pitchDetection.ts` |
 | Roof condition | `src/utils/roofCondition.ts` |
 | Map capture utility | `src/utils/mapCapture.ts` |
+| Diagram renderer | `src/utils/diagramRenderer.ts` |
 | Export data utility | `src/utils/exportData.ts` |
 | ESX format export | `src/utils/esxExport.ts` |
 
@@ -487,12 +508,26 @@ All keys are configured in `.env` (gitignored, not committed):
 | Solar API types | `src/types/solar.ts` |
 | Solar API client | `src/services/solarApi.ts` |
 | Vision API (Claude) | `src/services/visionApi.ts` |
+| Oblique imagery | `src/services/imageryApi.ts` |
 | Contour algorithms | `src/utils/contour.ts` |
 | Roof reconstruction | `src/utils/roofReconstruction.ts` |
 | Solar calculations | `src/utils/solarCalculations.ts` |
 | Shading analysis | `src/utils/shadingAnalysis.ts` |
 | Sun path simulation | `src/utils/sunPath.ts` |
 | DSM analysis | `src/utils/dsmAnalysis.ts` |
+
+### Database & API
+| Purpose | File |
+|---------|------|
+| DB connection pool | `server/db/index.ts` |
+| Schema migration SQL | `server/db/migrations/001_initial_schema.sql` |
+| Migration runner | `server/db/migrate.ts` |
+| Validation middleware | `server/middleware/validate.ts` |
+| Property CRUD routes | `server/routes/properties.ts` |
+| Measurement CRUD routes | `server/routes/measurements.ts` |
+| Claims CRUD routes | `server/routes/claims.ts` |
+| Client API service | `src/services/propertyApi.ts` |
+| Sync orchestration | `src/hooks/useSync.ts` |
 
 ### Claims & Enterprise
 | Purpose | File |
@@ -516,8 +551,8 @@ All keys are configured in `.env` (gitignored, not committed):
 | Phase 4 (AI) | `plans/completed/PHASE4_AI.md` | COMPLETE |
 | EagleView Calibration | `plans/completed/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
 | GotRuf Marketing Site | `plans/active/gotruf-marketing-site.md` | Phase 1 COMPLETE |
-| EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | NOT STARTED |
-| Database Persistence | `plans/active/database-persistence.md` | NOT STARTED |
+| EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | Phases 1-4 COMPLETE |
+| Database Persistence | `plans/active/database-persistence.md` | Phases A-C COMPLETE |
 | Google Solar API Deep Dive | `plans/active/google-solar-api-deep-dive.md` | NEW |
 | Drone Integration | `plans/research/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
 | API Spec | `specs/API_SPEC.md` | |
@@ -525,7 +560,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (1399 passing tests across 49 files)
+### Tests (1539 passing tests across 56 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
@@ -561,6 +596,12 @@ All keys are configured in `.env` (gitignored, not committed):
 | Color utilities | `tests/unit/colors.test.ts` |
 | EagleView regression | `tests/unit/eagleviewRegression.test.ts` |
 | DSM analysis | `tests/unit/dsmAnalysis.test.ts` |
+| Diagram renderer | `tests/unit/diagramRenderer.test.ts` |
+| Imagery API | `tests/unit/imageryApi.test.ts` |
+| DB connection pool | `tests/unit/dbIndex.test.ts` |
+| Validation middleware | `tests/unit/validate.test.ts` |
+| Property API client | `tests/unit/propertyApi.test.ts` |
+| Server route patterns | `tests/unit/serverRoutes.test.ts` |
 | Dashboard component | `tests/unit/Dashboard.test.tsx` |
 
 Run tests with: `npx vitest run`

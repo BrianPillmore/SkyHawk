@@ -25,6 +25,95 @@ export interface SolarRoofSegment {
   planeHeightAtCenterMeters: number;
 }
 
+// --- Individual Solar Panel Placement ---
+
+export interface SolarPanel {
+  center: SolarLatLng;
+  orientation: 'LANDSCAPE' | 'PORTRAIT';
+  yearlyEnergyDcKwh: number;
+  segmentIndex: number;
+}
+
+// --- Panel Configuration (system sizing) ---
+
+export interface SolarPanelConfigSegmentSummary {
+  pitchDegrees: number;
+  azimuthDegrees: number;
+  panelsCount: number;
+  yearlyEnergyDcKwh: number;
+  segmentIndex: number;
+}
+
+export interface SolarPanelConfig {
+  panelsCount: number;
+  yearlyEnergyDcKwh: number;
+  roofSegmentSummaries: SolarPanelConfigSegmentSummary[];
+}
+
+// --- Financial Analysis Types ---
+
+export interface SolarMoney {
+  currencyCode: string;
+  units: string;
+  nanos?: number;
+}
+
+export interface SolarSavingsOverTime {
+  savingsYear1: SolarMoney;
+  savingsYear20: SolarMoney;
+  presentValueOfSavingsYear20: SolarMoney;
+  savingsLifetime: SolarMoney;
+  presentValueOfSavingsLifetime: SolarMoney;
+}
+
+export interface SolarCashPurchaseSavings {
+  outOfPocketCost: SolarMoney;
+  upfrontCost: SolarMoney;
+  rebateValue: SolarMoney;
+  paybackYears: number;
+  savings: SolarSavingsOverTime;
+}
+
+export interface SolarFinancedPurchaseSavings {
+  annualLoanPayment: SolarMoney;
+  rebateValue: SolarMoney;
+  loanInterestRate: number;
+  savings: SolarSavingsOverTime;
+}
+
+export interface SolarLeasingSavings {
+  leasesAllowed: boolean;
+  leasesSupported: boolean;
+  annualLeasingCost: SolarMoney;
+  savings: SolarSavingsOverTime;
+}
+
+export interface SolarFinancialDetails {
+  initialAcKwhPerYear: number;
+  remainingLifetimeUtilityBill: SolarMoney;
+  federalIncentive: SolarMoney;
+  stateIncentive: SolarMoney;
+  utilityIncentive: SolarMoney;
+  lifetimeSrecTotal: SolarMoney;
+  costOfElectricityWithoutSolar: SolarMoney;
+  netMeteringAllowed: boolean;
+  solarPercentage: number;
+  percentageExportedToGrid: number;
+}
+
+export interface SolarFinancialAnalysis {
+  monthlyBill: SolarMoney;
+  defaultBill: boolean;
+  averageKwhPerMonth: number;
+  panelConfigIndex: number;
+  financialDetails: SolarFinancialDetails;
+  leasingSavings?: SolarLeasingSavings;
+  cashPurchaseSavings?: SolarCashPurchaseSavings;
+  financedPurchaseSavings?: SolarFinancedPurchaseSavings;
+}
+
+// --- Building Insights (Extended with full Solar API response) ---
+
 export interface SolarBuildingInsights {
   name: string;
   center: SolarLatLng;
@@ -40,6 +129,10 @@ export interface SolarBuildingInsights {
     maxArrayAreaMeters2: number;
     maxSunshineHoursPerYear: number;
     carbonOffsetFactorKgPerMwh: number;
+    panelCapacityWatts?: number;
+    panelHeightMeters?: number;
+    panelWidthMeters?: number;
+    panelLifetimeYears?: number;
     wholeRoofStats: {
       areaMeters2: number;
       sunshineQuantiles: number[];
@@ -51,6 +144,9 @@ export interface SolarBuildingInsights {
       sunshineQuantiles: number[];
       groundAreaMeters2: number;
     };
+    solarPanels?: SolarPanel[];
+    solarPanelConfigs?: SolarPanelConfig[];
+    financialAnalyses?: SolarFinancialAnalysis[];
   };
   imageryQuality: 'HIGH' | 'MEDIUM' | 'LOW';
 }

@@ -3,8 +3,10 @@ import type { Property, RoofMeasurement, DamageSeverity } from '../types';
 import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
 import { estimateMaterials } from './materials';
-import { analyzeSolarPotential, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
+import { analyzeSolarPotential, analyzeSolarPotentialFromApi, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
 import type { SolarSystemSummary } from './solarCalculations';
+import type { SolarBuildingInsights } from '../types/solar';
+import { computePanelLayout, renderPanelLayoutDiagram } from './solarPanelLayout';
 
 interface ReportOptions {
   companyName: string;
@@ -15,6 +17,16 @@ interface ReportOptions {
   includeMultiStructure?: boolean;
   includeSolar?: boolean;
   latitude?: number;
+  solarInsights?: SolarBuildingInsights | null;
+  includeLengthDiagram?: boolean;
+  includeAreaDiagram?: boolean;
+  includePitchDiagram?: boolean;
+  includeObliqueViews?: boolean;
+  lengthDiagramImage?: string; // base64 data URL
+  areaDiagramImage?: string;   // base64 data URL
+  pitchDiagramImage?: string;  // base64 data URL
+  obliqueViews?: { north?: string; south?: string; east?: string; west?: string }; // base64 data URLs
+  includeSolarPanelLayout?: boolean;
 }
 
 export async function generateReport(
@@ -95,7 +107,46 @@ export async function generateReport(
   y = addText(fullAddress, margin, y, 10, darkText, 'bold');
   y += 2;
   y = addText(`Coordinates: ${property.lat.toFixed(6)}, ${property.lng.toFixed(6)}`, margin, y, 8, grayText);
-  y += 8;
+  y += 4;
+
+  // ============ CONFIDENCE BADGE ============
+  const dataSourceLabel = measurement.dataSource === 'lidar-mask' ? 'LIDAR + Solar API'
+    : measurement.dataSource === 'hybrid' ? 'Solar API + AI Vision'
+    : measurement.dataSource === 'ai-vision' ? 'AI Vision'
+    : 'Manual Measurement';
+  const confidenceLevel = measurement.dataSource === 'lidar-mask' ? 'High'
+    : measurement.dataSource === 'hybrid' ? 'High'
+    : measurement.dataSource === 'ai-vision' ? 'Medium'
+    : 'Standard';
+
+  doc.setFillColor(219, 234, 254);
+  doc.rect(margin, y, contentWidth, 12, 'F');
+  doc.setFillColor(37, 120, 235);
+  doc.rect(margin, y, 4, 12, 'F');
+  addText(`SkyHawk Verified — ${confidenceLevel} Confidence`, margin + 8, y + 5, 8, primaryColor, 'bold');
+  addText(`Source: ${dataSourceLabel}`, margin + 8, y + 10, 7, grayText);
+  y += 16;
+
+  // ============ MAP SCREENSHOT (HERO IMAGE) ============
+  if (options.mapScreenshot) {
+    checkPage(110);
+    y = addText('AERIAL VIEW', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 3;
+
+    try {
+      const imgWidth = contentWidth;
+      const imgHeight = imgWidth * 0.6; // 5:3 aspect ratio
+      doc.addImage(options.mapScreenshot, 'PNG', margin, y, imgWidth, imgHeight);
+      y += imgHeight + 3;
+      y = addText('Satellite imagery with roof measurement overlay', margin, y, 7, grayText);
+      y += 6;
+    } catch {
+      // If image fails to embed, skip silently
+      y += 2;
+    }
+  }
 
   // ============ FULL PROPERTY OVERVIEW ============
   checkPage(50);
@@ -130,27 +181,6 @@ export async function generateReport(
     addText(overviewData[i][1], pageWidth - margin - 3 - doc.getTextWidth(overviewData[i][1]), rowY, 9, darkText, 'bold');
   }
   y += overviewData.length * 7 + 6;
-
-  // ============ MAP SCREENSHOT ============
-  if (options.mapScreenshot) {
-    checkPage(110);
-    y = addText('AERIAL VIEW', margin, y, 12, primaryColor, 'bold');
-    y += 2;
-    y = addLine(y);
-    y += 3;
-
-    try {
-      const imgWidth = contentWidth;
-      const imgHeight = imgWidth * 0.6; // 5:3 aspect ratio
-      doc.addImage(options.mapScreenshot, 'PNG', margin, y, imgWidth, imgHeight);
-      y += imgHeight + 3;
-      y = addText('Satellite imagery with roof measurement overlay', margin, y, 7, grayText);
-      y += 6;
-    } catch {
-      // If image fails to embed, skip silently
-      y += 2;
-    }
-  }
 
   // ============ ROOF SUMMARY ============
   checkPage(60);
@@ -269,11 +299,16 @@ export async function generateReport(
   doc.setFillColor(...primaryColor);
   doc.rect(margin, y - 4, contentWidth, 7, 'F');
   addText('Facet', margin + 3, y, 8, [255, 255, 255], 'bold');
-  addText('Pitch', margin + contentWidth * 0.35, y, 8, [255, 255, 255], 'bold');
-  addText('Angle', margin + contentWidth * 0.5, y, 8, [255, 255, 255], 'bold');
-  addText('Flat Area', margin + contentWidth * 0.63, y, 8, [255, 255, 255], 'bold');
-  addText('True Area', margin + contentWidth * 0.82, y, 8, [255, 255, 255], 'bold');
+  addText('Pitch', margin + contentWidth * 0.28, y, 8, [255, 255, 255], 'bold');
+  addText('Angle', margin + contentWidth * 0.40, y, 8, [255, 255, 255], 'bold');
+  addText('Flat Area', margin + contentWidth * 0.52, y, 8, [255, 255, 255], 'bold');
+  addText('True Area', margin + contentWidth * 0.70, y, 8, [255, 255, 255], 'bold');
+  addText('Squares', margin + contentWidth * 0.88, y, 8, [255, 255, 255], 'bold');
   y += 7;
+
+  let totalFlatArea = 0;
+  let totalTrueArea = 0;
+  let totalFacetSquares = 0;
 
   for (let i = 0; i < measurement.facets.length; i++) {
     checkPage(10);
@@ -285,13 +320,31 @@ export async function generateReport(
     }
     // Show numbered facet name (e.g. "#1 South" or "Facet 1")
     const displayName = facet.name.startsWith('#') ? facet.name : `#${i + 1} ${facet.name}`;
+    const facetSquares = facet.trueAreaSqFt / 100;
     addText(displayName, margin + 3, rowY, 9, darkText);
-    addText(formatPitch(facet.pitch), margin + contentWidth * 0.35, rowY, 9, darkText);
-    addText(`${pitchToDegrees(facet.pitch).toFixed(1)}°`, margin + contentWidth * 0.5, rowY, 9, grayText);
-    addText(formatArea(facet.areaSqFt), margin + contentWidth * 0.63, rowY, 9, grayText);
-    addText(formatArea(facet.trueAreaSqFt), margin + contentWidth * 0.82, rowY, 9, darkText, 'bold');
+    addText(formatPitch(facet.pitch), margin + contentWidth * 0.28, rowY, 9, darkText);
+    addText(`${pitchToDegrees(facet.pitch).toFixed(1)}°`, margin + contentWidth * 0.40, rowY, 9, grayText);
+    addText(formatArea(facet.areaSqFt), margin + contentWidth * 0.52, rowY, 9, grayText);
+    addText(formatArea(facet.trueAreaSqFt), margin + contentWidth * 0.70, rowY, 9, darkText, 'bold');
+    addText(formatNumber(facetSquares, 1), margin + contentWidth * 0.88, rowY, 9, darkText);
+    totalFlatArea += facet.areaSqFt;
+    totalTrueArea += facet.trueAreaSqFt;
+    totalFacetSquares += facetSquares;
   }
-  y += measurement.facets.length * 7 + 6;
+  y += measurement.facets.length * 7;
+
+  // Totals row
+  if (measurement.facets.length > 0) {
+    checkPage(10);
+    doc.setFillColor(219, 234, 254); // light blue highlight
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('TOTAL', margin + 3, y, 9, primaryColor, 'bold');
+    addText(formatArea(totalFlatArea), margin + contentWidth * 0.52, y, 9, primaryColor, 'bold');
+    addText(formatArea(totalTrueArea), margin + contentWidth * 0.70, y, 9, primaryColor, 'bold');
+    addText(formatNumber(totalFacetSquares, 1), margin + contentWidth * 0.88, y, 9, primaryColor, 'bold');
+    y += 7;
+  }
+  y += 6;
 
   // ============ WASTE FACTOR TABLE ============
   checkPage(60);
@@ -543,11 +596,9 @@ export async function generateReport(
 
   // ============ SOLAR ANALYSIS ============
   if (options.includeSolar && options.latitude !== undefined && measurement.facets.length > 0) {
-    const solar: SolarSystemSummary = analyzeSolarPotential(
-      measurement,
-      DEFAULT_SOLAR_CONFIG,
-      options.latitude,
-    );
+    const solar: SolarSystemSummary = options.solarInsights?.solarPotential?.solarPanelConfigs?.length
+      ? analyzeSolarPotentialFromApi(options.solarInsights, measurement, DEFAULT_SOLAR_CONFIG)
+      : analyzeSolarPotential(measurement, DEFAULT_SOLAR_CONFIG, options.latitude);
 
     if (solar.totalPanels > 0) {
       checkPage(80);
@@ -668,6 +719,116 @@ export async function generateReport(
         margin, y, 7, grayText
       );
       y += 6;
+
+      // Solar panel layout diagram (from API panel placement data)
+      if (options.includeSolarPanelLayout && options.solarInsights?.solarPotential?.solarPanels?.length) {
+        const panels = computePanelLayout(options.solarInsights);
+        if (panels.length > 0) {
+          const panelDiagramImage = renderPanelLayoutDiagram(panels);
+          if (panelDiagramImage) {
+            doc.addPage();
+            y = margin;
+
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(margin, y, contentWidth, 8, 'F');
+            addText('SOLAR PANEL LAYOUT', margin + 3, y + 2, 12, [255, 255, 255], 'bold');
+            y += 12;
+            y = addText(
+              `${panels.length} panels placed by Google Solar API — color-coded by energy output`,
+              margin, y, 8, grayText
+            );
+            y += 4;
+
+            const imgWidth = contentWidth;
+            const imgHeight = imgWidth * (600 / 800);
+            doc.addImage(panelDiagramImage, 'PNG', margin, y, imgWidth, imgHeight);
+            y += imgHeight + 6;
+          }
+        }
+      }
+    }
+  }
+
+  // ============ WIREFRAME DIAGRAMS ============
+  const diagramImages = [
+    { image: options.lengthDiagramImage, title: 'LENGTH DIAGRAM', subtitle: 'Edge measurements in feet, colored by edge type', enabled: options.includeLengthDiagram },
+    { image: options.areaDiagramImage, title: 'AREA DIAGRAM', subtitle: 'Facet areas in square feet with numbered labels', enabled: options.includeAreaDiagram },
+    { image: options.pitchDiagramImage, title: 'PITCH DIAGRAM', subtitle: 'Facet pitches color-coded by steepness', enabled: options.includePitchDiagram },
+  ];
+
+  for (const diagram of diagramImages) {
+    if (diagram.enabled && diagram.image) {
+      doc.addPage();
+      y = margin;
+
+      y = addText(diagram.title, margin, y, 14, primaryColor, 'bold');
+      y += 2;
+      y = addLine(y);
+      y += 2;
+      y = addText(diagram.subtitle, margin, y, 8, grayText);
+      y += 4;
+
+      try {
+        const imgWidth = contentWidth;
+        const imgHeight = imgWidth * 0.75; // 4:3 aspect ratio for diagrams
+        doc.addImage(diagram.image, 'PNG', margin, y, imgWidth, imgHeight);
+        y += imgHeight + 4;
+      } catch {
+        y = addText('Diagram could not be rendered.', margin, y, 9, grayText);
+        y += 6;
+      }
+    }
+  }
+
+  // ============ OBLIQUE VIEWS ============
+  if (options.includeObliqueViews && options.obliqueViews) {
+    const views = options.obliqueViews;
+    const hasAnyView = views.north || views.south || views.east || views.west;
+
+    if (hasAnyView) {
+      doc.addPage();
+      y = margin;
+
+      y = addText('OBLIQUE VIEWS', margin, y, 14, primaryColor, 'bold');
+      y += 2;
+      y = addLine(y);
+      y += 2;
+      y = addText('Satellite views from four cardinal directions', margin, y, 8, grayText);
+      y += 4;
+
+      const gridWidth = (contentWidth - 4) / 2;  // 2 columns with 4mm gap
+      const gridHeight = gridWidth * 0.75;
+      const directions: { key: keyof typeof views; label: string }[] = [
+        { key: 'north', label: 'North' },
+        { key: 'east', label: 'East' },
+        { key: 'south', label: 'South' },
+        { key: 'west', label: 'West' },
+      ];
+
+      for (let i = 0; i < directions.length; i++) {
+        const dir = directions[i];
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const xPos = margin + col * (gridWidth + 4);
+        const yPos = y + row * (gridHeight + 12);
+
+        addText(dir.label, xPos + gridWidth / 2 - 5, yPos, 9, darkText, 'bold');
+
+        if (views[dir.key]) {
+          try {
+            doc.addImage(views[dir.key]!, 'PNG', xPos, yPos + 4, gridWidth, gridHeight);
+          } catch {
+            doc.setFillColor(...lightBg);
+            doc.rect(xPos, yPos + 4, gridWidth, gridHeight, 'F');
+            addText('Image unavailable', xPos + 10, yPos + gridHeight / 2 + 4, 8, grayText);
+          }
+        } else {
+          doc.setFillColor(...lightBg);
+          doc.rect(xPos, yPos + 4, gridWidth, gridHeight, 'F');
+          addText('Not available', xPos + 15, yPos + gridHeight / 2 + 4, 8, grayText);
+        }
+      }
+      y += 2 * (gridHeight + 12) + 4;
     }
   }
 
@@ -691,16 +852,22 @@ export async function generateReport(
     doc.setPage(i);
     const pageHeight = doc.internal.pageSize.getHeight();
     doc.setFillColor(245, 245, 245);
-    doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+    doc.rect(0, pageHeight - 18, pageWidth, 18, 'F');
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
     doc.text(
       `Generated by GotRuf Aerial Property Intelligence | ${reportDate} | Page ${i} of ${pageCount}`,
       pageWidth / 2,
-      pageHeight - 7,
+      pageHeight - 11,
       { align: 'center' }
     );
-    doc.text('CONFIDENTIAL', margin, pageHeight - 7);
+    doc.text(
+      'Measurements powered by Google Solar API + AI Vision | Imagery \u00A9 Google',
+      pageWidth / 2,
+      pageHeight - 6,
+      { align: 'center' }
+    );
+    doc.text('CONFIDENTIAL', margin, pageHeight - 11);
   }
 
   // Save

@@ -1,4 +1,10 @@
 import type { RoofFacet, RoofMeasurement } from '../types';
+import type {
+  SolarBuildingInsights,
+  SolarFinancialAnalysis,
+  SolarMoney,
+  SolarPanelConfig as ApiSolarPanelConfig,
+} from '../types/solar';
 
 // ─── Configuration ─────────────────────────────────────────────────
 
@@ -367,6 +373,187 @@ export function analyzeSolarPotential(
     totalPanels,
     totalCapacityKw: Math.round(totalCapacityKw * 100) / 100,
     annualProductionKwh: Math.round(annualProductionKwh),
+    monthlyProductionKwh,
+    systemCost: Math.round(systemCost),
+    federalTaxCredit: Math.round(federalTaxCredit),
+    netCost: Math.round(netCost),
+    annualSavings: Math.round(annualSavings),
+    paybackYears: Math.round(paybackYears * 10) / 10,
+    twentyFiveYearSavings: Math.round(twentyFiveYearSavings),
+    carbonOffsetLbs: Math.round(carbonOffsetLbs),
+    treesEquivalent: Math.round(treesEquivalent),
+    facetAnalyses,
+  };
+}
+
+// ─── Helpers for Google Solar API money values ───────────────────
+
+/** Convert a SolarMoney value to a plain number. */
+export function solarMoneyToNumber(money: SolarMoney | undefined | null): number {
+  if (!money) return 0;
+  const units = typeof money.units === 'string' ? parseFloat(money.units) || 0 : money.units;
+  const nanos = money.nanos ?? 0;
+  return units + nanos / 1e9;
+}
+
+// ─── API-Sourced Solar Analysis ─────────────────────────────────
+
+/**
+ * Build a SolarSystemSummary using pre-computed data from the Google Solar API.
+ *
+ * When the Solar API returns `solarPanelConfigs` and `financialAnalyses`,
+ * we use Google's irradiance model (which accounts for local weather, shading,
+ * and panel-level simulation) instead of our hand-rolled latitude/tilt model.
+ *
+ * Falls back to `analyzeSolarPotential()` if the API response lacks the
+ * required fields.
+ *
+ * @param insights   - Full SolarBuildingInsights from Google
+ * @param measurement - Local roof measurement (for facet-level analysis fallback)
+ * @param config     - User-configurable panel/cost parameters
+ * @param configIndex - Which solarPanelConfig to use (default: max panels)
+ */
+export function analyzeSolarPotentialFromApi(
+  insights: SolarBuildingInsights,
+  measurement: RoofMeasurement,
+  config: SolarPanelConfig,
+  configIndex?: number,
+): SolarSystemSummary {
+  const sp = insights.solarPotential;
+  const configs = sp.solarPanelConfigs ?? [];
+  const financials = sp.financialAnalyses ?? [];
+
+  // Fall back to hand-rolled model if API doesn't have panel configs
+  if (configs.length === 0) {
+    const latitude = insights.center.latitude;
+    return analyzeSolarPotential(measurement, config, latitude);
+  }
+
+  // Pick the requested config, or the last one (max panels) by default
+  const idx = configIndex ?? configs.length - 1;
+  const panelConfig: ApiSolarPanelConfig = configs[Math.min(idx, configs.length - 1)];
+
+  // Total panels and capacity
+  const totalPanels = panelConfig.panelsCount;
+  const panelWatts = sp.panelCapacityWatts ?? config.panelWattage;
+  const totalCapacityKw = (totalPanels * panelWatts) / 1000;
+
+  // Google gives DC energy; apply system losses for AC estimate
+  const annualProductionKwh = Math.round(
+    panelConfig.yearlyEnergyDcKwh * (1 - config.systemLosses),
+  );
+
+  // Monthly distribution using our latitude model (API doesn't provide monthly breakdown directly)
+  const latitude = insights.center.latitude;
+  const monthlyProductionKwh = calculateMonthlyProduction(annualProductionKwh, latitude);
+
+  // Financial: prefer Google's financial analysis if available for this config
+  const financial = financials.find((f) => f.panelConfigIndex === idx)
+    ?? financials[financials.length - 1];
+
+  let systemCost: number;
+  let federalTaxCredit: number;
+  let netCost: number;
+  let annualSavings: number;
+  let paybackYears: number;
+  let twentyFiveYearSavings: number;
+
+  if (financial?.cashPurchaseSavings) {
+    const cash = financial.cashPurchaseSavings;
+    systemCost = solarMoneyToNumber(cash.upfrontCost);
+    const rebateValue = solarMoneyToNumber(cash.rebateValue);
+    const federalIncentive = solarMoneyToNumber(financial.financialDetails.federalIncentive);
+    federalTaxCredit = federalIncentive > 0 ? federalIncentive : systemCost * config.federalTaxCredit;
+    netCost = solarMoneyToNumber(cash.outOfPocketCost);
+    annualSavings = solarMoneyToNumber(cash.savings.savingsYear1);
+    paybackYears = cash.paybackYears ?? 0;
+    twentyFiveYearSavings = solarMoneyToNumber(cash.savings.savingsYear20);
+    // If Google doesn't give us rebateValue, use it as supplementary info
+    if (rebateValue > 0 && netCost === 0) {
+      netCost = systemCost - rebateValue;
+    }
+  } else {
+    // Fall back to our own financial model
+    systemCost = totalCapacityKw * 1000 * config.costPerWatt;
+    federalTaxCredit = systemCost * config.federalTaxCredit;
+    netCost = systemCost - federalTaxCredit;
+    annualSavings = annualProductionKwh * config.electricityRate;
+    paybackYears = annualSavings > 0 ? netCost / annualSavings : 50;
+
+    let twentyFiveYearTotal = 0;
+    let rate = config.electricityRate;
+    for (let year = 1; year <= 25; year++) {
+      twentyFiveYearTotal += annualProductionKwh * rate;
+      rate *= 1 + config.annualRateIncrease;
+    }
+    twentyFiveYearSavings = twentyFiveYearTotal - netCost;
+  }
+
+  // Build per-facet analyses from API roof segment summaries
+  const segmentSummaries = panelConfig.roofSegmentSummaries ?? [];
+  const roofSegments = sp.roofSegmentStats ?? [];
+
+  const facetAnalyses: SolarFacetAnalysis[] = segmentSummaries.map((seg, i) => {
+    const roofSeg = roofSegments[seg.segmentIndex] ?? roofSegments[i];
+    const azimuthDeg = seg.azimuthDegrees ?? roofSeg?.azimuthDegrees ?? 180;
+    const tiltDeg = seg.pitchDegrees ?? roofSeg?.pitchDegrees ?? 0;
+    const segPanels = seg.panelsCount;
+    const segCapacityKw = (segPanels * panelWatts) / 1000;
+    const segProductionKwh = Math.round(seg.yearlyEnergyDcKwh * (1 - config.systemLosses));
+
+    // Use area from Solar API roof segment
+    const areaM2 = roofSeg?.stats?.areaMeters2 ?? 0;
+    const areaSqFt = Math.round(areaM2 * 10.7639);
+
+    // Compute solar access factor from actual production vs theoretical max
+    const theoreticalMax = segCapacityKw * 5.0 * 365 * (1 - config.systemLosses);
+    const solarAccessFactor = theoreticalMax > 0
+      ? Math.min(1, segProductionKwh / theoreticalMax)
+      : calculateSolarAccessFactor(azimuthDeg, tiltDeg, latitude);
+
+    let rating: SolarFacetAnalysis['rating'];
+    if (solarAccessFactor >= 0.85) rating = 'excellent';
+    else if (solarAccessFactor >= 0.70) rating = 'good';
+    else if (solarAccessFactor >= 0.55) rating = 'fair';
+    else rating = 'poor';
+
+    // Try to match with a local facet by index
+    const localFacet = measurement.facets[seg.segmentIndex] ?? measurement.facets[i];
+    const facetName = localFacet?.name ?? `Segment ${i + 1}`;
+    const facetId = localFacet?.id ?? `api-seg-${i}`;
+
+    return {
+      facetId,
+      facetName,
+      azimuthDeg: Math.round(azimuthDeg),
+      tiltDeg: Math.round(tiltDeg * 10) / 10,
+      usableAreaSqFt: areaSqFt,
+      panelCount: segPanels,
+      panelCapacityKw: Math.round(segCapacityKw * 100) / 100,
+      annualProductionKwh: segProductionKwh,
+      solarAccessFactor: Math.round(solarAccessFactor * 100) / 100,
+      rating,
+    };
+  });
+
+  // If no segment summaries, fall back to facet-level analysis from our model
+  if (facetAnalyses.length === 0) {
+    const fallbackAnalyses = measurement.facets.map((facet) =>
+      analyzeFacet(facet, config, latitude),
+    );
+    facetAnalyses.push(...fallbackAnalyses);
+  }
+
+  // Environmental impact
+  const CO2_LBS_PER_KWH = 1.22;
+  const CO2_LBS_PER_TREE_PER_YEAR = 48;
+  const carbonOffsetLbs = annualProductionKwh * CO2_LBS_PER_KWH;
+  const treesEquivalent = carbonOffsetLbs / CO2_LBS_PER_TREE_PER_YEAR;
+
+  return {
+    totalPanels,
+    totalCapacityKw: Math.round(totalCapacityKw * 100) / 100,
+    annualProductionKwh,
     monthlyProductionKwh,
     systemCost: Math.round(systemCost),
     federalTaxCredit: Math.round(federalTaxCredit),
