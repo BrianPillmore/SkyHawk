@@ -11,6 +11,7 @@ import { analyzeFacetFromDSM, computeBuildingHeight } from '../utils/dsmAnalysis
 import { degreesToPitch, clampPitch } from '../utils/geometry';
 import { parseFluxGeoTiff, parseMonthlyFluxGeoTiff, analyzeFluxForFacets } from '../utils/fluxAnalysis';
 import { verifyPitchFromDSM } from '../utils/dsmPitchVerification';
+import { detectMultipleStructures } from '../utils/multiStructureDetection';
 
 export function useAutoMeasure() {
   const [progress, setProgress] = useState<AutoMeasureProgress>({
@@ -47,7 +48,14 @@ export function useAutoMeasure() {
       if (solarSegments.length > 0) {
         const sorted = [...solarSegments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2);
         const qualityNote = imageryQuality === 'MEDIUM' ? ' (MEDIUM quality — reduced accuracy)' : '';
-        setProgress({ status: 'detecting', percent: 15, message: `Solar: ${solarSegments.length} segments, pitch ${sorted[0].pitchDegrees.toFixed(0)}°${qualityNote}` });
+
+        // Detect multiple structures (detached garage, shed, etc.)
+        const multiStructure = detectMultipleStructures(solarSegments);
+        const structureNote = multiStructure.hasMultipleStructures
+          ? ` | ${multiStructure.structureCount} structures detected`
+          : '';
+
+        setProgress({ status: 'detecting', percent: 15, message: `Solar: ${solarSegments.length} segments, pitch ${sorted[0].pitchDegrees.toFixed(0)}°${qualityNote}${structureNote}` });
       }
 
       // Step 2: LIDAR path — if dataLayers available, use mask+DSM for high-accuracy measurement

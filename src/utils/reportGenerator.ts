@@ -7,6 +7,7 @@ import { analyzeSolarPotential, analyzeSolarPotentialFromApi, DEFAULT_SOLAR_CONF
 import type { SolarSystemSummary } from './solarCalculations';
 import type { SolarBuildingInsights } from '../types/solar';
 import { computePanelLayout, renderPanelLayoutDiagram } from './solarPanelLayout';
+import { computeAccuracyScore } from './accuracyScore';
 import { generateTOC, renderTOCPage } from './reportTableOfContents';
 import type { TOCEntry } from './reportTableOfContents';
 import { renderSummaryPage, applyPageDecoration } from './reportPageTemplates';
@@ -114,30 +115,37 @@ export async function generateReport(
   y = addText(`Coordinates: ${property.lat.toFixed(6)}, ${property.lng.toFixed(6)}`, margin, y, 8, grayText);
   y += 4;
 
-  // ============ CONFIDENCE BADGE ============
+  // ============ CONFIDENCE BADGE WITH ACCURACY SCORE ============
+  const accuracy = computeAccuracyScore(measurement, options.solarInsights);
   const dataSourceLabel = measurement.dataSource === 'lidar-mask' ? 'LIDAR + Solar API'
     : measurement.dataSource === 'hybrid' ? 'Solar API + AI Vision'
     : measurement.dataSource === 'ai-vision' ? 'AI Vision'
     : 'Manual Measurement';
   const isMediumQuality = measurement.imageryQuality === 'MEDIUM';
-  const confidenceLevel = isMediumQuality ? 'Medium'
-    : measurement.dataSource === 'lidar-mask' ? 'High'
-    : measurement.dataSource === 'hybrid' ? 'High'
-    : measurement.dataSource === 'ai-vision' ? 'Medium'
-    : 'Standard';
 
-  const badgeHeight = isMediumQuality ? 17 : 12;
-  const badgeColor: [number, number, number] = isMediumQuality ? [254, 243, 199] : [219, 234, 254];
-  const badgeAccentColor: [number, number, number] = isMediumQuality ? [234, 179, 8] : [37, 120, 235];
+  const badgeHeight = isMediumQuality ? 22 : 17;
+  const isHighAccuracy = accuracy.overallScore >= 80;
+  const badgeColor: [number, number, number] = isMediumQuality ? [254, 243, 199]
+    : isHighAccuracy ? [220, 252, 231] : [219, 234, 254];
+  const badgeAccentColor: [number, number, number] = isMediumQuality ? [234, 179, 8]
+    : isHighAccuracy ? [22, 163, 74] : [37, 120, 235];
   doc.setFillColor(...badgeColor);
   doc.rect(margin, y, contentWidth, badgeHeight, 'F');
   doc.setFillColor(...badgeAccentColor);
   doc.rect(margin, y, 4, badgeHeight, 'F');
-  addText(`SkyHawk Verified — ${confidenceLevel} Confidence`, margin + 8, y + 5, 8, primaryColor, 'bold');
+
+  // Accuracy score and grade on the right
+  const scoreText = `${accuracy.grade} — ${accuracy.overallScore}/100`;
+  const scoreWidth = doc.getTextWidth(scoreText) + 4;
+  addText(`SkyHawk Verified — ${accuracy.label}`, margin + 8, y + 5, 8, primaryColor, 'bold');
+  addText(scoreText, pageWidth - margin - scoreWidth, y + 5, 8, badgeAccentColor, 'bold');
   addText(`Source: ${dataSourceLabel}`, margin + 8, y + 10, 7, grayText);
+  if (accuracy.areaDeltaPercent !== undefined) {
+    addText(`Solar API cross-check: ${accuracy.areaDeltaPercent.toFixed(1)}% deviation`, margin + 8, y + 15, 6.5, grayText);
+  }
   if (isMediumQuality) {
     const warningColor: [number, number, number] = [161, 98, 7];
-    addText('Imagery quality: MEDIUM — measurements may have reduced accuracy', margin + 8, y + 15, 6.5, warningColor);
+    addText('Imagery quality: MEDIUM — measurements may have reduced accuracy', margin + 8, y + (accuracy.areaDeltaPercent !== undefined ? 20 : 15), 6.5, warningColor);
   }
   y += badgeHeight + 4;
 
@@ -210,7 +218,7 @@ export async function generateReport(
   }
   tocSections.push({ title: 'Material Estimate', pageNumber: tocPageNum, indent: 0 });
   tocPageNum++;
-  tocSections.push({ title: 'Appendix', pageNumber: tocPageNum, indent: 0 });
+  tocSections.push({ title: 'Appendix: Methodology & Data Sources', pageNumber: tocPageNum, indent: 0 });
 
   const tocEntries = generateTOC(tocSections);
   renderTOCPage(doc, tocEntries, pageWidth, pageHeight);
@@ -541,16 +549,21 @@ export async function generateReport(
     const materials = estimateMaterials(measurement);
     const materialRows: [string, string, string][] = [
       ['Shingle Bundles', String(materials.shingleBundles), '3 bundles per square'],
+      ['Hip & Ridge Shingles', `${materials.hipRidgeBundles} bundles`, '1 bundle per 35 lf'],
       ['Underlayment', `${materials.underlaymentRolls} rolls`, '~4 squares per roll'],
       ['Ice & Water Shield', `${materials.iceWaterRolls} rolls`, 'At eave edges'],
       ['Starter Strip', `${materials.starterStripLf} lf`, 'Eave + rake perimeter'],
       ['Ridge Cap', `${materials.ridgeCapLf} lf`, 'Ridge + hip lines'],
+      ['Valley Metal', `${materials.valleyMetalLf} lf`, 'Valley edges (W-valley)'],
       ['Drip Edge', `${materials.dripEdgeLf} lf`, 'Eave + rake edges'],
       ['Step Flashing', `${materials.stepFlashingPcs} pcs`, 'Wall junctions'],
+      ['Roof-to-Wall Flashing', `${materials.roofToWallFlashingPcs} pcs`, '10 ft L-metal pieces'],
       ['Pipe Boots', `${materials.pipeBoots} pcs`, 'Est. 1 per 1,000 sq ft'],
-      ['Roofing Nails', `${materials.nailsLbs} lbs`, '~1.75 lbs per square'],
+      ['Coil Nails', `${materials.coilNailBoxes} boxes`, '7,200 nails/box'],
+      ['Hand Nails', `${materials.nailsLbs} lbs`, '~1.75 lbs per square'],
       ['Caulk', `${materials.caulkTubes} tubes`, '1 per 25 lf flashing'],
       ['Ridge Vent', `${materials.ridgeVentLf} lf`, 'Full ridge length'],
+      ['Sheathing (OSB)', `${materials.sheathingSheets} sheets`, '4x8 ft (tear-off)'],
     ];
 
     // Filter out zero-quantity rows
@@ -981,6 +994,79 @@ export async function generateReport(
     doc.setTextColor(...darkText);
     doc.text(lines, margin + 3, y);
     y += lines.length * 4 + 6;
+  }
+
+  // ============ APPENDIX: METHODOLOGY & DATA SOURCES ============
+  doc.addPage();
+  y = margin;
+  y = addText('APPENDIX: METHODOLOGY & DATA SOURCES', margin, y, 12, primaryColor, 'bold');
+  y += 2;
+  y = addLine(y);
+  y += 6;
+
+  // Accuracy Score Section
+  y = addText('Measurement Accuracy', margin, y, 10, darkText, 'bold');
+  y += 5;
+
+  const methodologyLines = [
+    `Accuracy Score: ${accuracy.grade} (${accuracy.overallScore}/100) — ${accuracy.label}`,
+    '',
+    'Score Factors:',
+    `  Data Source (30%): ${accuracy.factors.dataSource.label} — ${accuracy.factors.dataSource.score}/${accuracy.factors.dataSource.weight}`,
+    `  Imagery Quality (20%): ${accuracy.factors.imageryQuality.label} — ${accuracy.factors.imageryQuality.score}/${accuracy.factors.imageryQuality.weight}`,
+    `  Facet Detection (15%): ${accuracy.factors.facetCount.label} — ${accuracy.factors.facetCount.score}/${accuracy.factors.facetCount.weight}`,
+    `  Area Cross-Validation (25%): ${accuracy.factors.areaValidation.label} — ${accuracy.factors.areaValidation.score}/${accuracy.factors.areaValidation.weight}`,
+    `  Pitch Consistency (10%): ${accuracy.factors.pitchConsistency.label} — ${accuracy.factors.pitchConsistency.score}/${accuracy.factors.pitchConsistency.weight}`,
+  ];
+
+  for (const line of methodologyLines) {
+    if (line === '') { y += 2; continue; }
+    addText(line, margin + 3, y, 7.5, grayText);
+    y += 4.5;
+  }
+  y += 6;
+
+  // Data Sources
+  y = addText('Data Sources', margin, y, 10, darkText, 'bold');
+  y += 5;
+
+  const dataSources = [
+    'Satellite Imagery: Google Maps Platform (high-resolution satellite tiles)',
+    'Roof Geometry: Google Solar API buildingInsights endpoint (roof segment pitch, azimuth, area)',
+    'Elevation Data: Google Solar API dataLayers endpoint (Digital Surface Model GeoTIFF)',
+    'Building Outline: LIDAR mask extraction via contour analysis on DSM/mask GeoTIFFs',
+    'AI Edge Detection: Anthropic Claude Vision API (ridge, hip, valley, rake, eave classification)',
+    'Solar Production: Google Solar API yearlyEnergyDcKwh (weather-validated irradiance model)',
+    'Financial Data: Google Solar API financialAnalyses (federal, state, utility incentives)',
+  ];
+  for (const src of dataSources) {
+    addText(`\u2022 ${src}`, margin + 3, y, 7.5, grayText);
+    y += 5;
+  }
+  y += 6;
+
+  // Methodology
+  y = addText('Measurement Methodology', margin, y, 10, darkText, 'bold');
+  y += 5;
+
+  const methodology = [
+    '1. Building outline extraction from LIDAR mask (contour tracing on Google Solar API roof mask GeoTIFF)',
+    '2. Roof segment matching using Solar API roofSegmentStats (pitch, azimuth, area per segment)',
+    '3. 3D pitch verification from Digital Surface Model elevation sampling (plane-fit R\u00B2 analysis)',
+    '4. Facet partitioning via hybrid strategy: azimuth-based assignment when segment centers are',
+    '   clustered, Voronoi distance-based when spread. Falls back to Solar API areas directly.',
+    '5. True surface area computed from pitch-adjusted flat area or DSM 3D triangulation',
+    '6. Waste factor derived from structure complexity analysis (facet count, hip/valley ratio, edge patterns)',
+    '7. Material quantities estimated using industry-standard ratios (3 bundles/square, etc.)',
+    '',
+    'Disclaimer: Measurements are derived from satellite imagery, LIDAR data, and AI analysis.',
+    'Actual conditions may vary. This report is intended as an estimate and should be verified',
+    'by on-site inspection for critical applications such as insurance claims or construction bids.',
+  ];
+  for (const line of methodology) {
+    if (line === '') { y += 2; continue; }
+    addText(line, margin + 3, y, 7.5, grayText);
+    y += 4.5;
   }
 
   // ============ FOOTER & PAGE DECORATION ============

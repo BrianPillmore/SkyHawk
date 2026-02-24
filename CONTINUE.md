@@ -466,7 +466,7 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1968 tests across 76 files)
+- Vitest (1988 tests across 78 files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
