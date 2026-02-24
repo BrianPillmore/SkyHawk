@@ -33,7 +33,7 @@ export default function MeasurementSelector() {
           )}
           <button
             onClick={startNewMeasurement}
-            className="px-2 py-1 text-[10px] font-medium bg-skyhawk-900/40 hover:bg-skyhawk-900/60 text-skyhawk-400 rounded transition-colors border border-skyhawk-900/50"
+            className="px-2 py-1 text-[10px] font-medium bg-gotruf-900/40 hover:bg-gotruf-900/60 text-gotruf-400 rounded transition-colors border border-gotruf-900/50"
             title="Start new measurement"
           >
             + New
@@ -53,7 +53,7 @@ export default function MeasurementSelector() {
                 key={m.id}
                 className={`flex items-center justify-between px-2 py-1.5 rounded text-xs cursor-pointer transition-all ${
                   isActive
-                    ? 'bg-skyhawk-900/30 ring-1 ring-skyhawk-700 text-skyhawk-300'
+                    ? 'bg-gotruf-900/30 ring-1 ring-gotruf-700 text-gotruf-300'
                     : 'text-gray-400 hover:bg-gray-800 hover:text-gray-300'
                 }`}
                 onClick={() => { if (!isActive) loadMeasurement(m.id); }}

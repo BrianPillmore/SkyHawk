@@ -59,7 +59,7 @@ export default function AddressSearch({ searchInputRef }: { searchInputRef?: Rea
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             placeholder={apiKey ? "Search property address..." : "Enter address (API key required for autocomplete)"}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-skyhawk-500 focus:border-transparent"
+            className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gotruf-500 focus:border-transparent"
           />
         </div>
         <button
@@ -84,7 +84,7 @@ export default function AddressSearch({ searchInputRef }: { searchInputRef?: Rea
               value={manualAddress}
               onChange={(e) => setManualAddress(e.target.value)}
               placeholder="Address (optional)"
-              className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
@@ -93,7 +93,7 @@ export default function AddressSearch({ searchInputRef }: { searchInputRef?: Rea
                 value={manualLat}
                 onChange={(e) => setManualLat(e.target.value)}
                 placeholder="Latitude"
-                className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
               />
               <input
                 type="number"
@@ -101,13 +101,13 @@ export default function AddressSearch({ searchInputRef }: { searchInputRef?: Rea
                 value={manualLng}
                 onChange={(e) => setManualLng(e.target.value)}
                 placeholder="Longitude"
-                className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                className="bg-gray-900 border border-gray-700 rounded px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
               />
             </div>
             <div className="flex gap-2">
               <button
                 onClick={handleManualSubmit}
-                className="flex-1 px-3 py-2 bg-skyhawk-600 hover:bg-skyhawk-500 text-white text-sm font-medium rounded transition-colors"
+                className="flex-1 px-3 py-2 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded transition-colors"
               >
                 Create Property
               </button>

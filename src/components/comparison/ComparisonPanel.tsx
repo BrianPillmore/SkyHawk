@@ -44,12 +44,12 @@ export default function ComparisonPanel() {
             value={labelInput}
             onChange={(e) => setLabelInput(e.target.value)}
             placeholder="Label (e.g., Before Storm)"
-            className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+            className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
           />
           <button
             onClick={handleCapture}
             disabled={capturing}
-            className="px-3 py-1.5 bg-skyhawk-600 hover:bg-skyhawk-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors whitespace-nowrap"
+            className="px-3 py-1.5 bg-gotruf-600 hover:bg-gotruf-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors whitespace-nowrap"
           >
             {capturing ? 'Capturing...' : 'Capture'}
           </button>
@@ -101,7 +101,7 @@ export default function ComparisonPanel() {
               <select
                 value={beforeId || ''}
                 onChange={(e) => setBeforeId(e.target.value || null)}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
               >
                 <option value="">Select...</option>
                 {snapshots.map((s) => (
@@ -114,7 +114,7 @@ export default function ComparisonPanel() {
               <select
                 value={afterId || ''}
                 onChange={(e) => setAfterId(e.target.value || null)}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
               >
                 <option value="">Select...</option>
                 {snapshots.map((s) => (
@@ -173,7 +173,7 @@ export default function ComparisonPanel() {
                 max="95"
                 value={sliderPos}
                 onChange={(e) => setSliderPos(Number(e.target.value))}
-                className="w-full h-1 accent-skyhawk-500"
+                className="w-full h-1 accent-gotruf-500"
               />
               <div className="flex justify-between text-[10px] text-gray-500">
                 <span>Before</span>

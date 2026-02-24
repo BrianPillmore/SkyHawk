@@ -463,7 +463,7 @@ export default function RoofViewer3D({
         onClick={() => setVisible((v) => !v)}
         className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg border transition-colors ${
           visible
-            ? 'bg-skyhawk-900/30 border-skyhawk-600 text-skyhawk-300'
+            ? 'bg-gotruf-900/30 border-gotruf-600 text-gotruf-300'
             : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:border-gray-600 hover:text-gray-300'
         }`}
       >

@@ -73,7 +73,7 @@ export default function WallsPanel() {
             </div>
           </div>
           <button onClick={addWall}
-            className="w-full px-3 py-2 bg-skyhawk-600 hover:bg-skyhawk-500 text-white text-sm rounded-lg transition-colors">
+            className="w-full px-3 py-2 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm rounded-lg transition-colors">
             Add Wall Segment
           </button>
         </div>

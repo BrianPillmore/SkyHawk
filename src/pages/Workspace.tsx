@@ -34,7 +34,7 @@ export default function Workspace() {
           {activePropertyId && !activeMeasurement && (
             <button
               onClick={startNewMeasurement}
-              className="px-4 py-2.5 bg-skyhawk-600 hover:bg-skyhawk-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
+              className="px-4 py-2.5 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap"
             >
               New Measurement
             </button>
@@ -50,7 +50,7 @@ export default function Workspace() {
             onClick={() => setActivePanel(tab.id)}
             className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors ${
               activePanel === tab.id
-                ? 'text-skyhawk-400 border-b-2 border-skyhawk-500 bg-gray-800/50'
+                ? 'text-gotruf-400 border-b-2 border-gotruf-500 bg-gray-800/50'
                 : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800/30'
             }`}
           >

@@ -66,7 +66,7 @@ export default function ToolsPanel() {
             onClick={() => setDrawingMode(tool.mode)}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
               drawingMode === tool.mode
-                ? 'bg-skyhawk-900/50 text-skyhawk-300 ring-1 ring-skyhawk-700'
+                ? 'bg-gotruf-900/50 text-gotruf-300 ring-1 ring-gotruf-700'
                 : 'text-gray-300 hover:bg-gray-800 hover:text-white'
             }`}
             title={tool.description}

@@ -19,11 +19,11 @@ export default function Header() {
           </svg>
         </button>
         <div className="flex items-center gap-2">
-          <svg className="w-7 h-7 text-skyhawk-500" viewBox="0 0 24 24" fill="currentColor">
+          <svg className="w-7 h-7 text-gotruf-500" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L1 12h3v9h6v-6h4v6h6v-9h3L12 2zm0 2.84L19 12h-1.5v7.5h-3V13.5h-5v5.5h-3V12H5L12 4.84z" />
           </svg>
           <h1 className="text-lg font-bold text-white tracking-tight">
-            Sky<span className="text-skyhawk-500">Hawk</span>
+            Got<span className="text-gotruf-500">Ruf</span>
           </h1>
         </div>
       </div>

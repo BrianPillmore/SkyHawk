@@ -89,7 +89,7 @@ export default function MeasurementsPanel() {
                 onClick={() => selectFacet(facet.id)}
                 className={`p-3 rounded-lg border cursor-pointer transition-all ${
                   selectedFacetId === facet.id
-                    ? 'bg-skyhawk-900/30 border-skyhawk-600'
+                    ? 'bg-gotruf-900/30 border-gotruf-600'
                     : 'bg-gray-800/50 border-gray-700/50 hover:border-gray-600'
                 }`}
               >
@@ -122,7 +122,7 @@ export default function MeasurementsPanel() {
                         value={facet.pitch}
                         onChange={(e) => updateFacetPitch(facet.id, Number(e.target.value))}
                         onClick={(e) => e.stopPropagation()}
-                        className="w-20 h-1 accent-skyhawk-500"
+                        className="w-20 h-1 accent-gotruf-500"
                       />
                       <span className="text-white font-medium w-10 text-right">
                         {formatPitch(facet.pitch)}
@@ -182,7 +182,7 @@ export default function MeasurementsPanel() {
                       value={edge.type}
                       onChange={(e) => { e.stopPropagation(); updateEdgeType(edge.id, e.target.value as EdgeType); }}
                       onClick={(e) => e.stopPropagation()}
-                      className="flex-1 bg-gray-800 border border-gray-700 rounded px-1.5 py-1 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                      className="flex-1 bg-gray-800 border border-gray-700 rounded px-1.5 py-1 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
                     >
                       {EDGE_TYPE_OPTIONS.map((t) => (
                         <option key={t} value={t}>{EDGE_LABELS[t]}</option>
@@ -235,14 +235,14 @@ export default function MeasurementsPanel() {
                     key={row.wastePercent}
                     className={`border-b border-gray-700/50 ${
                       row.wastePercent === activeMeasurement.suggestedWastePercent
-                        ? 'bg-skyhawk-900/30 text-skyhawk-300'
+                        ? 'bg-gotruf-900/30 text-gotruf-300'
                         : 'text-gray-300'
                     }`}
                   >
                     <td className="px-3 py-1.5">
                       {row.wastePercent}%
                       {row.wastePercent === activeMeasurement.suggestedWastePercent && (
-                        <span className="ml-1 text-skyhawk-500 text-[10px]">suggested</span>
+                        <span className="ml-1 text-gotruf-500 text-[10px]">suggested</span>
                       )}
                     </td>
                     <td className="px-3 py-1.5 text-right">{formatArea(row.totalAreaWithWaste)}</td>

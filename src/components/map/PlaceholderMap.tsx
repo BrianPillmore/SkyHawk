@@ -21,7 +21,7 @@ export default function PlaceholderMap() {
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="max-w-lg text-center p-8">
             <div className="w-20 h-20 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-gray-700">
-              <svg className="w-10 h-10 text-skyhawk-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 text-gotruf-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
             </div>
@@ -33,7 +33,7 @@ export default function PlaceholderMap() {
             <div className="bg-gray-800/80 rounded-lg p-4 text-left border border-gray-700">
               <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wider">Setup Instructions</p>
               <ol className="text-sm text-gray-300 space-y-2 list-decimal list-inside">
-                <li>Go to <span className="text-skyhawk-400">Google Cloud Console</span></li>
+                <li>Go to <span className="text-gotruf-400">Google Cloud Console</span></li>
                 <li>Enable Maps JavaScript API, Places API, Geocoding API</li>
                 <li>Create an API key with appropriate restrictions</li>
                 <li>Create a <code className="bg-gray-700 px-1.5 py-0.5 rounded text-xs">.env</code> file in the project root</li>
@@ -63,7 +63,7 @@ export default function PlaceholderMap() {
       {drawingMode !== 'pan' && drawingMode !== 'select' && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-800/90 backdrop-blur px-4 py-2 rounded-lg border border-gray-700/50 z-10">
           <p className="text-sm text-gray-300">
-            <span className="text-skyhawk-400 font-medium">
+            <span className="text-gotruf-400 font-medium">
               {drawingMode === 'outline' ? 'Drawing Mode' : drawingMode}
             </span>
             {' — Connect Google Maps API to enable drawing on satellite imagery'}

@@ -6,7 +6,7 @@ import { captureMapScreenshot } from '../../utils/mapCapture';
 export default function ReportPanel() {
   const { activeMeasurement, activePropertyId, properties, saveMeasurement } = useStore();
   const [generating, setGenerating] = useState(false);
-  const [companyName, setCompanyName] = useState('SkyHawk Reports');
+  const [companyName, setCompanyName] = useState('GotRuf Reports');
   const [notes, setNotes] = useState('');
   const [includeMap, setIncludeMap] = useState(true);
   const [includeDamage, setIncludeDamage] = useState(true);
@@ -68,7 +68,7 @@ export default function ReportPanel() {
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-gotruf-500"
               placeholder="Your Company Name"
             />
           </div>
@@ -79,7 +79,7 @@ export default function ReportPanel() {
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-skyhawk-500 resize-none"
+              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-gotruf-500 resize-none"
               placeholder="Additional notes for the report..."
             />
           </div>
@@ -98,7 +98,7 @@ export default function ReportPanel() {
                 type="checkbox"
                 checked={includeMap}
                 onChange={(e) => setIncludeMap(e.target.checked)}
-                className="accent-skyhawk-500"
+                className="accent-gotruf-500"
               />
               <span>Aerial view screenshot</span>
             </label>
@@ -125,7 +125,7 @@ export default function ReportPanel() {
                 type="checkbox"
                 checked={includeDamage}
                 onChange={(e) => setIncludeDamage(e.target.checked)}
-                className="accent-skyhawk-500"
+                className="accent-gotruf-500"
               />
               <span>
                 Damage assessment annotations
@@ -139,7 +139,7 @@ export default function ReportPanel() {
                 type="checkbox"
                 checked={includeClaims}
                 onChange={(e) => setIncludeClaims(e.target.checked)}
-                className="accent-skyhawk-500"
+                className="accent-gotruf-500"
               />
               <span>
                 Claims information
@@ -153,7 +153,7 @@ export default function ReportPanel() {
                 type="checkbox"
                 checked={includeMultiStructure}
                 onChange={(e) => setIncludeMultiStructure(e.target.checked)}
-                className="accent-skyhawk-500"
+                className="accent-gotruf-500"
               />
               <span>
                 Multi-structure summary
@@ -167,7 +167,7 @@ export default function ReportPanel() {
                 type="checkbox"
                 checked={includeSolar}
                 onChange={(e) => setIncludeSolar(e.target.checked)}
-                className="accent-skyhawk-500"
+                className="accent-gotruf-500"
               />
               <span>Solar potential analysis</span>
             </label>
@@ -188,7 +188,7 @@ export default function ReportPanel() {
         <button
           onClick={handleGenerateReport}
           disabled={!hasData || generating}
-          className="w-full px-4 py-2.5 bg-skyhawk-600 hover:bg-skyhawk-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full px-4 py-2.5 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {generating ? 'Generating...' : 'Generate PDF Report'}
         </button>

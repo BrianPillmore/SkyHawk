@@ -97,7 +97,7 @@ export default function AdjusterPanel() {
           </h3>
           <button
             onClick={() => setShowAdjusterForm(!showAdjusterForm)}
-            className="px-2 py-1 text-[10px] font-medium bg-skyhawk-600 hover:bg-skyhawk-500 text-white rounded transition-colors"
+            className="px-2 py-1 text-[10px] font-medium bg-gotruf-600 hover:bg-gotruf-500 text-white rounded transition-colors"
           >
             {showAdjusterForm ? 'Cancel' : '+ Add'}
           </button>
@@ -111,26 +111,26 @@ export default function AdjusterPanel() {
               value={adjName}
               onChange={(e) => setAdjName(e.target.value)}
               placeholder="Name *"
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
             />
             <input
               type="email"
               value={adjEmail}
               onChange={(e) => setAdjEmail(e.target.value)}
               placeholder="Email"
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
             />
             <input
               type="tel"
               value={adjPhone}
               onChange={(e) => setAdjPhone(e.target.value)}
               placeholder="Phone"
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
             />
             <select
               value={adjSpecialty}
               onChange={(e) => setAdjSpecialty(e.target.value as AdjusterSpecialty)}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
             >
               {SPECIALTY_OPTIONS.map((sp) => (
                 <option key={sp} value={sp}>
@@ -141,7 +141,7 @@ export default function AdjusterPanel() {
             <button
               onClick={handleAddAdjuster}
               disabled={!adjName.trim()}
-              className="w-full px-3 py-1.5 bg-skyhawk-600 hover:bg-skyhawk-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors"
+              className="w-full px-3 py-1.5 bg-gotruf-600 hover:bg-gotruf-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors"
             >
               Add Adjuster
             </button>
@@ -230,7 +230,7 @@ export default function AdjusterPanel() {
           </h3>
           <button
             onClick={() => setShowInspectionForm(!showInspectionForm)}
-            className="px-2 py-1 text-[10px] font-medium bg-skyhawk-600 hover:bg-skyhawk-500 text-white rounded transition-colors"
+            className="px-2 py-1 text-[10px] font-medium bg-gotruf-600 hover:bg-gotruf-500 text-white rounded transition-colors"
           >
             {showInspectionForm ? 'Cancel' : '+ New'}
           </button>
@@ -242,7 +242,7 @@ export default function AdjusterPanel() {
             <select
               value={inspClaimId}
               onChange={(e) => setInspClaimId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
             >
               <option value="">Select claim *</option>
               {allClaims.map((c) => (
@@ -256,7 +256,7 @@ export default function AdjusterPanel() {
             <select
               value={inspAdjusterId}
               onChange={(e) => setInspAdjusterId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
             >
               <option value="">Select adjuster *</option>
               {availableAdjusters.map((a) => (
@@ -277,13 +277,13 @@ export default function AdjusterPanel() {
                 type="date"
                 value={inspDate}
                 onChange={(e) => setInspDate(e.target.value)}
-                className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
               />
               <input
                 type="time"
                 value={inspTime}
                 onChange={(e) => setInspTime(e.target.value)}
-                className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+                className="flex-1 bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
               />
             </div>
 
@@ -293,13 +293,13 @@ export default function AdjusterPanel() {
               onChange={(e) => setInspNotes(e.target.value)}
               rows={2}
               placeholder="Inspection notes..."
-              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500 resize-none"
+              className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500 resize-none"
             />
 
             <button
               onClick={handleSchedule}
               disabled={!inspClaimId || !inspAdjusterId || !inspDate || !inspTime}
-              className="w-full px-3 py-1.5 bg-skyhawk-600 hover:bg-skyhawk-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors"
+              className="w-full px-3 py-1.5 bg-gotruf-600 hover:bg-gotruf-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors"
             >
               Schedule Inspection
             </button>

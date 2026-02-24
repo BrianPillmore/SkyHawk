@@ -18,7 +18,7 @@ const INITIAL_MEMBERS: OrganizationMember[] = [
     organizationId: 'org1',
     userId: 'u1',
     userName: 'Sarah Chen',
-    email: 'sarah@skyhawk.io',
+    email: 'sarah@gotruf.io',
     role: 'admin',
     joinedAt: '2025-01-15T10:00:00Z',
     lastActiveAt: '2026-02-22T09:30:00Z',
@@ -28,7 +28,7 @@ const INITIAL_MEMBERS: OrganizationMember[] = [
     organizationId: 'org1',
     userId: 'u2',
     userName: 'James Rodriguez',
-    email: 'james@skyhawk.io',
+    email: 'james@gotruf.io',
     role: 'manager',
     joinedAt: '2025-03-10T14:00:00Z',
     lastActiveAt: '2026-02-21T16:45:00Z',
@@ -38,7 +38,7 @@ const INITIAL_MEMBERS: OrganizationMember[] = [
     organizationId: 'org1',
     userId: 'u3',
     userName: 'Mike Thompson',
-    email: 'mike@skyhawk.io',
+    email: 'mike@gotruf.io',
     role: 'adjuster',
     joinedAt: '2025-06-01T08:00:00Z',
     lastActiveAt: '2026-02-20T11:15:00Z',
@@ -48,7 +48,7 @@ const INITIAL_MEMBERS: OrganizationMember[] = [
     organizationId: 'org1',
     userId: 'u4',
     userName: 'Lisa Park',
-    email: 'lisa@skyhawk.io',
+    email: 'lisa@gotruf.io',
     role: 'roofer',
     joinedAt: '2025-08-20T12:00:00Z',
     lastActiveAt: '2026-02-19T14:00:00Z',
@@ -58,7 +58,7 @@ const INITIAL_MEMBERS: OrganizationMember[] = [
     organizationId: 'org1',
     userId: 'u5',
     userName: 'Tom Davis',
-    email: 'tom@skyhawk.io',
+    email: 'tom@gotruf.io',
     role: 'viewer',
     joinedAt: '2025-11-05T09:00:00Z',
     lastActiveAt: '2026-02-18T10:30:00Z',
@@ -259,7 +259,7 @@ export default function EnterprisePanel() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 py-1.5 px-2 text-xs font-medium rounded transition-colors ${
               activeTab === tab.id
-                ? 'bg-skyhawk-600 text-white'
+                ? 'bg-gotruf-600 text-white'
                 : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700'
             }`}
           >
@@ -275,7 +275,7 @@ export default function EnterprisePanel() {
           {!showInviteForm && (
             <button
               onClick={() => setShowInviteForm(true)}
-              className="w-full py-2 bg-skyhawk-600 hover:bg-skyhawk-700 text-white text-sm font-medium rounded transition-colors"
+              className="w-full py-2 bg-gotruf-600 hover:bg-gotruf-700 text-white text-sm font-medium rounded transition-colors"
             >
               + Invite Member
             </button>
@@ -290,19 +290,19 @@ export default function EnterprisePanel() {
                 placeholder="Full Name"
                 value={inviteName}
                 onChange={(e) => setInviteName(e.target.value)}
-                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-skyhawk-500"
+                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-gotruf-500"
               />
               <input
                 type="email"
                 placeholder="Email Address"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
-                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-skyhawk-500"
+                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-gotruf-500"
               />
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as UserRole)}
-                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 focus:outline-none focus:border-skyhawk-500"
+                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 focus:outline-none focus:border-gotruf-500"
               >
                 {ALL_ROLES.map((role) => (
                   <option key={role} value={role}>
@@ -313,7 +313,7 @@ export default function EnterprisePanel() {
               <div className="flex gap-2">
                 <button
                   onClick={handleInviteMember}
-                  className="flex-1 py-1.5 bg-skyhawk-600 hover:bg-skyhawk-700 text-white text-sm rounded transition-colors"
+                  className="flex-1 py-1.5 bg-gotruf-600 hover:bg-gotruf-700 text-white text-sm rounded transition-colors"
                 >
                   Send Invite
                 </button>
@@ -350,7 +350,7 @@ export default function EnterprisePanel() {
                     <select
                       value={member.role}
                       onChange={(e) => handleRoleChange(member.id, e.target.value as UserRole)}
-                      className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs text-gray-300 focus:outline-none focus:border-skyhawk-500"
+                      className="flex-1 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs text-gray-300 focus:outline-none focus:border-gotruf-500"
                     >
                       {ALL_ROLES.map((role) => (
                         <option key={role} value={role}>
@@ -381,7 +381,7 @@ export default function EnterprisePanel() {
             <select
               value={auditActionFilter}
               onChange={(e) => setAuditActionFilter(e.target.value)}
-              className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 focus:outline-none focus:border-skyhawk-500"
+              className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 focus:outline-none focus:border-gotruf-500"
             >
               {AUDIT_ACTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -394,14 +394,14 @@ export default function EnterprisePanel() {
                 type="date"
                 value={auditStartDate}
                 onChange={(e) => setAuditStartDate(e.target.value)}
-                className="flex-1 px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-gray-200 focus:outline-none focus:border-skyhawk-500"
+                className="flex-1 px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-gray-200 focus:outline-none focus:border-gotruf-500"
                 placeholder="Start date"
               />
               <input
                 type="date"
                 value={auditEndDate}
                 onChange={(e) => setAuditEndDate(e.target.value)}
-                className="flex-1 px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-gray-200 focus:outline-none focus:border-skyhawk-500"
+                className="flex-1 px-2 py-1.5 bg-gray-900 border border-gray-700 rounded text-xs text-gray-200 focus:outline-none focus:border-gotruf-500"
                 placeholder="End date"
               />
             </div>
@@ -418,7 +418,7 @@ export default function EnterprisePanel() {
                 className="bg-gray-800 rounded p-2.5 border border-gray-700"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-skyhawk-400">
+                  <span className="text-xs font-medium text-gotruf-400">
                     {formatAuditAction(entry.action)}
                   </span>
                   <span className="text-xs text-gray-500">
@@ -444,7 +444,7 @@ export default function EnterprisePanel() {
           {!showKeyForm && (
             <button
               onClick={() => setShowKeyForm(true)}
-              className="w-full py-2 bg-skyhawk-600 hover:bg-skyhawk-700 text-white text-sm font-medium rounded transition-colors"
+              className="w-full py-2 bg-gotruf-600 hover:bg-gotruf-700 text-white text-sm font-medium rounded transition-colors"
             >
               + Create API Key
             </button>
@@ -459,12 +459,12 @@ export default function EnterprisePanel() {
                 placeholder="Key Name (e.g., Production API)"
                 value={newKeyName}
                 onChange={(e) => setNewKeyName(e.target.value)}
-                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-skyhawk-500"
+                className="w-full px-3 py-1.5 bg-gray-900 border border-gray-700 rounded text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-gotruf-500"
               />
               <div className="flex gap-2">
                 <button
                   onClick={handleCreateApiKey}
-                  className="flex-1 py-1.5 bg-skyhawk-600 hover:bg-skyhawk-700 text-white text-sm rounded transition-colors"
+                  className="flex-1 py-1.5 bg-gotruf-600 hover:bg-gotruf-700 text-white text-sm rounded transition-colors"
                 >
                   Create Key
                 </button>
@@ -497,7 +497,7 @@ export default function EnterprisePanel() {
                     Revoke
                   </button>
                 </div>
-                <p className="text-xs font-mono text-skyhawk-400 mb-1">
+                <p className="text-xs font-mono text-gotruf-400 mb-1">
                   {maskApiKey(key.prefix)}
                 </p>
                 <div className="flex items-center gap-2 text-xs text-gray-500">

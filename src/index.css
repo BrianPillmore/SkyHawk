@@ -1,18 +1,6 @@
 @import "tailwindcss";
 
 @theme {
-  --color-skyhawk-50: #eff8ff;
-  --color-skyhawk-100: #dbeefe;
-  --color-skyhawk-200: #bfe2fe;
-  --color-skyhawk-300: #93d1fd;
-  --color-skyhawk-400: #60b6fa;
-  --color-skyhawk-500: #3b96f6;
-  --color-skyhawk-600: #2578eb;
-  --color-skyhawk-700: #1d62d8;
-  --color-skyhawk-800: #1e50af;
-  --color-skyhawk-900: #1e458a;
-  --color-skyhawk-950: #172b54;
-
   /* GotRuf brand colors */
   --color-gotruf-50: #fff7ed;
   --color-gotruf-100: #ffedd5;

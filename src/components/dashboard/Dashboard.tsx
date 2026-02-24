@@ -7,14 +7,14 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Hero */}
-      <div className="bg-gradient-to-br from-gray-900 via-skyhawk-950 to-gray-900 border-b border-gray-800">
+      <div className="bg-gradient-to-br from-gray-900 via-gotruf-950 to-gray-900 border-b border-gray-800">
         <div className="max-w-6xl mx-auto px-6 py-16">
           <div className="flex items-center gap-3 mb-4">
-            <svg className="w-10 h-10 text-skyhawk-500" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="w-10 h-10 text-gotruf-500" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L1 12h3v9h6v-6h4v6h6v-9h3L12 2zm0 2.84L19 12h-1.5v7.5h-3V13.5h-5v5.5h-3V12H5L12 4.84z" />
             </svg>
             <h1 className="text-3xl font-bold">
-              Sky<span className="text-skyhawk-500">Hawk</span>
+              Got<span className="text-gotruf-500">Ruf</span>
             </h1>
           </div>
           <p className="text-lg text-gray-400 mb-2">
@@ -58,7 +58,7 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
             {onAddProperty && (
               <button
                 onClick={onAddProperty}
-                className="flex items-center gap-2 px-4 py-2 bg-skyhawk-600 hover:bg-skyhawk-500 text-white text-sm font-medium rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -70,10 +70,10 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
 
           {properties.length === 0 ? (
             <div
-              className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center cursor-pointer hover:border-skyhawk-600/50 transition-colors"
+              className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center cursor-pointer hover:border-gotruf-600/50 transition-colors"
               onClick={onAddProperty}
             >
-              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-skyhawk-900/30">
+              <div className="w-16 h-16 bg-gray-800 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:bg-gotruf-900/30">
                 <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                 </svg>
@@ -95,7 +95,7 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="font-medium text-white group-hover:text-skyhawk-400 transition-colors">
+                        <h3 className="font-medium text-white group-hover:text-gotruf-400 transition-colors">
                           {property.address}
                         </h3>
                         <p className="text-xs text-gray-500">

@@ -823,7 +823,7 @@ export default function MapView() {
     return (
       <div className="flex-1 flex items-center justify-center bg-gray-950">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-skyhawk-500 border-t-transparent rounded-full mx-auto mb-3" />
+          <div className="animate-spin w-8 h-8 border-2 border-gotruf-500 border-t-transparent rounded-full mx-auto mb-3" />
           <p className="text-gray-400 text-sm">Loading satellite imagery...</p>
         </div>
       </div>
@@ -842,7 +842,7 @@ export default function MapView() {
             onClick={() => useStore.getState().setMapType(type)}
             className={`px-3 py-1.5 text-xs font-medium transition-colors ${
               mapType === type
-                ? 'bg-skyhawk-600 text-white'
+                ? 'bg-gotruf-600 text-white'
                 : 'text-gray-400 hover:text-white hover:bg-gray-800'
             }`}
           >
@@ -887,7 +887,7 @@ export default function MapView() {
       {drawingMode !== 'pan' && drawingMode !== 'select' && (
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-gray-900/90 backdrop-blur px-4 py-2 rounded-lg border border-gray-700/50 z-10">
           <p className="text-sm text-gray-300">
-            <span className="text-skyhawk-400 font-medium">
+            <span className="text-gotruf-400 font-medium">
               {drawingMode === 'outline'
                 ? 'Drawing Outline'
                 : drawingMode === 'damage'

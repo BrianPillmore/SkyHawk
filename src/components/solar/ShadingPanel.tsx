@@ -42,12 +42,12 @@ export default function ShadingPanel() {
         <button
           onClick={() => setActiveTab('shading')}
           className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            activeTab === 'shading' ? 'bg-skyhawk-600 text-white' : 'text-gray-400 hover:text-white'
+            activeTab === 'shading' ? 'bg-gotruf-600 text-white' : 'text-gray-400 hover:text-white'
           }`}>Shading</button>
         <button
           onClick={() => setActiveTab('sunpath')}
           className={`flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-            activeTab === 'sunpath' ? 'bg-skyhawk-600 text-white' : 'text-gray-400 hover:text-white'
+            activeTab === 'sunpath' ? 'bg-gotruf-600 text-white' : 'text-gray-400 hover:text-white'
           }`}>Sun Path</button>
       </div>
 
@@ -60,7 +60,7 @@ export default function ShadingPanel() {
             </label>
             <input type="range" min={0} max={45} value={obstructionAngle}
               onChange={e => setObstructionAngle(Number(e.target.value))}
-              className="w-full accent-skyhawk-500" />
+              className="w-full accent-gotruf-500" />
             <p className="text-xs text-gray-600 mt-1">Average horizon angle from nearby trees/buildings</p>
           </div>
 

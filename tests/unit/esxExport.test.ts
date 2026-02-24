@@ -73,7 +73,7 @@ describe('buildESX', () => {
   it('should produce valid XML with header', () => {
     const esx = buildESX(createProperty(), createMeasurement());
     expect(esx).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-    expect(esx).toContain('<ESX version="3.0" generator="SkyHawk"');
+    expect(esx).toContain('<ESX version="3.0" generator="GotRuf"');
     expect(esx).toContain('</ESX>');
   });
 
@@ -98,7 +98,7 @@ describe('buildESX', () => {
 
   it('should generate claim number from measurement ID when not provided', () => {
     const esx = buildESX(createProperty(), createMeasurement());
-    expect(esx).toContain('<ClaimNumber>SKY-MEAS-ABC');
+    expect(esx).toContain('<ClaimNumber>GR-MEAS-ABC');
   });
 
   it('should include insured name', () => {

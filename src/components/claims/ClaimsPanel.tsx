@@ -46,7 +46,7 @@ export default function ClaimsPanel() {
         </h3>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-2 py-1 text-[10px] font-medium bg-skyhawk-600 hover:bg-skyhawk-500 text-white rounded transition-colors"
+          className="px-2 py-1 text-[10px] font-medium bg-gotruf-600 hover:bg-gotruf-500 text-white rounded transition-colors"
         >
           {showForm ? 'Cancel' : '+ New Claim'}
         </button>
@@ -60,25 +60,25 @@ export default function ClaimsPanel() {
             value={claimNumber}
             onChange={(e) => setClaimNumber(e.target.value)}
             placeholder="Claim number *"
-            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
           />
           <input
             type="text"
             value={insuredName}
             onChange={(e) => setInsuredName(e.target.value)}
             placeholder="Insured name"
-            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
           />
           <input
             type="date"
             value={dateOfLoss}
             onChange={(e) => setDateOfLoss(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-skyhawk-500"
+            className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-gotruf-500"
           />
           <button
             onClick={handleAdd}
             disabled={!claimNumber.trim()}
-            className="w-full px-3 py-1.5 bg-skyhawk-600 hover:bg-skyhawk-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors"
+            className="w-full px-3 py-1.5 bg-gotruf-600 hover:bg-gotruf-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-xs font-medium rounded transition-colors"
           >
             Create Claim
           </button>
@@ -185,7 +185,7 @@ export default function ClaimsPanel() {
                       value={claim.notes}
                       onChange={(e) => updateClaimNotes(claim.id, e.target.value)}
                       rows={2}
-                      className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-skyhawk-500 resize-none"
+                      className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1.5 text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-gotruf-500 resize-none"
                       placeholder="Add claim notes..."
                     />
                   </div>

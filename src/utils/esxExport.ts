@@ -24,11 +24,11 @@ export function buildESX(
   const lines: string[] = [];
 
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
-  lines.push('<ESX version="3.0" generator="SkyHawk" generatedAt="' + escXml(now) + '">');
+  lines.push('<ESX version="3.0" generator="GotRuf" generatedAt="' + escXml(now) + '">');
 
   // ── Claim Info ──
   lines.push('  <ClaimInfo>');
-  lines.push(`    <ClaimNumber>${escXml(claimNumber || 'SKY-' + measurement.id.slice(0, 8).toUpperCase())}</ClaimNumber>`);
+  lines.push(`    <ClaimNumber>${escXml(claimNumber || 'GR-' + measurement.id.slice(0, 8).toUpperCase())}</ClaimNumber>`);
   lines.push(`    <InsuredName>${escXml(insuredName || '')}</InsuredName>`);
   lines.push(`    <PropertyAddress>${escXml(property.address)}</PropertyAddress>`);
   lines.push(`    <City>${escXml(property.city)}</City>`);
@@ -133,7 +133,7 @@ export function exportESX(
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `skyhawk-claim-${property.address.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.esx`;
+  a.download = `gotruf-claim-${property.address.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.esx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

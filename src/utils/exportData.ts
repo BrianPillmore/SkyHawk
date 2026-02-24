@@ -85,7 +85,7 @@ export function exportMeasurementJSON(measurement: RoofMeasurement): void {
   const json = JSON.stringify(exportData, null, 2);
   triggerDownload(
     new Blob([json], { type: 'application/json' }),
-    `skyhawk-measurement-${dateStamp()}.json`
+    `gotruf-measurement-${dateStamp()}.json`
   );
 }
 
@@ -189,7 +189,7 @@ export function exportMeasurementGeoJSON(measurement: RoofMeasurement): void {
   const json = JSON.stringify(geojson, null, 2);
   triggerDownload(
     new Blob([json], { type: 'application/geo+json' }),
-    `skyhawk-measurement-${dateStamp()}.geojson`
+    `gotruf-measurement-${dateStamp()}.geojson`
   );
 }
 
@@ -269,6 +269,6 @@ export function exportMeasurementCSV(measurement: RoofMeasurement): void {
   const csv = buildCSV(measurement);
   triggerDownload(
     new Blob([csv], { type: 'text/csv' }),
-    `skyhawk-measurement-${dateStamp()}.csv`
+    `gotruf-measurement-${dateStamp()}.csv`
   );
 }

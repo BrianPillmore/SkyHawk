@@ -209,7 +209,7 @@ describe('generateReport', () => {
     const filename: string = mockSave.mock.calls[0][0];
     // Address spaces are replaced with dashes
     expect(filename).toContain('789-Oak-Blvd');
-    expect(filename).toMatch(/^SkyHawk-Roof-Report-/);
+    expect(filename).toMatch(/^GotRuf-Roof-Report-/);
     expect(filename).toMatch(/\.pdf$/);
   });
 
