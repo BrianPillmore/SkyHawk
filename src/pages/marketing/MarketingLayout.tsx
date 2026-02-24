@@ -1,9 +1,11 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
+import { useStore } from '../../store/useStore';
+import LoginModal from '../../components/LoginModal';
 
 function Logo() {
   return (
-    <Link to="/gotruf" className="flex items-center gap-2 group">
+    <Link to="/" className="flex items-center gap-2 group">
       <svg className="w-8 h-8 text-gotruf-500 group-hover:text-gotruf-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
         <path d="M12 2L1 12h3v9h6v-6h4v6h6v-9h3L12 2z" />
       </svg>
@@ -30,6 +32,8 @@ function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
 }
 
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const setShowLoginModal = useStore((s) => s.setShowLoginModal);
+
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
@@ -43,14 +47,14 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
           </button>
         </div>
         <nav className="flex flex-col gap-4">
-          <Link to="/gotruf/contractors" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Contractors</Link>
-          <Link to="/gotruf/adjusters" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Adjusters</Link>
-          <Link to="/gotruf/agents" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Agents</Link>
-          <Link to="/gotruf/homeowners" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Homeowners</Link>
-          <Link to="/gotruf/pricing" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">Pricing</Link>
+          <Link to="/contractors" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Contractors</Link>
+          <Link to="/adjusters" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Adjusters</Link>
+          <Link to="/agents" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Agents</Link>
+          <Link to="/homeowners" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">For Homeowners</Link>
+          <Link to="/pricing" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">Pricing</Link>
           <hr className="my-2 border-gray-200" />
-          <Link to="/login" onClick={onClose} className="text-gray-700 hover:text-gotruf-600 font-medium py-2">Log In</Link>
-          <Link to="/gotruf/signup" onClick={onClose} className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-semibold py-2 px-4 rounded-lg text-center transition-colors">
+          <button onClick={() => { onClose(); setShowLoginModal(true); }} className="text-left text-gray-700 hover:text-gotruf-600 font-medium py-2">Log In</button>
+          <Link to="/signup" onClick={onClose} className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-semibold py-2 px-4 rounded-lg text-center transition-colors">
             Get Free Report
           </Link>
         </nav>
@@ -61,6 +65,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 
 export default function MarketingLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const setShowLoginModal = useStore((s) => s.setShowLoginModal);
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -72,19 +77,22 @@ export default function MarketingLayout() {
 
             {/* Desktop nav */}
             <nav className="hidden lg:flex items-center gap-8">
-              <NavLink to="/gotruf/contractors">Contractors</NavLink>
-              <NavLink to="/gotruf/adjusters">Adjusters</NavLink>
-              <NavLink to="/gotruf/agents">Agents</NavLink>
-              <NavLink to="/gotruf/homeowners">Homeowners</NavLink>
-              <NavLink to="/gotruf/pricing">Pricing</NavLink>
+              <NavLink to="/contractors">Contractors</NavLink>
+              <NavLink to="/adjusters">Adjusters</NavLink>
+              <NavLink to="/agents">Agents</NavLink>
+              <NavLink to="/homeowners">Homeowners</NavLink>
+              <NavLink to="/pricing">Pricing</NavLink>
             </nav>
 
             <div className="hidden lg:flex items-center gap-4">
-              <Link to="/login" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+              >
                 Log In
-              </Link>
+              </button>
               <Link
-                to="/gotruf/signup"
+                to="/signup"
                 className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-semibold text-sm py-2 px-5 rounded-lg transition-colors shadow-sm"
               >
                 Get Free Report
@@ -105,6 +113,9 @@ export default function MarketingLayout() {
       </header>
 
       <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+
+      {/* Login Modal */}
+      <LoginModal />
 
       {/* Page content */}
       <main className="flex-1">
@@ -135,9 +146,9 @@ export default function MarketingLayout() {
             <div>
               <h3 className="text-white font-semibold text-sm mb-4">Product</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/gotruf/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link to="/gotruf/signup" className="hover:text-white transition-colors">Free Report</Link></li>
-                <li><Link to="/login" className="hover:text-white transition-colors">Log In</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link to="/signup" className="hover:text-white transition-colors">Free Report</Link></li>
+                <li><button onClick={() => setShowLoginModal(true)} className="hover:text-white transition-colors">Log In</button></li>
               </ul>
             </div>
 
@@ -145,10 +156,10 @@ export default function MarketingLayout() {
             <div>
               <h3 className="text-white font-semibold text-sm mb-4">Solutions</h3>
               <ul className="space-y-2 text-sm">
-                <li><Link to="/gotruf/contractors" className="hover:text-white transition-colors">Roofing Contractors</Link></li>
-                <li><Link to="/gotruf/adjusters" className="hover:text-white transition-colors">Insurance Adjusters</Link></li>
-                <li><Link to="/gotruf/agents" className="hover:text-white transition-colors">Insurance Agents</Link></li>
-                <li><Link to="/gotruf/homeowners" className="hover:text-white transition-colors">Homeowners</Link></li>
+                <li><Link to="/contractors" className="hover:text-white transition-colors">Roofing Contractors</Link></li>
+                <li><Link to="/adjusters" className="hover:text-white transition-colors">Insurance Adjusters</Link></li>
+                <li><Link to="/agents" className="hover:text-white transition-colors">Insurance Agents</Link></li>
+                <li><Link to="/homeowners" className="hover:text-white transition-colors">Homeowners</Link></li>
               </ul>
             </div>
 

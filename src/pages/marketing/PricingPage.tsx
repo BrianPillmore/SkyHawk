@@ -60,7 +60,7 @@ function PricingCardsSection() {
             </ul>
 
             <Link
-              to="/gotruf/signup"
+              to="/signup"
               className="mt-8 block text-center bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-6 rounded-xl transition-colors"
             >
               Get Started
@@ -106,7 +106,7 @@ function PricingCardsSection() {
             </ul>
 
             <Link
-              to="/gotruf/signup"
+              to="/signup"
               className="mt-8 block text-center bg-gotruf-500 hover:bg-gotruf-600 text-white font-bold py-3 px-6 rounded-xl transition-colors shadow-sm"
             >
               Start Pro Plan
@@ -260,7 +260,7 @@ function CTASection() {
         </p>
 
         <Link
-          to="/gotruf/signup"
+          to="/signup"
           className="mt-8 inline-block bg-white text-gotruf-700 font-bold text-lg py-3.5 px-10 rounded-xl hover:bg-gray-50 transition-colors shadow-lg"
         >
           Create Free Account

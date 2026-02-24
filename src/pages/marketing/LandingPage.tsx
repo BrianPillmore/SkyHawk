@@ -35,13 +35,13 @@ function HeroSection() {
 
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              to="/gotruf/signup"
+              to="/signup"
               className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-bold text-lg py-3.5 px-8 rounded-xl transition-all shadow-lg shadow-gotruf-500/25 hover:shadow-gotruf-500/40"
             >
               Get Your Free Report
             </Link>
             <Link
-              to="/gotruf/pricing"
+              to="/pricing"
               className="bg-white/10 hover:bg-white/15 text-white font-semibold text-lg py-3.5 px-8 rounded-xl transition-colors border border-white/20"
             >
               See Pricing
@@ -90,7 +90,7 @@ function TheDealSection() {
           </p>
           <p>
             Same satellite imagery. Same measurement types. Same accuracy
-            (we <Link to="/gotruf/pricing" className="text-gotruf-600 hover:text-gotruf-700 underline underline-offset-2">guarantee within 5%</Link> or
+            (we <Link to="/pricing" className="text-gotruf-600 hover:text-gotruf-700 underline underline-offset-2">guarantee within 5%</Link> or
             your money back). Just... <strong className="text-gray-900">75% cheaper</strong>.
           </p>
           <p>
@@ -169,7 +169,7 @@ function AudienceSection() {
       ),
       title: 'Roofing Contractors',
       description: 'Stop subsidizing EagleView\'s corporate retreat. Get the same measurements at a fraction of the cost.',
-      link: '/gotruf/contractors',
+      link: '/contractors',
       cta: 'Save on every job',
     },
     {
@@ -180,7 +180,7 @@ function AudienceSection() {
       ),
       title: 'Insurance Adjusters',
       description: 'Same accuracy. Friendlier receipt. Compliance-ready reports your carrier will actually accept.',
-      link: '/gotruf/adjusters',
+      link: '/adjusters',
       cta: 'See adjuster features',
     },
     {
@@ -191,7 +191,7 @@ function AudienceSection() {
       ),
       title: 'Insurance Agents',
       description: 'Enterprise features without enterprise pricing. Your policyholders won\'t know the difference. Your budget will.',
-      link: '/gotruf/agents',
+      link: '/agents',
       cta: 'Explore enterprise',
     },
     {
@@ -202,7 +202,7 @@ function AudienceSection() {
       ),
       title: 'Homeowners',
       description: 'Your first report is free. Know your roof before the contractor shows up. No surprises.',
-      link: '/gotruf/homeowners',
+      link: '/homeowners',
       cta: 'Get your free report',
     },
   ];
@@ -429,7 +429,7 @@ function CTASection() {
         </p>
 
         <Link
-          to="/gotruf/signup"
+          to="/signup"
           className="mt-8 inline-block bg-white text-gotruf-700 font-bold text-lg py-3.5 px-10 rounded-xl hover:bg-gray-50 transition-colors shadow-lg"
         >
           Create Free Account

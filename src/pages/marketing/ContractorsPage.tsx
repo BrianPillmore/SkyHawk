@@ -22,13 +22,13 @@ function HeroSection() {
 
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <Link
-              to="/gotruf/signup"
+              to="/signup"
               className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-bold text-lg py-3.5 px-8 rounded-xl transition-colors shadow-lg shadow-gotruf-500/25"
             >
               Get Your Free Report
             </Link>
             <Link
-              to="/gotruf/pricing"
+              to="/pricing"
               className="bg-white/10 hover:bg-white/15 text-white font-semibold text-lg py-3.5 px-8 rounded-xl transition-colors border border-white/20"
             >
               See Pricing
@@ -234,13 +234,13 @@ function CTASection() {
         </p>
         <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
           <Link
-            to="/gotruf/signup"
+            to="/signup"
             className="bg-white text-gotruf-700 font-bold text-lg py-3.5 px-10 rounded-xl hover:bg-gray-50 transition-colors shadow-lg"
           >
             Get Your Free Report
           </Link>
           <Link
-            to="/gotruf/pricing"
+            to="/pricing"
             className="bg-white/10 hover:bg-white/20 text-white font-semibold text-lg py-3.5 px-8 rounded-xl transition-colors border border-white/30"
           >
             Compare Plans

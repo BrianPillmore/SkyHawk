@@ -40,6 +40,8 @@ interface AppState {
   token: string | null;
   username: string | null;
   isAuthenticated: boolean;
+  showLoginModal: boolean;
+  setShowLoginModal: (show: boolean) => void;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
@@ -252,6 +254,8 @@ export const useStore = create<AppState>()(
         token: null,
         username: null,
         isAuthenticated: false,
+        showLoginModal: false,
+        setShowLoginModal: (show: boolean) => set({ showLoginModal: show }),
 
         login: async (username: string, password: string) => {
           const res = await fetch('/api/auth/login', {

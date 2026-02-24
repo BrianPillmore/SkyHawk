@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
 
 export default function SignupPage() {
@@ -10,6 +10,7 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const login = useStore((s) => s.login);
+  const setShowLoginModal = useStore((s) => s.setShowLoginModal);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
@@ -32,7 +33,7 @@ export default function SignupPage() {
       // TODO: Wire up to backend signup endpoint when available
       // For now, attempt login (backend will need a /register endpoint)
       await login(username, password);
-      navigate('/', { replace: true });
+      navigate('/dashboard', { replace: true });
     } catch {
       setError('Account creation is coming soon. For now, please contact us to get started.');
     } finally {
@@ -155,9 +156,9 @@ export default function SignupPage() {
         <div className="text-center mt-6">
           <p className="text-sm text-gray-500">
             Already have an account?{' '}
-            <Link to="/login" className="text-gotruf-600 hover:text-gotruf-700 font-medium">
+            <button onClick={() => setShowLoginModal(true)} className="text-gotruf-600 hover:text-gotruf-700 font-medium">
               Log in
-            </Link>
+            </button>
           </p>
         </div>
 

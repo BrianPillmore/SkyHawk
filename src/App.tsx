@@ -4,7 +4,6 @@ import { useStore } from './store/useStore';
 import Workspace from './pages/Workspace';
 import Dashboard from './components/dashboard/Dashboard';
 import AddressSearch from './components/map/AddressSearch';
-import Login from './pages/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import MarketingLayout from './pages/marketing/MarketingLayout';
 import LandingPage from './pages/marketing/LandingPage';
@@ -14,6 +13,7 @@ import AgentsPage from './pages/marketing/AgentsPage';
 import HomeownersPage from './pages/marketing/HomeownersPage';
 import PricingPage from './pages/marketing/PricingPage';
 import SignupPage from './pages/marketing/SignupPage';
+import LoginRedirect from './pages/Login';
 
 function DashboardPage() {
   const { activePropertyId } = useStore();
@@ -52,8 +52,8 @@ function DashboardPage() {
 export default function App() {
   return (
     <Routes>
-      {/* Marketing pages (public) */}
-      <Route path="/gotruf" element={<MarketingLayout />}>
+      {/* Marketing pages (public) — root-level */}
+      <Route element={<MarketingLayout />}>
         <Route index element={<LandingPage />} />
         <Route path="contractors" element={<ContractorsPage />} />
         <Route path="adjusters" element={<AdjustersPage />} />
@@ -63,9 +63,15 @@ export default function App() {
         <Route path="signup" element={<SignupPage />} />
       </Route>
 
+      {/* Legacy /gotruf/* redirects */}
+      <Route path="/gotruf" element={<Navigate to="/" replace />} />
+      <Route path="/gotruf/*" element={<Navigate to="/" replace />} />
+
+      {/* Login redirect — opens modal on landing page */}
+      <Route path="/login" element={<LoginRedirect />} />
+
       {/* App routes (authenticated) */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

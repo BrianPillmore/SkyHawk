@@ -22,7 +22,7 @@ function HeroSection() {
 
           <div className="mt-10 flex flex-col sm:flex-row gap-4">
             <Link
-              to="/gotruf/signup"
+              to="/signup"
               className="bg-gotruf-500 hover:bg-gotruf-600 text-white font-bold text-lg py-3.5 px-8 rounded-xl transition-colors shadow-lg shadow-gotruf-500/25"
             >
               Get Your Free Report
@@ -224,7 +224,7 @@ function PricingPreview() {
             contract, no minimum commitment.
           </div>
           <Link
-            to="/gotruf/signup"
+            to="/signup"
             className="mt-8 inline-block bg-gotruf-500 hover:bg-gotruf-600 text-white font-bold py-3 px-8 rounded-xl transition-colors"
           >
             Create Free Account
@@ -250,7 +250,7 @@ function CTASection() {
         </p>
 
         <Link
-          to="/gotruf/signup"
+          to="/signup"
           className="mt-8 inline-block bg-white text-gotruf-700 font-bold text-lg py-3.5 px-10 rounded-xl hover:bg-gray-50 transition-colors shadow-lg"
         >
           Get My Free Report
