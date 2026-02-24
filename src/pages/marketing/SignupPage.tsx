@@ -32,7 +32,7 @@ export default function SignupPage() {
     try {
       await register(username, password, email);
       navigate('/dashboard', { replace: true });
-    } catch {
+    } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
