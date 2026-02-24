@@ -39,7 +39,7 @@ function formatNumber(value: number): string {
 }
 
 export default function SolarPanel() {
-  const { activeMeasurement, activePropertyId, properties, solarInsights } = useStore();
+  const { activeMeasurement, activePropertyId, properties, solarInsights, showSolarPanels, toggleSolarPanels } = useStore();
 
   const [activeTab, setActiveTab] = useState<SolarTab>('overview');
   const [panelWattage, setPanelWattage] = useState(DEFAULT_SOLAR_CONFIG.panelWattage);
@@ -117,6 +117,20 @@ export default function SolarPanel() {
           {systemRating.charAt(0).toUpperCase() + systemRating.slice(1)}
         </span>
       </div>
+
+      {/* Show panels on map toggle */}
+      {solarInsights?.solarPotential?.solarPanels?.length ? (
+        <button
+          onClick={toggleSolarPanels}
+          className={`w-full px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+            showSolarPanels
+              ? 'bg-cyan-900/30 text-cyan-400 border-cyan-700/50'
+              : 'bg-gray-800/50 text-gray-400 border-gray-700/50 hover:text-white'
+          }`}
+        >
+          {showSolarPanels ? 'Hide' : 'Show'} Panel Layout on Map ({solarInsights.solarPotential.solarPanels.length} panels)
+        </button>
+      ) : null}
 
       {/* Tab navigation */}
       <div className="flex border-b border-gray-700">

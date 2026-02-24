@@ -19,8 +19,10 @@ export default function ReportPanel() {
   const [includeAreaDiagram, setIncludeAreaDiagram] = useState(true);
   const [includePitchDiagram, setIncludePitchDiagram] = useState(true);
   const [includeObliqueViews, setIncludeObliqueViews] = useState(false);
+  const [includeSolarPanelLayout, setIncludeSolarPanelLayout] = useState(true);
 
   const property = activePropertyId ? properties.find((p) => p.id === activePropertyId) : null;
+  const hasSolarPanels = !!(solarInsights?.solarPotential?.solarPanels?.length);
 
   const damageCount = property?.damageAnnotations?.length ?? 0;
   const claimsCount = property?.claims?.length ?? 0;
@@ -77,6 +79,7 @@ export default function ReportPanel() {
         includeSolar,
         latitude: property.lat,
         solarInsights,
+        includeSolarPanelLayout: includeSolarPanelLayout && hasSolarPanels,
         includeLengthDiagram,
         includeAreaDiagram,
         includePitchDiagram,
@@ -259,6 +262,17 @@ export default function ReportPanel() {
               />
               <span>Solar potential analysis</span>
             </label>
+            {hasSolarPanels && (
+              <label className="flex items-center gap-2 cursor-pointer pl-5">
+                <input
+                  type="checkbox"
+                  checked={includeSolarPanelLayout}
+                  onChange={(e) => setIncludeSolarPanelLayout(e.target.checked)}
+                  className="accent-gotruf-500"
+                />
+                <span>Solar panel layout diagram</span>
+              </label>
+            )}
           </div>
         </section>
       )}

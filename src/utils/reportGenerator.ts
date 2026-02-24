@@ -6,6 +6,7 @@ import { estimateMaterials } from './materials';
 import { analyzeSolarPotential, analyzeSolarPotentialFromApi, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
 import type { SolarSystemSummary } from './solarCalculations';
 import type { SolarBuildingInsights } from '../types/solar';
+import { computePanelLayout, renderPanelLayoutDiagram } from './solarPanelLayout';
 
 interface ReportOptions {
   companyName: string;
@@ -25,6 +26,7 @@ interface ReportOptions {
   areaDiagramImage?: string;   // base64 data URL
   pitchDiagramImage?: string;  // base64 data URL
   obliqueViews?: { north?: string; south?: string; east?: string; west?: string }; // base64 data URLs
+  includeSolarPanelLayout?: boolean;
 }
 
 export async function generateReport(
@@ -717,6 +719,33 @@ export async function generateReport(
         margin, y, 7, grayText
       );
       y += 6;
+
+      // Solar panel layout diagram (from API panel placement data)
+      if (options.includeSolarPanelLayout && options.solarInsights?.solarPotential?.solarPanels?.length) {
+        const panels = computePanelLayout(options.solarInsights);
+        if (panels.length > 0) {
+          const panelDiagramImage = renderPanelLayoutDiagram(panels);
+          if (panelDiagramImage) {
+            doc.addPage();
+            y = margin;
+
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(margin, y, contentWidth, 8, 'F');
+            addText('SOLAR PANEL LAYOUT', margin + 3, y + 2, 12, [255, 255, 255], 'bold');
+            y += 12;
+            y = addText(
+              `${panels.length} panels placed by Google Solar API — color-coded by energy output`,
+              margin, y, 8, grayText
+            );
+            y += 4;
+
+            const imgWidth = contentWidth;
+            const imgHeight = imgWidth * (600 / 800);
+            doc.addImage(panelDiagramImage, 'PNG', margin, y, imgWidth, imgHeight);
+            y += imgHeight + 6;
+          }
+        }
+      }
     }
   }
 

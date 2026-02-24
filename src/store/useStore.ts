@@ -78,6 +78,10 @@ interface AppState {
   solarInsights: SolarBuildingInsights | null;
   setSolarInsights: (insights: SolarBuildingInsights | null) => void;
 
+  // Solar panel overlay on map
+  showSolarPanels: boolean;
+  toggleSolarPanels: () => void;
+
   // Report view (clean wireframe without vertex markers)
   showVertexMarkers: boolean;
   toggleVertexMarkers: () => void;
@@ -326,6 +330,8 @@ export const useStore = create<AppState>()(
         roofCondition: null,
         solarInsights: null,
         setSolarInsights: (insights) => set({ solarInsights: insights }),
+        showSolarPanels: false,
+        toggleSolarPanels: () => set((s) => ({ showSolarPanels: !s.showSolarPanels })),
         showVertexMarkers: true,
 
         toggleVertexMarkers: () => set((s) => ({ showVertexMarkers: !s.showVertexMarkers })),

@@ -3,6 +3,7 @@ import { useStore } from '../../store/useStore';
 import { useGoogleMaps } from '../../hooks/useGoogleMaps';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
 import { getMidpoint, getCentroid } from '../../utils/geometry';
+import { computePanelLayout, getPanelColor } from '../../utils/solarPanelLayout';
 import type { DrawingMode, EdgeType, RoofVertex, DamageAnnotation } from '../../types';
 import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
@@ -66,6 +67,7 @@ export default function MapView() {
   const edgeLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const facetLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const damageMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
+  const solarPanelPolygonsRef = useRef<google.maps.Polygon[]>([]);
 
   const { loaded, error, apiKey } = useGoogleMaps();
 
@@ -81,6 +83,7 @@ export default function MapView() {
     addDamageAnnotation, activeDamageType, activeDamageSeverity,
     properties, activePropertyId, selectedDamageId, selectDamage,
     showVertexMarkers,
+    showSolarPanels, solarInsights,
   } = useStore();
 
   // Initialize map
@@ -795,6 +798,34 @@ export default function MapView() {
     }
   }, [damageAnnotations, selectedDamageId]);
 
+  // Solar panel overlay
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    // Clear existing panels
+    for (const poly of solarPanelPolygonsRef.current) poly.setMap(null);
+    solarPanelPolygonsRef.current = [];
+
+    if (!map || !showSolarPanels || !solarInsights?.solarPotential?.solarPanels?.length) return;
+
+    const panels = computePanelLayout(solarInsights);
+    const maxEnergy = Math.max(...panels.map(p => p.yearlyEnergyDcKwh), 1);
+
+    for (const panel of panels) {
+      const color = getPanelColor(panel.yearlyEnergyDcKwh, maxEnergy);
+      const polygon = new google.maps.Polygon({
+        paths: panel.corners,
+        fillColor: color,
+        fillOpacity: 0.5,
+        strokeColor: color,
+        strokeWeight: 1,
+        strokeOpacity: 0.8,
+        clickable: false,
+        map,
+      });
+      solarPanelPolygonsRef.current.push(polygon);
+    }
+  }, [showSolarPanels, solarInsights]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -807,6 +838,7 @@ export default function MapView() {
       for (const [, m] of edgeLabelsRef.current) m.setMap(null);
       for (const [, m] of facetLabelsRef.current) m.setMap(null);
       for (const [, m] of damageMarkersRef.current) m.setMap(null);
+      for (const poly of solarPanelPolygonsRef.current) poly.setMap(null);
       if (outlinePolylineRef.current) outlinePolylineRef.current.setMap(null);
       if (tempLineRef.current) tempLineRef.current.setMap(null);
       if (previewLineRef.current) previewLineRef.current.setMap(null);
