@@ -1,10 +1,25 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
-import { analyzeShadingProfile } from '../../utils/shadingAnalysis';
+import { analyzeShadingProfile, analyzeSunshineQuantiles, validatePanelPlacement } from '../../utils/shadingAnalysis';
+import type { SunshineQuantileAnalysis, PanelPlacementValidation } from '../../utils/shadingAnalysis';
 import { calculateSunPath, calculateAnnualSunPaths } from '../../utils/sunPath';
 
+const SHADING_COLORS: Record<string, string> = {
+  minimal: 'text-emerald-400',
+  low: 'text-blue-400',
+  moderate: 'text-amber-400',
+  high: 'text-red-400',
+};
+
+const SHADING_BG: Record<string, string> = {
+  minimal: 'bg-emerald-900/30 border-emerald-700/50',
+  low: 'bg-blue-900/30 border-blue-700/50',
+  moderate: 'bg-amber-900/30 border-amber-700/50',
+  high: 'bg-red-900/30 border-red-700/50',
+};
+
 export default function ShadingPanel() {
-  const { activePropertyId, properties } = useStore();
+  const { activePropertyId, properties, solarInsights } = useStore();
   const property = activePropertyId ? properties.find(p => p.id === activePropertyId) : null;
 
   const [activeTab, setActiveTab] = useState<'shading' | 'sunpath'>('shading');
@@ -14,9 +29,21 @@ export default function ShadingPanel() {
   const latitude = property?.lat ?? 39.7;
   const longitude = property?.lng ?? -104.9;
 
+  const hasApiData = !!(solarInsights?.solarPotential?.roofSegmentStats?.length);
+
   const shadingResult = useMemo(
     () => analyzeShadingProfile(latitude, obstructionAngle),
     [latitude, obstructionAngle]
+  );
+
+  const quantileAnalysis: SunshineQuantileAnalysis | null = useMemo(
+    () => hasApiData ? analyzeSunshineQuantiles(solarInsights!) : null,
+    [solarInsights, hasApiData]
+  );
+
+  const panelValidation: PanelPlacementValidation | null = useMemo(
+    () => (solarInsights?.solarPotential?.solarPanels?.length) ? validatePanelPlacement(solarInsights) : null,
+    [solarInsights]
   );
 
   const annualPaths = useMemo(
@@ -53,10 +80,109 @@ export default function ShadingPanel() {
 
       {activeTab === 'shading' && (
         <>
-          {/* Obstruction angle slider */}
+          {/* API-based sunshine quantile analysis */}
+          {quantileAnalysis && (
+            <>
+              <div className="bg-gray-800/50 rounded-lg p-3 border border-blue-700/30">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-semibold text-gray-400 uppercase">Google Solar API Shading</h4>
+                  <span className="px-1.5 py-0.5 text-[9px] font-medium rounded bg-blue-900/30 text-blue-400 border border-blue-700/50">
+                    Measured Data
+                  </span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Overall Shading Impact</span>
+                    <span className={quantileAnalysis.overallShadingImpact <= 10 ? 'text-emerald-400' : quantileAnalysis.overallShadingImpact <= 25 ? 'text-amber-400' : 'text-red-400'}>
+                      -{quantileAnalysis.overallShadingImpact}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Roof Median Sunshine</span>
+                    <span className="text-white">{quantileAnalysis.wholeRoofMedianHours.toLocaleString()} hrs/yr</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Max Sunshine Potential</span>
+                    <span className="text-white">{quantileAnalysis.wholeRoofMaxHours.toLocaleString()} hrs/yr</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-segment shading scores */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Segment Shading Scores</h4>
+                <div className="space-y-1.5">
+                  {quantileAnalysis.segmentScores.map((seg) => (
+                    <div key={seg.segmentIndex} className={`p-2 rounded-lg border ${SHADING_BG[seg.shadingRating]}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-300 font-medium">Segment {seg.segmentIndex + 1}</span>
+                        <span className={`text-[10px] font-medium ${SHADING_COLORS[seg.shadingRating]}`}>
+                          {seg.shadingRating.charAt(0).toUpperCase() + seg.shadingRating.slice(1)} Shading
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px]">
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Quality</span>
+                          <span className="text-gray-300">{Math.round(seg.shadingQuality * 100)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Uniformity</span>
+                          <span className="text-gray-300">{Math.round(seg.uniformityScore * 100)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Median Sun</span>
+                          <span className="text-gray-300">{seg.medianSunshineHours} hrs</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Area</span>
+                          <span className="text-gray-300">{seg.areaSqFt.toLocaleString()} sf</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Panel placement validation */}
+          {panelValidation && panelValidation.googlePanelCount > 0 && (
+            <div className="bg-gray-800/50 rounded-lg p-3">
+              <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Panel Placement Validation</h4>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Google Panel Count</span>
+                  <span className="text-white">{panelValidation.googlePanelCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Area-Based Estimate</span>
+                  <span className="text-white">{panelValidation.skyhawkPanelCount}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-400">Obstruction Impact</span>
+                  <span className={panelValidation.obstructionImpactPercent > 15 ? 'text-red-400' : panelValidation.obstructionImpactPercent > 5 ? 'text-amber-400' : 'text-emerald-400'}>
+                    {panelValidation.obstructionImpactPercent > 0 ? `-${panelValidation.obstructionImpactPercent}%` : 'None detected'}
+                  </span>
+                </div>
+              </div>
+              {panelValidation.possibleObstructions.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-gray-700/50">
+                  <p className="text-[10px] text-gray-500 mb-1">Obstructions detected on:</p>
+                  {panelValidation.possibleObstructions.map((obs) => (
+                    <p key={obs.segmentIndex} className="text-[10px] text-amber-400">
+                      Segment {obs.segmentIndex + 1}: {obs.actualPanels}/{obs.expectedPanels} panels ({obs.lostCapacityPercent}% blocked)
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Obstruction angle slider (manual model) */}
           <div>
             <label className="block text-xs text-gray-400 mb-1">
               Obstruction Angle: {obstructionAngle}°
+              {hasApiData && <span className="text-gray-600 ml-1">(manual model)</span>}
             </label>
             <input type="range" min={0} max={45} value={obstructionAngle}
               onChange={e => setObstructionAngle(Number(e.target.value))}
@@ -66,7 +192,9 @@ export default function ShadingPanel() {
 
           {/* Annual summary */}
           <div className="bg-gray-800/50 rounded-lg p-3">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">Annual Summary</h4>
+            <h4 className="text-xs font-semibold text-gray-400 uppercase mb-2">
+              {hasApiData ? 'Estimated Model' : 'Annual Summary'}
+            </h4>
             <div className="space-y-1.5 text-xs">
               <div className="flex justify-between"><span className="text-gray-400">Avg Shade Factor</span><span className="text-white">{Math.round(shadingResult.annualShadeFraction * 100)}%</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Effective Sun Hours/yr</span><span className="text-white">{shadingResult.annualEffectiveSunHours.toLocaleString()}</span></div>

@@ -140,17 +140,17 @@ FAA Part 107 requirements, cost estimates, and 4-phase implementation roadmap.
 - [ ] Integration with SkyHawk measurement engine (replace Google satellite with drone orthomosaic)
 - [ ] Autonomous inspection workflows
 
-### Priority 6: Google Solar API Deep Integration (Phases 1+3+4 COMPLETE)
+### Priority 6: Google Solar API Deep Integration (Phases 1-5 COMPLETE)
 **Plan file**: `plans/active/google-solar-api-deep-dive.md`
 
 SkyHawk currently uses ~30% of the Solar API's available data. An 8-phase plan to leverage
 the remaining 70% for significant accuracy and feature improvements:
 
 - [x] **Phase 1**: Extend type definitions — `SolarPanel`, `SolarPanelConfig`, `SolarFinancialAnalysis`, `SolarMoney`, `SolarSavingsOverTime`, `SolarCashPurchaseSavings`, `SolarFinancedPurchaseSavings`, `SolarLeasingSavings`, `SolarFinancialDetails`, `SolarPanelConfigSegmentSummary` added to `src/types/solar.ts`; `SolarBuildingInsights.solarPotential` extended with optional `solarPanels[]`, `solarPanelConfigs[]`, `financialAnalyses[]`
-- [ ] **Phase 2**: Panel placement validation — cross-check facet areas against Google's panel counts
+- [x] **Phase 2**: Panel placement validation — `validatePanelPlacement()` in `shadingAnalysis.ts` uses `solarPanels[]` to count actual panels per segment, detect obstructions (where Google places fewer than area suggests), compute obstruction impact %. UI shows Google vs area-based panel counts and per-segment obstruction detection
 - [x] **Phase 3**: API-driven solar calculator — `analyzeSolarPotentialFromApi()` in `solarCalculations.ts` uses Google's `yearlyEnergyDcKwh` (DC→AC with system losses), roof segment summaries for per-facet analysis, falls back to hand-rolled model when API data unavailable. `solarMoneyToNumber()` helper for Google's money format. Store gets `solarInsights` field cached from auto-measure. `SolarPanel.tsx` prefers API data with "Google Solar API" badge. `reportGenerator.ts` uses API data in PDF when available.
 - [x] **Phase 4**: Financial analysis integration — Google's `cashPurchaseSavings` (upfront cost, out-of-pocket, rebate, payback years, lifetime savings) and `federalIncentive` from `financialDetails` used when available; falls back to our cost-per-watt model otherwise
-- [ ] **Phase 5**: Sunshine quantiles for per-segment shading quality scores
+- [x] **Phase 5**: Sunshine quantiles — `analyzeSunshineQuantiles()` + `analyzeSegmentShading()` in `shadingAnalysis.ts`. Computes per-segment shading quality (median/max), uniformity (IQR), rating (minimal/low/moderate/high). `ShadingPanel.tsx` shows measured data section, per-segment shading cards, and panel validation
 - [ ] **Phase 6**: GeoTIFF flux/shade processing — pixel-accurate energy and shading (most complex)
 - [ ] **Phase 7**: DSM-based pitch verification and building height extraction
 - [ ] **Phase 8**: Panel layout visualization in map and PDF reports
@@ -432,7 +432,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1504 tests across 55 files)
+- Vitest (1523 tests across 55 files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
