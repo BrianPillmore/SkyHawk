@@ -2,7 +2,7 @@ import { useStore } from '../../store/useStore';
 import { formatArea, formatNumber } from '../../utils/geometry';
 
 export default function Dashboard({ onAddProperty }: { onAddProperty?: () => void }) {
-  const { properties, setActiveProperty, deleteProperty } = useStore();
+  const { properties, setActiveProperty, deleteProperty, reportCredits } = useStore();
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -48,7 +48,7 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
             )}
             icon="📐"
           />
-          <StatCard label="Active" value="Phase 1" icon="🚀" />
+          <StatCard label="Report Credits" value={String(reportCredits)} icon="🎟️" />
         </div>
 
         {/* Properties List */}

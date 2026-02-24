@@ -40,11 +40,15 @@ interface AppState {
   token: string | null;
   username: string | null;
   isAuthenticated: boolean;
+  reportCredits: number;
   showLoginModal: boolean;
   setShowLoginModal: (show: boolean) => void;
   login: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string, email: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
+  fetchProfile: () => Promise<void>;
+  useCredit: () => Promise<boolean>;
 
   // Properties
   properties: Property[];
@@ -262,6 +266,7 @@ export const useStore = create<AppState>()(
         token: null,
         username: null,
         isAuthenticated: false,
+        reportCredits: 0,
         showLoginModal: false,
         setShowLoginModal: (show: boolean) => set({ showLoginModal: show }),
 
@@ -276,11 +281,25 @@ export const useStore = create<AppState>()(
             throw new Error(body.error || 'Login failed');
           }
           const data = await res.json();
-          set({ token: data.token, username: data.username, isAuthenticated: true });
+          set({ token: data.token, username: data.username, isAuthenticated: true, reportCredits: data.reportCredits ?? 0 });
+        },
+
+        register: async (username: string, password: string, email: string) => {
+          const res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, email }),
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({ error: 'Registration failed' }));
+            throw new Error(body.error || 'Registration failed');
+          }
+          const data = await res.json();
+          set({ token: data.token, username: data.username, isAuthenticated: true, reportCredits: data.reportCredits ?? 0 });
         },
 
         logout: () => {
-          set({ token: null, username: null, isAuthenticated: false });
+          set({ token: null, username: null, isAuthenticated: false, reportCredits: 0 });
         },
 
         checkAuth: async () => {
@@ -295,12 +314,47 @@ export const useStore = create<AppState>()(
             });
             if (res.ok) {
               const data = await res.json();
-              set({ username: data.username, isAuthenticated: true });
+              set({ username: data.username, isAuthenticated: true, reportCredits: data.reportCredits ?? 0 });
             } else {
-              set({ token: null, username: null, isAuthenticated: false });
+              set({ token: null, username: null, isAuthenticated: false, reportCredits: 0 });
             }
           } catch {
-            set({ token: null, username: null, isAuthenticated: false });
+            set({ token: null, username: null, isAuthenticated: false, reportCredits: 0 });
+          }
+        },
+
+        fetchProfile: async () => {
+          const { token } = get();
+          if (!token) return;
+          try {
+            const res = await fetch('/api/auth/me', {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              set({ reportCredits: data.reportCredits ?? 0 });
+            }
+          } catch {
+            // silently fail
+          }
+        },
+
+        useCredit: async () => {
+          const { token } = get();
+          if (!token) return false;
+          try {
+            const res = await fetch('/api/auth/use-credit', {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+              const data = await res.json();
+              set({ reportCredits: data.reportCredits });
+              return true;
+            }
+            return false;
+          } catch {
+            return false;
           }
         },
 
@@ -1260,6 +1314,7 @@ export const useStore = create<AppState>()(
         token: state.token,
         username: state.username,
         isAuthenticated: state.isAuthenticated,
+        reportCredits: state.reportCredits,
         properties: state.properties,
         activePropertyId: state.activePropertyId,
         activeMeasurement: state.activeMeasurement,

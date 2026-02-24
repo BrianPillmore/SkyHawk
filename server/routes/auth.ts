@@ -97,7 +97,7 @@ router.post('/register', async (req: Request, res: Response) => {
       { expiresIn: '24h' },
     );
 
-    res.status(201).json({ token, username: user.username, userId: user.id });
+    res.status(201).json({ token, username: user.username, userId: user.id, reportCredits: 0 });
   } catch (err) {
     console.error('Registration error:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -123,8 +123,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
     if (dbReady) {
       // Try database authentication
-      const result = await query<{ id: string; username: string; password_hash: string }>(
-        'SELECT id, username, password_hash FROM users WHERE username = $1',
+      const result = await query<{ id: string; username: string; password_hash: string; report_credits: number }>(
+        'SELECT id, username, password_hash, COALESCE(report_credits, 0) AS report_credits FROM users WHERE username = $1',
         [username],
       );
 
@@ -142,7 +142,7 @@ router.post('/login', async (req: Request, res: Response) => {
           { expiresIn: '24h' },
         );
 
-        res.json({ token, username: user.username, userId: user.id });
+        res.json({ token, username: user.username, userId: user.id, reportCredits: user.report_credits });
         return;
       }
     }
@@ -208,7 +208,7 @@ router.post('/logout', (_req: Request, res: Response) => {
  * GET /api/auth/me
  * Validates the token and returns current user info.
  */
-router.get('/me', (req: Request, res: Response) => {
+router.get('/me', async (req: Request, res: Response) => {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     res.status(401).json({ error: 'Not authenticated' });
@@ -221,7 +221,86 @@ router.get('/me', (req: Request, res: Response) => {
       username: string;
       userId?: string;
     };
-    res.json({ username: payload.username, userId: payload.userId });
+
+    // Try to fetch credits from DB
+    let reportCredits = 0;
+    if (payload.userId) {
+      try {
+        const result = await query<{ report_credits: number }>(
+          'SELECT COALESCE(report_credits, 0) AS report_credits FROM users WHERE id = $1',
+          [payload.userId],
+        );
+        if (result.rows.length > 0) {
+          reportCredits = result.rows[0].report_credits;
+        }
+      } catch {
+        // DB may not be available — return 0 credits
+      }
+    }
+
+    res.json({ username: payload.username, userId: payload.userId, reportCredits });
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
+  }
+});
+
+/**
+ * POST /api/auth/use-credit
+ * Deducts 1 report credit from the authenticated user.
+ * Returns { reportCredits } with the new balance.
+ */
+router.post('/use-credit', async (req: Request, res: Response) => {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Not authenticated' });
+    return;
+  }
+
+  const token = header.slice(7);
+  try {
+    const payload = jwt.verify(token, getJwtSecret()) as {
+      username: string;
+      userId?: string;
+    };
+
+    if (!payload.userId) {
+      res.status(400).json({ error: 'User account not linked to database' });
+      return;
+    }
+
+    const dbReady = await isDbAvailable();
+    if (!dbReady) {
+      res.status(503).json({ error: 'Database unavailable' });
+      return;
+    }
+
+    // Check current balance
+    const current = await query<{ report_credits: number }>(
+      'SELECT COALESCE(report_credits, 0) AS report_credits FROM users WHERE id = $1',
+      [payload.userId],
+    );
+
+    if (current.rows.length === 0) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    if (current.rows[0].report_credits <= 0) {
+      res.status(402).json({ error: 'No report credits remaining', reportCredits: 0 });
+      return;
+    }
+
+    const result = await query<{ report_credits: number }>(
+      'UPDATE users SET report_credits = report_credits - 1 WHERE id = $1 AND report_credits > 0 RETURNING report_credits',
+      [payload.userId],
+    );
+
+    if (result.rows.length === 0) {
+      res.status(402).json({ error: 'No report credits remaining', reportCredits: 0 });
+      return;
+    }
+
+    res.json({ reportCredits: result.rows[0].report_credits });
   } catch {
     res.status(401).json({ error: 'Invalid or expired token' });
   }

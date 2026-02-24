@@ -6,6 +6,7 @@ import { authRouter } from './routes/auth.js';
 import { propertiesRouter } from './routes/properties.js';
 import { measurementsRouter } from './routes/measurements.js';
 import { claimsRouter } from './routes/claims.js';
+import { uploadsRouter } from './routes/uploads.js';
 import { requireAuth } from './middleware/auth.js';
 import { initDb } from './db/index.js';
 
@@ -38,6 +39,9 @@ app.use('/api/properties/:propertyId/measurements', requireAuth, measurementsRou
 
 // Claims routes (nested under properties, protected)
 app.use('/api/properties/:propertyId/claims', requireAuth, claimsRouter);
+
+// Upload routes (protected)
+app.use('/api/uploads', requireAuth, uploadsRouter);
 
 // Start server
 async function start() {
