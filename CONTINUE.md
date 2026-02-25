@@ -584,6 +584,9 @@ All keys are configured in `.env` (gitignored, not committed):
 | Workspace page | `src/pages/Workspace.tsx` |
 | Google Maps hook | `src/hooks/useGoogleMaps.ts` |
 | Keyboard shortcuts | `src/hooks/useKeyboard.ts` |
+| Login modal | `src/components/LoginModal.tsx` |
+| Protected route | `src/components/ProtectedRoute.tsx` |
+| Media query hook | `src/hooks/useMediaQuery.ts` |
 
 ### Measurement & Visualization
 | Purpose | File |
@@ -604,6 +607,17 @@ All keys are configured in `.env` (gitignored, not committed):
 | Diagram renderer | `src/utils/diagramRenderer.ts` |
 | Export data utility | `src/utils/exportData.ts` |
 | ESX format export | `src/utils/esxExport.ts` |
+| Facet builder | `src/utils/facetBuilder.ts` |
+| Planar face extraction | `src/utils/planarFaceExtraction.ts` |
+| Mobile toolbar | `src/components/measurement/MobileToolbar.tsx` |
+
+### Report Generation & Export
+| Purpose | File |
+|---------|------|
+| HTML report exporter | `src/utils/htmlReportExporter.ts` |
+| HTML report template | `src/utils/htmlReportTemplate.ts` |
+| Report table of contents | `src/utils/reportTableOfContents.ts` |
+| Report page templates | `src/utils/reportPageTemplates.ts` |
 
 ### AI & Automation
 | Purpose | File |
@@ -618,6 +632,9 @@ All keys are configured in `.env` (gitignored, not committed):
 | Shading analysis | `src/utils/shadingAnalysis.ts` |
 | Sun path simulation | `src/utils/sunPath.ts` |
 | DSM analysis | `src/utils/dsmAnalysis.ts` |
+| DSM pitch verification | `src/utils/dsmPitchVerification.ts` |
+| Flux analysis | `src/utils/fluxAnalysis.ts` |
+| Solar panel layout | `src/utils/solarPanelLayout.ts` |
 
 ### Database & API
 | Purpose | File |
@@ -626,11 +643,27 @@ All keys are configured in `.env` (gitignored, not committed):
 | Schema migration SQL | `server/db/migrations/001_initial_schema.sql` |
 | Migration runner | `server/db/migrate.ts` |
 | Validation middleware | `server/middleware/validate.ts` |
+| Rate limiter | `server/middleware/rateLimit.ts` |
+| Auth middleware | `server/middleware/auth.ts` |
+| RBAC middleware | `server/middleware/rbac.ts` |
+| Audit logging | `server/middleware/auditLog.ts` |
+| API key auth | `server/middleware/apiKeyAuth.ts` |
 | Property CRUD routes | `server/routes/properties.ts` |
 | Measurement CRUD routes | `server/routes/measurements.ts` |
 | Claims CRUD routes | `server/routes/claims.ts` |
+| API key routes | `server/routes/apiKeys.ts` |
+| Report routes | `server/routes/reports.ts` |
+| Audit routes | `server/routes/audit.ts` |
+| Checkout routes | `server/routes/checkout.ts` |
 | Client API service | `src/services/propertyApi.ts` |
 | Sync orchestration | `src/hooks/useSync.ts` |
+| Data migration | `src/utils/dataMigration.ts` |
+| Server entry point | `server/index.ts` |
+| Auth routes | `server/routes/auth.ts` |
+| Enterprise migrations | `server/db/migrations/002_enterprise.sql` |
+| Organization routes | `server/routes/organizations.ts` |
+| Sharing routes | `server/routes/sharing.ts` |
+| Webhook routes | `server/routes/webhooks.ts` |
 
 ### User Account & Credits
 | Purpose | File |
@@ -655,8 +688,43 @@ All keys are configured in `.env` (gitignored, not committed):
 | Enterprise panel | `src/components/enterprise/EnterprisePanel.tsx` |
 | Solar analysis | `src/components/solar/SolarPanel.tsx` |
 | Shading analysis | `src/components/solar/ShadingPanel.tsx` |
+| Flux map panel | `src/components/solar/FluxMapPanel.tsx` |
 | Enterprise types | `src/types/enterprise.ts` |
 | Enterprise utilities | `src/utils/enterprise.ts` |
+| Enterprise API client | `src/services/enterpriseApi.ts` |
+| Stripe API client | `src/services/stripeApi.ts` |
+| Organization panel | `src/components/enterprise/OrganizationPanel.tsx` |
+| Sharing panel | `src/components/enterprise/SharingPanel.tsx` |
+| Webhook panel | `src/components/enterprise/WebhookPanel.tsx` |
+| White-label panel | `src/components/enterprise/WhiteLabelPanel.tsx` |
+
+### Mobile & Responsive
+| Purpose | File |
+|---------|------|
+| Tablet layout | `src/layouts/TabletLayout.tsx` |
+| Service worker registration | `src/utils/serviceWorker.ts` |
+| SEO utilities | `src/utils/seo.ts` |
+| Analytics integration | `src/utils/analytics.ts` |
+
+### Marketing & Commerce
+| Purpose | File |
+|---------|------|
+| Marketing layout | `src/pages/marketing/MarketingLayout.tsx` |
+| Signup page | `src/pages/marketing/SignupPage.tsx` |
+| Checkout success | `src/pages/marketing/CheckoutSuccess.tsx` |
+| Checkout cancel | `src/pages/marketing/CheckoutCancel.tsx` |
+
+### Commercial Properties
+| Purpose | File |
+|---------|------|
+| Commercial types | `src/types/commercial.ts` |
+| Commercial roof utils | `src/utils/commercialRoof.ts` |
+| Commercial materials | `src/utils/commercialMaterials.ts` |
+| Drainage analysis | `src/utils/drainageAnalysis.ts` |
+| Commercial panel | `src/components/commercial/CommercialPanel.tsx` |
+| Commercial report section | `src/components/commercial/CommercialReportSection.tsx` |
+| Drainage panel | `src/components/commercial/DrainagePanel.tsx` |
+| Parapet panel | `src/components/commercial/ParapetPanel.tsx` |
 
 ### Plans & Specs
 | Document | File | Status |
@@ -670,7 +738,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | GotRuf Marketing Site | `plans/active/gotruf-marketing-site.md` | Phase 1 COMPLETE |
 | EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | Phases 1-4 COMPLETE |
 | Database Persistence | `plans/active/database-persistence.md` | Phases A-C COMPLETE |
-| Google Solar API Deep Dive | `plans/active/google-solar-api-deep-dive.md` | NEW |
+| Google Solar API Deep Dive | `plans/active/google-solar-api-deep-dive.md` | Phases 1-8 COMPLETE |
 | Drone Integration | `plans/research/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
 | API Spec | `specs/API_SPEC.md` | |
 | Measurement Spec | `specs/MEASUREMENT_SPEC.md` | |
@@ -760,11 +828,36 @@ All keys are configured in `.env` (gitignored, not committed):
 | Auth endpoints | `tests/server/auth.test.ts` |
 | Vision proxy | `tests/server/vision.test.ts` |
 
+#### Acceptance Tests
+| Purpose | File |
+|---------|------|
+| Auto-detect workflow | `tests/acceptance/autoDetectWorkflow.test.ts` |
+| Claims workflow | `tests/acceptance/claimsWorkflow.test.ts` |
+| Damage and export | `tests/acceptance/damageAndExport.test.ts` |
+| LIDAR auto-measure | `tests/acceptance/lidarAutoMeasure.test.ts` |
+| Manual measurement | `tests/acceptance/manualMeasurement.test.ts` |
+
+#### Regression Tests
+| Purpose | File |
+|---------|------|
+| Bug fixes | `tests/regression/bugfixes.test.ts` |
+| Pitch cap | `tests/regression/pitchCap.test.ts` |
+
 #### Smoke Tests
 | Purpose | File |
 |---------|------|
 | Core systems | `tests/smoke/coreSystems.test.ts` |
 | LIDAR systems | `tests/smoke/lidarSystems.test.ts` |
+
+#### Test Helpers & Fixtures
+| Purpose | File |
+|---------|------|
+| Test fixtures | `tests/helpers/fixtures.ts` |
+| Mock utilities | `tests/helpers/mocks.ts` |
+| Store helpers | `tests/helpers/store.ts` |
+| EagleView calibration data | `tests/fixtures/eagleview-calibration.json` |
+| Mock Solar API responses | `tests/fixtures/mock-solar-api-responses.json` |
+| Solar API comparison | `tests/fixtures/solar-api-comparison.json` |
 
 Run tests with: `npx vitest run`
 

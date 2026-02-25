@@ -119,6 +119,50 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Commercial material estimation
 - [x] Parapet and coping measurements
 
+### User Profiles, Credits & EagleView Upload (COMPLETE)
+- [x] User registration and authentication (PostgreSQL-backed)
+- [x] Report credit system (earn on EagleView upload, spend on report generation)
+- [x] EagleView PDF upload with text extraction and field parsing
+- [x] Account page with upload history and credit balance
+- [x] Side-by-side EagleView vs SkyHawk measurement comparison
+
+### Accuracy Scoring & Multi-Structure Detection (COMPLETE)
+- [x] Weighted 100-point accuracy scoring (5 factors, letter grades A+ through D)
+- [x] DBSCAN-like multi-structure detection from Solar API segments
+- [x] Roof reconstruction rewrite — one facet per Solar API segment
+- [x] Enhanced material estimation (5 new items)
+- [x] 20 new tests (12 accuracy + 8 multi-structure)
+
+### Google Solar API Deep Integration (COMPLETE — Phases 1-8)
+- [x] Extended Solar API type definitions
+- [x] Panel placement validation and obstruction detection
+- [x] API-driven solar energy calculator
+- [x] Financial analysis integration (Google cash/financed/lease savings)
+- [x] Sunshine quantiles and shading analysis
+- [x] GeoTIFF flux/shade processing
+- [x] DSM-based pitch verification and building height extraction
+- [x] Panel layout visualization on map and in PDF
+
+### EagleView Report Parity (COMPLETE — Phases 1-5)
+- [x] Wireframe screenshot as hero image on PDF page 1
+- [x] Labeled wireframe diagrams (length, area, pitch)
+- [x] Oblique imagery (N/S/E/W satellite views)
+- [x] Report polish and branding (confidence badge, facet totals, attribution)
+- [x] Interactive HTML export with embedded Google Maps
+
+### GotRuf.com Marketing Site (Phase 1 COMPLETE, Phase 2 PARTIAL)
+- [x] Landing page, persona pages, pricing page, signup page
+- [x] Stripe integration and SEO/analytics
+- [ ] Domain setup (DNS, nginx, SSL)
+- [ ] Professional logo design
+
+### Mobile-Friendly Responsive Design (COMPLETE)
+- [x] Responsive layout (sidebar → bottom sheet on mobile)
+- [x] Touch-optimized controls (44px tap targets)
+- [x] Mobile measurement UX (floating toolbar, GPS locate, haptic feedback)
+- [x] Field-ready PWA (service worker, manifest, offline support)
+- [x] Tablet layout (split-view with resizable divider)
+
 ---
 
 ## Measurement Specifications
@@ -148,7 +192,7 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 
 ---
 
-## API Endpoints (Planned)
+## API Endpoints (Implemented)
 
 ### Properties
 - `POST /api/properties` - Create property
@@ -169,6 +213,34 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - `GET /api/reports/:id/download` - Download PDF
 
 ### Users & Auth
-- `POST /api/auth/register` - Register
+- `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login
-- `GET /api/auth/me` - Current user
+- `GET /api/auth/me` - Current user profile (includes reportCredits)
+- `POST /api/auth/use-credit` - Deduct 1 report credit
+
+### Claims
+- `POST /api/claims` - Create claim
+- `GET /api/claims` - List claims
+- `GET /api/claims/:id` - Get claim details
+- `PUT /api/claims/:id` - Update claim
+- `POST /api/claims/:id/inspections` - Schedule inspection
+- `PUT /api/claims/:claimId/inspections/:inspectionId` - Update inspection
+
+### EagleView Uploads
+- `POST /api/uploads/eagleview` - Upload EagleView PDF (extracts data, awards credits)
+- `GET /api/uploads/eagleview` - List user's uploads
+- `GET /api/uploads/eagleview/:id` - Get single upload details
+
+### Enterprise
+- `POST /api/organizations` - Create organization
+- `GET /api/organizations/:id` - Get organization
+- `POST /api/organizations/:id/members` - Add member
+- `POST /api/sharing/links` - Create sharing link
+- `POST /api/webhooks` - Register webhook
+- `GET /api/audit` - Query audit log
+- `POST /api/api-keys` - Create API key
+- `GET /api/api-keys` - List API keys
+
+### Payments
+- `POST /api/checkout/session` - Create Stripe checkout session
+- `POST /api/checkout/webhook` - Stripe webhook handler
