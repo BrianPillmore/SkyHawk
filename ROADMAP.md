@@ -18,7 +18,7 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - **AI Integration**: Anthropic Claude API (vision analysis), Google Solar API
 - **Solar Analysis**: Shading analysis + Sun path simulation
 - **State Management**: Zustand 5 with localStorage persistence
-- **Testing**: Vitest (2095 tests across 81 files)
+- **Testing**: Vitest (2147 tests across 83 files)
 - **Backend**: Express.js + TypeScript (deployed on Hetzner VPS at 89.167.94.69)
 - **Database**: PostgreSQL 16 (schema: 18+ tables, migration runner)
 - **Auth**: JWT + bcrypt (PostgreSQL-backed with flat-file fallback)
@@ -173,6 +173,20 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Server-side bulk property creation API (POST /api/batch)
 - [x] 43 unit tests
 
+### Notification Center + Activity Feed (COMPLETE)
+- [x] 12 notification event types (property, measurement, report, batch, claim, inspection, sharing, credit, system)
+- [x] NotificationCenter UI with bell icon, unread badge, dropdown panel
+- [x] Notification server CRUD API with read/unread tracking
+- [x] Notification store (Zustand) + client API + 30-second polling
+- [x] Database migration (003_notifications.sql)
+- [x] 52 unit tests
+
+### Dashboard Search, Sort & Filter (COMPLETE)
+- [x] Property search bar (multi-term AND matching on address/city/state/zip)
+- [x] Filter by measurement status + sort by date/address/area/squares
+- [x] App navigation bar (Dashboard/Batch/Account + notifications + logout)
+- [x] 24 unit tests
+
 ---
 
 ## Measurement Specifications
@@ -254,6 +268,15 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 ### Batch Processing
 - `POST /api/batch` - Submit batch of addresses (up to 500)
 - `GET /api/batch/history` - Batch history grouped by date
+
+### Notifications
+- `GET /api/notifications` - List notifications (with unread count)
+- `GET /api/notifications/unread-count` - Get unread notification count
+- `PATCH /api/notifications/:id/read` - Mark notification as read
+- `POST /api/notifications/mark-all-read` - Mark all notifications as read
+- `POST /api/notifications` - Create notification
+- `DELETE /api/notifications/:id` - Delete notification
+- `DELETE /api/notifications` - Clear all notifications
 
 ### Payments
 - `POST /api/checkout/session` - Create Stripe checkout session

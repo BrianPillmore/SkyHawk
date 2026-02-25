@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../../store/useStore';
+import NotificationCenter from '../notifications/NotificationCenter';
 
 const NAV_ITEMS = [
   { path: '/dashboard', label: 'Dashboard', icon: DashboardIcon },
@@ -31,6 +32,8 @@ export default function AppNav() {
           </button>
         );
       })}
+      <div className="h-4 w-px bg-gray-700 mx-1" />
+      <NotificationCenter />
       <div className="h-4 w-px bg-gray-700 mx-1" />
       {username && (
         <span className="text-xs text-gray-500 mr-1">{username}</span>

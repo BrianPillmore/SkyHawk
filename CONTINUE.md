@@ -513,6 +513,19 @@ test(scope): description of test additions
   - ✅ `src/components/layout/AppNav.tsx` — shared navigation bar
   - ✅ 24 unit tests
 
+- [x] **Notification Center + Activity Feed** (COMPLETE)
+  - ✅ Notification types: 12 event types (property, measurement, report, batch, claim, inspection, sharing, credit, system)
+  - ✅ Notification priorities: urgent, high, normal, low — with visual indicators
+  - ✅ NotificationCenter UI: bell icon with unread badge + dropdown panel
+  - ✅ Notification store (Zustand): add, mark read, mark all read, delete, clear, sort
+  - ✅ Notification service: factory functions for all 12 event types, search/filter/sort, grouping by date, relative time formatting
+  - ✅ Server API: `server/routes/notifications.ts` — full CRUD + mark read/all read + unread count
+  - ✅ Database migration: `003_notifications.sql` — notifications table + notification_preferences
+  - ✅ Client API: `src/services/notificationApi.ts` — typed fetch/create/mark-read/delete
+  - ✅ Integrated into AppNav (bell icon between nav links and username)
+  - ✅ 30-second polling for real-time updates
+  - ✅ 52 unit tests across 2 test files
+
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
@@ -787,6 +800,17 @@ All keys are configured in `.env` (gitignored, not committed):
 | App navigation bar | `src/components/layout/AppNav.tsx` |
 | Dashboard component | `src/components/dashboard/Dashboard.tsx` |
 
+### Notifications
+| Purpose | File |
+|---------|------|
+| Notification types | `src/types/notification.ts` |
+| Notification service | `src/utils/notificationService.ts` |
+| Notification store | `src/store/useNotificationStore.ts` |
+| Notification API client | `src/services/notificationApi.ts` |
+| NotificationCenter UI | `src/components/notifications/NotificationCenter.tsx` |
+| Notification server route | `server/routes/notifications.ts` |
+| Notification DB migration | `server/db/migrations/003_notifications.sql` |
+
 ### Marketing & Commerce
 | Purpose | File |
 |---------|------|
@@ -926,6 +950,8 @@ All keys are configured in `.env` (gitignored, not committed):
 | Solar panel layout | `tests/unit/solarPanelLayout.test.ts` |
 | Batch processor | `tests/unit/batchProcessor.test.ts` |
 | Property search | `tests/unit/propertySearch.test.ts` |
+| Notification service | `tests/unit/notificationService.test.ts` |
+| Notification routes | `tests/unit/notificationRoutes.test.ts` |
 
 #### Integration Tests
 | Purpose | File |
