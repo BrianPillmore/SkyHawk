@@ -204,6 +204,47 @@ Make all views responsive and mobile-friendly for field use:
 - [x] Parapet and coping measurements — `src/components/commercial/ParapetPanel.tsx`
 - [x] Tests: `tests/unit/commercialRoof.test.ts`, `tests/unit/drainageAnalysis.test.ts`, `tests/unit/commercialMaterials.test.ts`
 
+### Priority 10: User Profiles, Credits & EagleView Upload (COMPLETE)
+User registration, credit system, and EagleView PDF upload/comparison flow.
+
+- [x] **User Registration & Auth** — `server/routes/auth.ts` updated with `POST /api/auth/register` (PostgreSQL-backed), `POST /api/auth/login` (DB-first with flat-file fallback), `GET /api/auth/me` (profile with reportCredits), `POST /api/auth/use-credit` (atomic credit deduction)
+- [x] **Credit System** — `reportCredits` field on user model, credit deduction on report generation, credit award on EagleView upload (2 credits per upload)
+- [x] **EagleView PDF Upload** — `server/routes/uploads.ts` — multer-based PDF upload (10MB max), `pdf-parse` text extraction, regex-based EagleView field parser (address, total area, facet count, pitch, waste%), stores extracted data in `eagleview_uploads` table
+- [x] **Account Page** — `src/components/account/AccountPage.tsx` — drag-and-drop PDF upload, upload history table, credit balance display, profile management
+- [x] **Comparison View** — `src/components/account/ComparisonView.tsx` — side-by-side EagleView vs SkyHawk measurement comparison with color-coded diff percentages (green <5%, yellow <10%, red >10%)
+- [x] **Database Migration** — `server/db/migrations/002_credits_and_uploads.sql` — adds `report_credits` column to users, creates `eagleview_uploads` table with extracted data fields
+- [x] **Store Integration** — `useStore.ts` extended with `reportCredits`, `fetchProfile()`, `useCredit()` actions
+- [x] **Route** — `/account` route added to `App.tsx` (protected, requires auth)
+- [x] **Signup Page Updated** — `src/pages/marketing/SignupPage.tsx` wired to registration endpoint
+
+### Priority 11: Accuracy Scoring & Multi-Structure Detection (COMPLETE)
+Quantifiable accuracy metrics and automatic multi-building detection.
+
+- [x] **Accuracy Scoring** — `src/utils/accuracyScore.ts`
+  - `computeAccuracyScore()` — weighted 100-point scoring across 5 factors:
+    - Data source (30%): LIDAR+Solar > hybrid > AI Vision > manual
+    - Imagery quality (20%): HIGH > MEDIUM > LOW
+    - Facet count vs Solar API segments (15%)
+    - Area cross-validation vs Solar API (25%)
+    - Pitch consistency across facets (10%)
+  - Letter grades (A+ through D), display labels ("High Accuracy", etc.)
+  - Integrated into `MeasurementsPanel.tsx` (score badge + factor breakdown)
+  - Integrated into `reportGenerator.ts` (accuracy section in PDF)
+  - 14 tests in `tests/unit/accuracyScore.test.ts`
+
+- [x] **Multi-Structure Detection** — `src/utils/multiStructureDetection.ts`
+  - `detectMultipleStructures()` — DBSCAN-like spatial clustering of Solar API segments
+  - Groups segments by center proximity (configurable `maxGapFt`, default 25ft)
+  - Returns per-structure breakdown: segment indices, total area, centroid, isPrimary flag
+  - Integrated into `useAutoMeasure.ts` for automatic structure separation
+  - 8 tests in `tests/unit/multiStructureDetection.test.ts`
+
+- [x] **Roof Reconstruction Rewrite** — `src/utils/roofReconstruction.ts`
+  - `reconstructComplexRoof` rewritten for one-facet-per-segment guarantee
+  - Each Solar API segment now produces exactly one facet with correct area from `areaMeters2`
+  - Eliminates previous Voronoi/azimuth partitioning failures that collapsed to 1 facet
+  - 8 regression tests in `tests/unit/roofReconstructionRegression.test.ts` against EagleView calibration properties
+
 ---
 
 ## CONTINUATION PROTOCOL
@@ -385,6 +426,19 @@ test(scope): description of test additions
   - ✅ Commercial material estimation
   - ✅ Parapet and coping measurements
 
+- [x] **User Profiles, Credits & EagleView Upload** (ALL features COMPLETE)
+  - ✅ User registration with PostgreSQL persistence
+  - ✅ Report credit system (earn on EagleView upload, spend on report generation)
+  - ✅ EagleView PDF upload with text extraction and field parsing
+  - ✅ Account page with upload history, credit balance, profile management
+  - ✅ Side-by-side EagleView vs SkyHawk comparison view
+
+- [x] **Accuracy Scoring & Multi-Structure Detection** (ALL features COMPLETE)
+  - ✅ Weighted 100-point accuracy scoring (5 factors, letter grades A+ through D)
+  - ✅ DBSCAN-like multi-structure detection from Solar API segments
+  - ✅ Roof reconstruction rewrite — one facet per Solar API segment guarantee
+  - ✅ Regression tests against 18 EagleView calibration properties
+
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
@@ -401,8 +455,8 @@ Systematic calibration of SkyHawk against 18 EagleView Premium Reports:
   - Edge counts tracked per type on RoofMeasurement
   - Pitch breakdown and estimated attic sqft fields
   - Flashing and step-flashing tracked separately
-  - Multi-facet roof reconstruction via Voronoi partition of Solar API segments
-  - Regression test suite: 17 tests across 18 EagleView properties
+  - Roof reconstruction rewritten — one facet per Solar API segment (replaces Voronoi partition)
+  - Regression test suite: 17 tests across 18 EagleView properties + 54 reconstruction regression tests
 - [x] Phase 8: Report format parity (COMPLETE) — `src/utils/reportTableOfContents.ts` (TOC with dotted leaders), `src/utils/reportPageTemplates.ts` (EagleView-style pages with headers/footers/page numbers), `reportGenerator.ts` updated with TOC page, consistent pagination, professional summary grid
 - [x] Phase 9: Mocked Solar API regression pipeline (COMPLETE) — `tests/fixtures/mock-solar-api-responses.json` (5 properties with mock buildingInsights), `tests/unit/solarApiRegression.test.ts` (per-property reconstruction tests + overall accuracy summary)
 
@@ -417,6 +471,9 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 - [x] Client-side API layer + sync hook (src/services/propertyApi.ts, src/hooks/useSync.ts)
 - [ ] PostgreSQL installation on VPS — NOT DONE (requires SSH access)
 - [x] Data migration from localStorage — COMPLETE (dataMigration.ts, sync indicator, store whitelist updated)
+- [x] User registration endpoint (`POST /api/auth/register`) with credit system
+- [x] EagleView PDF upload endpoint (`POST /api/uploads/eagleview`) with text extraction
+- [x] Credits migration (002_credits_and_uploads.sql)
 
 ### API Cost Per Property (~$0.05-0.06 beyond free tier)
 | API | Cost/Call | Free/Month |
@@ -430,7 +487,7 @@ Express backend deployed to Hetzner VPS (89.167.94.69):
 ### Known Issues
 - ~~**Enterprise features are frontend-only**~~: RESOLVED — RBAC middleware, audit logging, API key auth all implemented server-side.
 - ~~**API integration is spec-only**~~: RESOLVED — API key management, reports, audit log query endpoints all implemented.
-- ~~**reconstructComplexRoof creates 1 facet**~~: RESOLVED — Hybrid partitioning (azimuth-based when clustered, Voronoi when spread) + Solar API area fallback ensures multi-facet output.
+- ~~**reconstructComplexRoof creates 1 facet**~~: RESOLVED — Rewritten for one-facet-per-segment guarantee. Each Solar API segment produces exactly one facet with correct area from `areaMeters2`. Multi-structure detection separates distinct buildings before reconstruction.
 - **Waste algorithm divergence**: Our waste calculation uses structural heuristics but differs from EagleView's proprietary algorithm. Mean error ~±10%, max ±15% on the 18 calibration properties.
 
 ### EagleView vs Solar API Regression Results (Feb 2026)
@@ -466,7 +523,7 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
-- Vitest (1988 tests across 78 files)
+- Vitest (2028 tests across 79 test files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -563,6 +620,20 @@ All keys are configured in `.env` (gitignored, not committed):
 | Client API service | `src/services/propertyApi.ts` |
 | Sync orchestration | `src/hooks/useSync.ts` |
 
+### User Account & Credits
+| Purpose | File |
+|---------|------|
+| Account page | `src/components/account/AccountPage.tsx` |
+| EagleView comparison | `src/components/account/ComparisonView.tsx` |
+| Upload routes | `server/routes/uploads.ts` |
+| Credits migration | `server/db/migrations/002_credits_and_uploads.sql` |
+
+### Accuracy & Multi-Structure
+| Purpose | File |
+|---------|------|
+| Accuracy scoring | `src/utils/accuracyScore.ts` |
+| Multi-structure detection | `src/utils/multiStructureDetection.ts` |
+
 ### Claims & Enterprise
 | Purpose | File |
 |---------|------|
@@ -594,7 +665,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (1953 passing tests across 76 files)
+### Tests (2028 passing tests across 79 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
@@ -636,7 +707,6 @@ All keys are configured in `.env` (gitignored, not committed):
 | Validation middleware | `tests/unit/validate.test.ts` |
 | Property API client | `tests/unit/propertyApi.test.ts` |
 | Server route patterns | `tests/unit/serverRoutes.test.ts` |
-| Dashboard component | `tests/unit/Dashboard.test.tsx` |
 | Data migration | `tests/unit/dataMigration.test.ts` |
 | RBAC middleware | `tests/unit/rbac.test.ts` |
 | API key management | `tests/unit/apiKeys.test.ts` |
@@ -657,6 +727,32 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report TOC | `tests/unit/reportTableOfContents.test.ts` |
 | Report page templates | `tests/unit/reportPageTemplates.test.ts` |
 | Solar API regression | `tests/unit/solarApiRegression.test.ts` |
+| Accuracy scoring | `tests/unit/accuracyScore.test.ts` |
+| Multi-structure detect | `tests/unit/multiStructureDetection.test.ts` |
+| Reconstruction regress | `tests/unit/roofReconstructionRegression.test.ts` |
+| Solar panel layout | `tests/unit/solarPanelLayout.test.ts` |
+
+#### Integration Tests
+| Purpose | File |
+|---------|------|
+| Auto-measure pipeline | `tests/integration/autoMeasurePipeline.test.ts` |
+| Edge drawing workflow | `tests/integration/edgeDrawingWorkflow.test.ts` |
+| LIDAR pipeline | `tests/integration/lidarPipeline.test.ts` |
+| Save/load cycle | `tests/integration/measurementSaveLoadCycle.test.ts` |
+| Store + geometry | `tests/integration/storeGeometry.test.ts` |
+| Vision + store | `tests/integration/visionStorePipeline.test.ts` |
+
+#### Server Tests
+| Purpose | File |
+|---------|------|
+| Auth endpoints | `tests/server/auth.test.ts` |
+| Vision proxy | `tests/server/vision.test.ts` |
+
+#### Smoke Tests
+| Purpose | File |
+|---------|------|
+| Core systems | `tests/smoke/coreSystems.test.ts` |
+| LIDAR systems | `tests/smoke/lidarSystems.test.ts` |
 
 Run tests with: `npx vitest run`
 

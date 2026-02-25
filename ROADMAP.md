@@ -18,10 +18,10 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - **AI Integration**: Anthropic Claude API (vision analysis), Google Solar API
 - **Solar Analysis**: Shading analysis + Sun path simulation
 - **State Management**: Zustand 5 with localStorage persistence
-- **Testing**: Vitest (1435 tests across 51 files)
-- **Backend**: Planned (Node.js + Express + TypeScript)
-- **Database**: Planned (SQLite dev → PostgreSQL production)
-- **Auth**: Planned (JWT + bcrypt)
+- **Testing**: Vitest (2028 tests across 79 files)
+- **Backend**: Express.js + TypeScript (deployed on Hetzner VPS at 89.167.94.69)
+- **Database**: PostgreSQL 16 (schema: 18+ tables, migration runner)
+- **Auth**: JWT + bcrypt (PostgreSQL-backed with flat-file fallback)
 
 ### System Architecture
 ```
@@ -96,14 +96,14 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Energy production estimates
 - [x] Solar-ready reports
 
-### Phase 6: Enterprise & Collaboration
-- [ ] Multi-user organization accounts
+### Phase 6: Enterprise & Collaboration (COMPLETE)
+- [x] Multi-user organization accounts
 - [x] Role-based access control (admin, adjuster, roofer, viewer)
-- [ ] Report sharing and collaboration
-- [ ] API for third-party integrations
-- [ ] Webhook notifications
+- [x] Report sharing and collaboration
+- [x] API for third-party integrations
+- [x] Webhook notifications
 - [x] Audit trail and activity logging
-- [ ] White-label support
+- [x] White-label support
 
 ### Phase 7: Drone Integration
 - [ ] Drone flight path planning
@@ -112,12 +112,12 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [ ] High-res orthomosaic generation
 - [ ] Autonomous inspection workflows
 
-### Phase 8: Commercial Properties
-- [ ] Large commercial roof support
-- [ ] Multi-section commercial reports
-- [ ] Flat roof drainage analysis
-- [ ] Commercial material estimation
-- [ ] Parapet and coping measurements
+### Phase 8: Commercial Properties (COMPLETE)
+- [x] Large commercial roof support
+- [x] Multi-section commercial reports
+- [x] Flat roof drainage analysis
+- [x] Commercial material estimation
+- [x] Parapet and coping measurements
 
 ---
 
