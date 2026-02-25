@@ -1,8 +1,10 @@
 import { useStore } from '../../store/useStore';
+import { useNavigate } from 'react-router-dom';
 import { formatArea, formatNumber } from '../../utils/geometry';
 
 export default function Dashboard({ onAddProperty }: { onAddProperty?: () => void }) {
   const { properties, setActiveProperty, deleteProperty, reportCredits } = useStore();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -55,17 +57,28 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold">Properties</h2>
-            {onAddProperty && (
+            <div className="flex gap-2">
               <button
-                onClick={onAddProperty}
-                className="flex items-center gap-2 px-4 py-2 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded-lg transition-colors"
+                onClick={() => navigate('/batch')}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
                 </svg>
-                Add Property
+                Batch Process
               </button>
-            )}
+              {onAddProperty && (
+                <button
+                  onClick={onAddProperty}
+                  className="flex items-center gap-2 px-4 py-2 bg-gotruf-600 hover:bg-gotruf-500 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Property
+                </button>
+              )}
+            </div>
           </div>
 
           {properties.length === 0 ? (

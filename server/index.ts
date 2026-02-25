@@ -11,6 +11,7 @@ import { apiKeysRouter } from './routes/apiKeys.js';
 import { reportsRouter } from './routes/reports.js';
 import { auditRouter } from './routes/audit.js';
 import { checkoutRouter } from './routes/checkout.js';
+import { batchRouter } from './routes/batch.js';
 import { requireAuth } from './middleware/auth.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import { auditLogger } from './middleware/auditLog.js';
@@ -66,6 +67,9 @@ app.use('/api/api-keys', requireAuth, apiKeysRouter);
 
 // Report generation routes (protected)
 app.use('/api/reports', requireAuth, reportsRouter);
+
+// Batch processing routes (protected)
+app.use('/api/batch', requireAuth, batchRouter);
 
 // Audit log query routes (protected, RBAC enforced inside the router)
 app.use('/api/audit-log', requireAuth, auditRouter);

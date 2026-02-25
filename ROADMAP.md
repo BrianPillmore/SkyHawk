@@ -18,7 +18,7 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - **AI Integration**: Anthropic Claude API (vision analysis), Google Solar API
 - **Solar Analysis**: Shading analysis + Sun path simulation
 - **State Management**: Zustand 5 with localStorage persistence
-- **Testing**: Vitest (2028 tests across 79 files)
+- **Testing**: Vitest (2071 tests across 80 files)
 - **Backend**: Express.js + TypeScript (deployed on Hetzner VPS at 89.167.94.69)
 - **Database**: PostgreSQL 16 (schema: 18+ tables, migration runner)
 - **Auth**: JWT + bcrypt (PostgreSQL-backed with flat-file fallback)
@@ -163,6 +163,16 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Field-ready PWA (service worker, manifest, offline support)
 - [x] Tablet layout (split-view with resizable divider)
 
+### Batch Property Processing (COMPLETE)
+- [x] Multi-address input (paste or CSV/TSV with flexible column matching)
+- [x] Address deduplication with normalization
+- [x] Configurable parallel processing (1-5 concurrent)
+- [x] Real-time progress tracking with per-item status
+- [x] Batch stats (total area, squares, completion time estimates)
+- [x] CSV export of batch results
+- [x] Server-side bulk property creation API (POST /api/batch)
+- [x] 43 unit tests
+
 ---
 
 ## Measurement Specifications
@@ -240,6 +250,10 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - `GET /api/audit` - Query audit log
 - `POST /api/api-keys` - Create API key
 - `GET /api/api-keys` - List API keys
+
+### Batch Processing
+- `POST /api/batch` - Submit batch of addresses (up to 500)
+- `GET /api/batch/history` - Batch history grouped by date
 
 ### Payments
 - `POST /api/checkout/session` - Create Stripe checkout session

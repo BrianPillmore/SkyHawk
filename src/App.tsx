@@ -17,6 +17,7 @@ import CheckoutSuccess from './pages/marketing/CheckoutSuccess';
 import CheckoutCancel from './pages/marketing/CheckoutCancel';
 import LoginRedirect from './pages/Login';
 import AccountPage from './components/account/AccountPage';
+import BatchProcessor from './components/batch/BatchProcessor';
 
 function DashboardPage() {
   const { activePropertyId } = useStore();
@@ -83,6 +84,7 @@ export default function App() {
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+      <Route path="/batch" element={<ProtectedRoute><BatchProcessor /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

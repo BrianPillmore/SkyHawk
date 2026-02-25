@@ -1,6 +1,6 @@
 # GotRuf.com Marketing Site Plan
 
-## Status: PHASE 1 COMPLETE
+## Status: PHASES 1-2 COMPLETE (Domain & Polish remaining)
 
 ## Brand
 - **Domain**: GotRuf.com (pronounced "Got Roof")
@@ -39,15 +39,15 @@
 - `src/index.css` — Added GotRuf brand color palette
 - `src/App.tsx` — Added marketing route tree under `/gotruf`
 
-## Remaining Work
+## Completed — Phase 2: Stripe & SEO (COMPLETE)
+- [x] Stripe Checkout sessions + webhook handler (`server/routes/checkout.ts`)
+- [x] Client-side Stripe API (`src/services/stripeApi.ts`)
+- [x] CheckoutSuccess / CheckoutCancel pages
+- [x] Report credits tracked per user in database
+- [x] SEO utilities (`src/utils/seo.ts`) — meta tags, Open Graph, structured data
+- [x] Analytics (`src/utils/analytics.ts`) — GA4 + Plausible support, GDPR consent
 
-### Phase 2: Stripe Integration
-- [ ] Install `@stripe/stripe-js` and `@stripe/react-stripe-js`
-- [ ] Create Stripe products and prices in Stripe Dashboard
-- [ ] Backend: `POST /api/checkout/session` to create Stripe Checkout sessions
-- [ ] Backend: Stripe webhook handler for `checkout.session.completed`
-- [ ] Wire pricing page buttons to Stripe Checkout
-- [ ] Track report credits per user in database
+## Remaining Work
 
 ### Phase 3: Domain & Deployment
 - [ ] Point GotRuf.com DNS to Hetzner VPS (89.167.94.69)
@@ -58,9 +58,6 @@
 
 ### Phase 4: Polish
 - [ ] GotRuf logo design (currently text-only)
-- [ ] Open Graph / social meta tags for sharing
-- [ ] Analytics (Google Analytics or Plausible)
-- [ ] SEO: meta descriptions, structured data
 - [ ] Contact form / live chat integration
 - [ ] Email collection for waitlist/newsletter
 

@@ -254,6 +254,49 @@ Quantifiable accuracy metrics and automatic multi-building detection.
     - `roofToWallFlashingPcs` — L-metal roof-to-wall flashing (10ft pieces)
   - All calculated with waste factor multiplier applied
 
+### Priority 12: Batch Property Processing (COMPLETE)
+Process multiple properties at once — essential for enterprise users handling storm damage neighborhoods.
+
+- [x] **Batch Types** — `src/types/batch.ts`
+  - `BatchJob`, `BatchItem`, `BatchAddress`, `BatchStats` types
+  - Status tracking: queued → geocoding → measuring → complete/error/skipped
+  - Job-level status: idle → parsing → running → paused → complete → cancelled
+  - Status label/color maps for UI rendering
+
+- [x] **Batch Processing Utility** — `src/utils/batchProcessor.ts`
+  - `parseAddressBlock()` — Parse multiline text (one address per line)
+  - `parseCsvBlock()` — Parse CSV/TSV with flexible header column matching
+  - `parseAddressLine()` — Single-line parser (handles "addr, city, state zip", TSV, partial formats)
+  - `createBatchJob()` — Create job from addresses with configurable concurrency
+  - `computeBatchStats()` — Aggregate stats: counts, area totals, time estimates
+  - `deduplicateAddresses()` — Normalize and deduplicate by street+city+state
+  - `exportBatchResultsCsv()` — Export results as downloadable CSV
+  - `formatDuration()` — Human-readable time formatting for ETA display
+
+- [x] **Batch UI Components**
+  - `src/components/batch/BatchProcessor.tsx` — Full batch processing page (input → parse → process → results)
+    - Paste addresses or CSV/TSV input modes
+    - Configurable parallel processing (1-5 concurrent)
+    - Start/Pause/Resume/Reset controls
+    - CSV export of results
+  - `src/components/batch/BatchQueue.tsx` — Property queue with per-item status, progress bars, results
+  - `src/components/batch/BatchStatsPanel.tsx` — Aggregate stats (total, complete, errors, area, squares, ETA)
+
+- [x] **Server Route** — `server/routes/batch.ts`
+  - `POST /api/batch` — Bulk property creation (up to 500 addresses)
+  - `GET /api/batch/history` — Batch history grouped by creation date
+
+- [x] **Integration**
+  - Route: `/batch` (protected, requires auth)
+  - "Batch Process" button added to Dashboard
+  - Navigation back to Dashboard from batch page
+
+- [x] **Tests** — 43 tests in `tests/unit/batchProcessor.test.ts`
+  - Address parsing (single line, multiline, CSV, TSV, header detection)
+  - Job creation and stats computation
+  - Deduplication with normalization
+  - Duration formatting and CSV export
+
 ---
 
 ## CONTINUATION PROTOCOL
@@ -448,6 +491,15 @@ test(scope): description of test additions
   - ✅ Roof reconstruction rewrite — one facet per Solar API segment guarantee
   - ✅ Enhanced material estimation (5 new items: hip/ridge bundles, valley metal, sheathing, coil nails, roof-to-wall flashing)
   - ✅ Regression tests against 18 EagleView calibration properties
+
+- [x] **Batch Property Processing** (COMPLETE)
+  - ✅ Multi-address input with flexible parsing (paste, CSV, TSV)
+  - ✅ Address deduplication and normalization
+  - ✅ Configurable parallel processing with pause/resume
+  - ✅ Real-time queue with progress tracking and batch stats
+  - ✅ CSV export of results
+  - ✅ Server-side bulk property creation API
+  - ✅ 43 unit tests
 
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
@@ -706,6 +758,16 @@ All keys are configured in `.env` (gitignored, not committed):
 | SEO utilities | `src/utils/seo.ts` |
 | Analytics integration | `src/utils/analytics.ts` |
 
+### Batch Processing
+| Purpose | File |
+|---------|------|
+| Batch types | `src/types/batch.ts` |
+| Batch processing utility | `src/utils/batchProcessor.ts` |
+| Batch processor page | `src/components/batch/BatchProcessor.tsx` |
+| Batch queue display | `src/components/batch/BatchQueue.tsx` |
+| Batch stats panel | `src/components/batch/BatchStatsPanel.tsx` |
+| Batch API route | `server/routes/batch.ts` |
+
 ### Marketing & Commerce
 | Purpose | File |
 |---------|------|
@@ -843,6 +905,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Multi-structure detect | `tests/unit/multiStructureDetection.test.ts` |
 | Reconstruction regress | `tests/unit/roofReconstructionRegression.test.ts` |
 | Solar panel layout | `tests/unit/solarPanelLayout.test.ts` |
+| Batch processor | `tests/unit/batchProcessor.test.ts` |
 
 #### Integration Tests
 | Purpose | File |
