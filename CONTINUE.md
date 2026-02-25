@@ -574,6 +574,25 @@ test(scope): description of test additions
   - ✅ `src/pages/SharedReportViewer.tsx` — full viewer page
   - ✅ 28 unit tests
 
+- [x] **Storm History & Weather Event Lookup** (COMPLETE)
+  - ✅ Storm event utility: 9 event types, hail size classification, risk assessment
+  - ✅ Haversine distance calculation, radius/type/date filtering, sorting
+  - ✅ Hail summary (max/avg size, category) and wind summary (max/avg speed)
+  - ✅ Risk assessment engine: low/moderate/high/severe with descriptions
+  - ✅ Sample event generator for demo/offline use (NOAA integration ready)
+  - ✅ StormHistoryPanel UI: radius/date controls, type filter chips, risk badge
+  - ✅ Hail and wind summary cards, expandable event rows with severity colors
+  - ✅ Storms tab added to Workspace sidebar (works without active measurement)
+  - ✅ `src/utils/stormEvents.ts` — search/filter/sort/classify/risk engine
+  - ✅ `src/components/storms/StormHistoryPanel.tsx` — full sidebar panel
+  - ✅ 50 unit tests
+
+- [x] **Bug Fix: Mount Enterprise Routes** (COMPLETE)
+  - ✅ `sharingRouter`, `organizationsRouter`, `webhooksRouter` were fully implemented but never mounted in `server/index.ts`
+  - ✅ Sharing mounted at `/api` (handles own auth per-endpoint — public GET /shared/:token)
+  - ✅ Organizations mounted at `/api/organizations` with requireAuth
+  - ✅ Webhooks mounted at `/api/webhooks` with requireAuth
+
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
@@ -660,7 +679,7 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - React Router v7
 - pdf-parse (PDF text extraction for EagleView uploads)
 - multer (multipart form handling for file uploads)
-- Vitest (2265 tests across 87 test files)
+- Vitest (2315 tests across 88 test files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -866,6 +885,12 @@ All keys are configured in `.env` (gitignored, not committed):
 | Shared report API client | `src/services/sharedReportApi.ts` |
 | Shared report viewer page | `src/pages/SharedReportViewer.tsx` |
 
+### Storm History
+| Purpose | File |
+|---------|------|
+| Storm events utility | `src/utils/stormEvents.ts` |
+| Storm history panel | `src/components/storms/StormHistoryPanel.tsx` |
+
 ### Property Timeline
 | Purpose | File |
 |---------|------|
@@ -956,7 +981,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (2265 passing tests across 87 files)
+### Tests (2315 passing tests across 88 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
@@ -1030,6 +1055,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Property map utils | `tests/unit/propertyMapUtils.test.ts` |
 | Quick estimate calculator | `tests/unit/quickEstimate.test.ts` |
 | Shared report viewer | `tests/unit/sharedReport.test.ts` |
+| Storm events | `tests/unit/stormEvents.test.ts` |
 
 #### Integration Tests
 | Purpose | File |

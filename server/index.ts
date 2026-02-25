@@ -13,6 +13,9 @@ import { auditRouter } from './routes/audit.js';
 import { checkoutRouter } from './routes/checkout.js';
 import { batchRouter } from './routes/batch.js';
 import { notificationRouter } from './routes/notifications.js';
+import { sharingRouter } from './routes/sharing.js';
+import { organizationsRouter } from './routes/organizations.js';
+import { webhooksRouter } from './routes/webhooks.js';
 import { requireAuth } from './middleware/auth.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import { auditLogger } from './middleware/auditLog.js';
@@ -77,6 +80,15 @@ app.use('/api/notifications', requireAuth, notificationRouter);
 
 // Audit log query routes (protected, RBAC enforced inside the router)
 app.use('/api/audit-log', requireAuth, auditRouter);
+
+// Sharing routes (auth handled per-endpoint — GET /shared/:token is public)
+app.use('/api', sharingRouter);
+
+// Organization routes (protected)
+app.use('/api/organizations', requireAuth, organizationsRouter);
+
+// Webhook routes (protected)
+app.use('/api/webhooks', requireAuth, webhooksRouter);
 
 // Start server
 async function start() {

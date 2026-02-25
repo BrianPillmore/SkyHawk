@@ -20,6 +20,7 @@ const tabs = [
   { id: 'shading' as const, label: 'Shading', icon: '🌤️' },
   { id: 'enterprise' as const, label: 'Team', icon: '👥' },
   { id: 'timeline' as const, label: 'Timeline', icon: '🕐' },
+  { id: 'storms' as const, label: 'Storms', icon: '⛈️' },
 ];
 
 export default function Workspace() {

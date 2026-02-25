@@ -12,6 +12,7 @@ import EnterprisePanel from '../enterprise/EnterprisePanel';
 import ConditionPanel from '../measurement/ConditionPanel';
 import WallsPanel from '../measurement/WallsPanel';
 import PropertyTimeline from '../timeline/PropertyTimeline';
+import StormHistoryPanel from '../storms/StormHistoryPanel';
 
 export default function Sidebar() {
   const { sidebarOpen, activePanel, activeMeasurement, activePropertyId, toggleSidebar } = useStore();
@@ -34,9 +35,10 @@ export default function Sidebar() {
         {activePanel === 'walls' && <WallsPanel />}
         {activePanel === 'shading' && <ShadingPanel />}
         {activePanel === 'timeline' && <PropertyTimeline />}
+        {activePanel === 'storms' && <StormHistoryPanel />}
 
         {/* Other panels require active measurement */}
-        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && activePanel !== 'condition' && activePanel !== 'walls' && activePanel !== 'shading' && activePanel !== 'timeline' && (
+        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && activePanel !== 'condition' && activePanel !== 'walls' && activePanel !== 'shading' && activePanel !== 'timeline' && activePanel !== 'storms' && (
           !activeMeasurement ? (
             <div className="p-4 text-center text-gray-500 text-sm">
               <p className="mb-2">No active measurement</p>
