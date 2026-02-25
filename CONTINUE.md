@@ -452,7 +452,7 @@ test(scope): description of test additions
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
-### EagleView Calibration (COMPLETE — Phases 1-7)
+### EagleView Calibration (COMPLETE — Phases 1-9)
 Systematic calibration of SkyHawk against 18 EagleView Premium Reports:
 - [x] Phase 1: Extracted all 18 EagleView ground truth records to `tests/fixtures/eagleview-calibration.json`
 - [x] Phase 2-3: Analyzed pipeline deviations and built comparison matrix
@@ -710,6 +710,12 @@ All keys are configured in `.env` (gitignored, not committed):
 | Purpose | File |
 |---------|------|
 | Marketing layout | `src/pages/marketing/MarketingLayout.tsx` |
+| Landing page | `src/pages/marketing/LandingPage.tsx` |
+| Contractors persona | `src/pages/marketing/ContractorsPage.tsx` |
+| Adjusters persona | `src/pages/marketing/AdjustersPage.tsx` |
+| Agents persona | `src/pages/marketing/AgentsPage.tsx` |
+| Homeowners persona | `src/pages/marketing/HomeownersPage.tsx` |
+| Pricing page | `src/pages/marketing/PricingPage.tsx` |
 | Signup page | `src/pages/marketing/SignupPage.tsx` |
 | Checkout success | `src/pages/marketing/CheckoutSuccess.tsx` |
 | Checkout cancel | `src/pages/marketing/CheckoutCancel.tsx` |
@@ -726,6 +732,32 @@ All keys are configured in `.env` (gitignored, not committed):
 | Drainage panel | `src/components/commercial/DrainagePanel.tsx` |
 | Parapet panel | `src/components/commercial/ParapetPanel.tsx` |
 
+### PWA & Public Assets
+| Purpose | File |
+|---------|------|
+| Service worker | `public/sw.js` |
+| PWA manifest | `public/manifest.json` |
+| HTML entry point | `index.html` |
+
+### Build & Configuration
+| Purpose | File |
+|---------|------|
+| Vite config | `vite.config.ts` |
+| Vitest config | `vitest.config.ts` |
+| TypeScript config | `tsconfig.json` |
+| TypeScript (app) | `tsconfig.app.json` |
+| TypeScript (server) | `tsconfig.server.json` |
+| ESLint config | `eslint.config.js` |
+| Claude Code settings | `.claude/settings.json` |
+
+### Scripts
+| Purpose | File |
+|---------|------|
+| VPS deployment | `scripts/deploy.sh` |
+| Agent team QA | `scripts/test-agent-team.sh` |
+| EagleView PDF extractor | `scripts/extract_eagleview.py` |
+| EagleView regression | `scripts/eagleview-regression.py` |
+
 ### Plans & Specs
 | Document | File | Status |
 |----------|------|--------|
@@ -734,7 +766,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Phase 2 (3D) | `plans/completed/PHASE2_3D_ENHANCED.md` | COMPLETE |
 | Phase 3 (Insurance) | `plans/completed/PHASE3_INSURANCE.md` | COMPLETE |
 | Phase 4 (AI) | `plans/completed/PHASE4_AI.md` | COMPLETE |
-| EagleView Calibration | `plans/completed/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
+| EagleView Calibration | `plans/completed/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-9 COMPLETE |
 | GotRuf Marketing Site | `plans/active/gotruf-marketing-site.md` | Phase 1 COMPLETE |
 | EagleView Parity Plan | `plans/completed/eagleview-parity-improvements.md` | Phases 1-5 COMPLETE |
 | Database Persistence | `plans/completed/database-persistence.md` | Phases A-D COMPLETE |
