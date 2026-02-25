@@ -18,7 +18,7 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - **AI Integration**: Anthropic Claude API (vision analysis), Google Solar API
 - **Solar Analysis**: Shading analysis + Sun path simulation
 - **State Management**: Zustand 5 with localStorage persistence
-- **Testing**: Vitest (2167 tests across 84 files)
+- **Testing**: Vitest (2188 tests across 85 files)
 - **Backend**: Express.js + TypeScript (deployed on Hetzner VPS at 89.167.94.69)
 - **Database**: PostgreSQL 16 (schema: 18+ tables, migration runner)
 - **Auth**: JWT + bcrypt (PostgreSQL-backed with flat-file fallback)
@@ -193,6 +193,12 @@ SkyHawk is an open-source alternative to EagleView, providing aerial property me
 - [x] Property notes with author/timestamp tracking
 - [x] Timeline tab in Workspace sidebar
 - [x] 20 unit tests
+
+### Property Map Overview (COMPLETE)
+- [x] Portfolio map on Dashboard with color-coded property pins
+- [x] Auto-fit bounds, dark styling, legend, click-to-open
+- [x] Clustering for dense portfolios + fallback UI
+- [x] 21 unit tests
 
 ---
 

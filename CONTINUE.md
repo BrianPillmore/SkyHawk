@@ -536,6 +536,19 @@ test(scope): description of test additions
   - ✅ Timeline tab added to Workspace sidebar
   - ✅ 20 unit tests
 
+- [x] **Property Map Overview** (COMPLETE)
+  - ✅ Portfolio map on Dashboard showing all properties as color-coded pins
+  - ✅ Pin colors: green (>3k sf), amber (>1.5k sf), blue (<1.5k sf), gray (unmeasured)
+  - ✅ Auto-fit bounds to show all properties, click pin to open property
+  - ✅ Dark-themed Google Maps with custom styling
+  - ✅ Legend overlay and property count badge
+  - ✅ Fallback UI when Maps API unavailable
+  - ✅ Clustering utility for dense property portfolios
+  - ✅ Collapsible via "Show/Hide map" toggle
+  - ✅ `src/utils/propertyMapUtils.ts` — pins, bounds, center, zoom, cluster, color, tooltip
+  - ✅ `src/components/dashboard/PropertyMapOverview.tsx` — map component
+  - ✅ 21 unit tests
+
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
@@ -810,6 +823,12 @@ All keys are configured in `.env` (gitignored, not committed):
 | App navigation bar | `src/components/layout/AppNav.tsx` |
 | Dashboard component | `src/components/dashboard/Dashboard.tsx` |
 
+### Property Map Overview
+| Purpose | File |
+|---------|------|
+| Map utility functions | `src/utils/propertyMapUtils.ts` |
+| Property map component | `src/components/dashboard/PropertyMapOverview.tsx` |
+
 ### Property Timeline
 | Purpose | File |
 |---------|------|
@@ -971,6 +990,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Notification service | `tests/unit/notificationService.test.ts` |
 | Notification routes | `tests/unit/notificationRoutes.test.ts` |
 | Property timeline | `tests/unit/propertyTimeline.test.ts` |
+| Property map utils | `tests/unit/propertyMapUtils.test.ts` |
 
 #### Integration Tests
 | Purpose | File |

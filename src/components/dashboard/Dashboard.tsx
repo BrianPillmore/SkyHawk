@@ -8,6 +8,7 @@ import {
   type SortDirection,
   type PropertyFilter,
 } from '../../utils/propertySearch';
+import PropertyMapOverview from './PropertyMapOverview';
 
 export default function Dashboard({ onAddProperty }: { onAddProperty?: () => void }) {
   const { properties, setActiveProperty, deleteProperty, reportCredits } = useStore();
@@ -18,6 +19,7 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [filter, setFilter] = useState<PropertyFilter>('all');
+  const [showMap, setShowMap] = useState(true);
 
   const filteredProperties = useMemo(
     () => applyPropertySearch(properties, { query: searchQuery, sortField, sortDirection, filter }),
@@ -79,6 +81,22 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
           />
           <StatCard label="Report Credits" value={String(reportCredits)} icon="🎟️" />
         </div>
+
+        {/* Property Map */}
+        {properties.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-400">Portfolio Map</h2>
+              <button
+                onClick={() => setShowMap(!showMap)}
+                className="text-[10px] text-gray-500 hover:text-white transition-colors"
+              >
+                {showMap ? 'Hide map' : 'Show map'}
+              </button>
+            </div>
+            {showMap && <PropertyMapOverview />}
+          </div>
+        )}
 
         {/* Properties List */}
         <div className="mb-8">
