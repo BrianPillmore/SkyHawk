@@ -291,7 +291,7 @@ Process multiple properties at once — essential for enterprise users handling 
   - "Batch Process" button added to Dashboard
   - Navigation back to Dashboard from batch page
 
-- [x] **Tests** — 43 tests in `tests/unit/batchProcessor.test.ts`
+- [x] **Tests** — 43 tests in `tests/unit/batchProcessor.test.ts`, 24 tests in `tests/unit/propertySearch.test.ts`
   - Address parsing (single line, multiline, CSV, TSV, header detection)
   - Job creation and stats computation
   - Deduplication with normalization
@@ -500,6 +500,18 @@ test(scope): description of test additions
   - ✅ CSV export of results
   - ✅ Server-side bulk property creation API
   - ✅ 43 unit tests
+
+- [x] **Dashboard Search, Sort & Filter + App Navigation** (COMPLETE)
+  - ✅ Property search bar (matches address, city, state, ZIP — multi-term AND logic)
+  - ✅ Filter by status (all, measured, unmeasured)
+  - ✅ Sort by date, address (A-Z), area, or squares — toggle direction
+  - ✅ "No results" state with clear filters button
+  - ✅ Results count when filtered ("Showing X of Y")
+  - ✅ AppNav component (Dashboard/Batch/Account links + username + logout)
+  - ✅ Feature cards updated to reflect all active capabilities
+  - ✅ `src/utils/propertySearch.ts` — search, filter, sort pipeline
+  - ✅ `src/components/layout/AppNav.tsx` — shared navigation bar
+  - ✅ 24 unit tests
 
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
@@ -768,6 +780,13 @@ All keys are configured in `.env` (gitignored, not committed):
 | Batch stats panel | `src/components/batch/BatchStatsPanel.tsx` |
 | Batch API route | `server/routes/batch.ts` |
 
+### Dashboard & Navigation
+| Purpose | File |
+|---------|------|
+| Property search/filter/sort | `src/utils/propertySearch.ts` |
+| App navigation bar | `src/components/layout/AppNav.tsx` |
+| Dashboard component | `src/components/dashboard/Dashboard.tsx` |
+
 ### Marketing & Commerce
 | Purpose | File |
 |---------|------|
@@ -906,6 +925,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Reconstruction regress | `tests/unit/roofReconstructionRegression.test.ts` |
 | Solar panel layout | `tests/unit/solarPanelLayout.test.ts` |
 | Batch processor | `tests/unit/batchProcessor.test.ts` |
+| Property search | `tests/unit/propertySearch.test.ts` |
 
 #### Integration Tests
 | Purpose | File |

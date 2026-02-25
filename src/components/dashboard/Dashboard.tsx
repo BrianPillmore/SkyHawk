@@ -1,10 +1,37 @@
+import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { formatArea, formatNumber } from '../../utils/geometry';
+import {
+  applyPropertySearch,
+  type SortField,
+  type SortDirection,
+  type PropertyFilter,
+} from '../../utils/propertySearch';
 
 export default function Dashboard({ onAddProperty }: { onAddProperty?: () => void }) {
   const { properties, setActiveProperty, deleteProperty, reportCredits } = useStore();
   const navigate = useNavigate();
+
+  // Search, filter, sort state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortField, setSortField] = useState<SortField>('date');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [filter, setFilter] = useState<PropertyFilter>('all');
+
+  const filteredProperties = useMemo(
+    () => applyPropertySearch(properties, { query: searchQuery, sortField, sortDirection, filter }),
+    [properties, searchQuery, sortField, sortDirection, filter],
+  );
+
+  const handleSortToggle = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection(field === 'address' ? 'asc' : 'desc');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
@@ -32,7 +59,7 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Quick Stats */}
-        <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatCard label="Properties" value={String(properties.length)} icon="🏠" />
           <StatCard
             label="Total Reports"
@@ -81,6 +108,74 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
             </div>
           </div>
 
+          {/* Search, Filter & Sort Bar */}
+          {properties.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              {/* Search */}
+              <div className="relative flex-1">
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by address, city, state, or ZIP..."
+                  className="w-full pl-9 pr-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:border-gotruf-500 focus:outline-none focus:ring-1 focus:ring-gotruf-500/50"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Filter */}
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value as PropertyFilter)}
+                className="bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-gotruf-500 focus:outline-none"
+              >
+                <option value="all">All Properties</option>
+                <option value="measured">Measured</option>
+                <option value="unmeasured">Unmeasured</option>
+              </select>
+
+              {/* Sort */}
+              <div className="flex gap-1">
+                {(['date', 'address', 'area', 'squares'] as SortField[]).map((field) => (
+                  <button
+                    key={field}
+                    onClick={() => handleSortToggle(field)}
+                    className={`px-2.5 py-2 text-xs font-medium rounded-lg transition-colors ${
+                      sortField === field
+                        ? 'bg-gotruf-600/20 text-gotruf-400 border border-gotruf-600/40'
+                        : 'bg-gray-900 text-gray-500 border border-gray-700 hover:text-white'
+                    }`}
+                  >
+                    {field === 'date' ? 'Date' : field === 'address' ? 'A-Z' : field === 'area' ? 'Area' : 'Sq'}
+                    {sortField === field && (
+                      <span className="ml-1">{sortDirection === 'asc' ? '\u2191' : '\u2193'}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Results count */}
+          {properties.length > 0 && (searchQuery || filter !== 'all') && (
+            <p className="text-xs text-gray-500 mb-3">
+              Showing {filteredProperties.length} of {properties.length} properties
+              {searchQuery && <span> matching &ldquo;{searchQuery}&rdquo;</span>}
+            </p>
+          )}
+
           {properties.length === 0 ? (
             <div
               className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center cursor-pointer hover:border-gotruf-600/50 transition-colors"
@@ -96,9 +191,19 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
                 Click here or search for an address above to start measuring your first property.
               </p>
             </div>
+          ) : filteredProperties.length === 0 ? (
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+              <p className="text-gray-400 mb-2">No properties match your search.</p>
+              <button
+                onClick={() => { setSearchQuery(''); setFilter('all'); }}
+                className="text-sm text-gotruf-400 hover:text-gotruf-300 transition-colors"
+              >
+                Clear filters
+              </button>
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {properties.map((property) => {
+              {filteredProperties.map((property) => {
                 const latestMeasurement = property.measurements[property.measurements.length - 1];
                 return (
                   <div
@@ -192,31 +297,31 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
               title="3D Visualization"
               description="Interactive 3D roof models with rotation and inspection"
               icon="🏗️"
-              status="planned"
+              status="active"
             />
             <FeatureCard
               title="Insurance Claims"
               description="Claims workflow with damage assessment and Xactimate export"
               icon="🛡️"
-              status="planned"
+              status="active"
             />
             <FeatureCard
               title="AI Detection"
               description="Automatic roof outline and damage detection from imagery"
               icon="🤖"
-              status="planned"
+              status="active"
             />
             <FeatureCard
               title="Solar Analysis"
               description="Solar panel placement, shading analysis, and energy estimates"
               icon="☀️"
-              status="planned"
+              status="active"
             />
             <FeatureCard
-              title="Drone Integration"
-              description="Drone flight planning, imagery upload, and processing"
-              icon="🚁"
-              status="planned"
+              title="Batch Processing"
+              description="Process multiple properties at once for enterprise workflows"
+              icon="📋"
+              status="active"
             />
           </div>
         </div>

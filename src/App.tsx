@@ -18,6 +18,7 @@ import CheckoutCancel from './pages/marketing/CheckoutCancel';
 import LoginRedirect from './pages/Login';
 import AccountPage from './components/account/AccountPage';
 import BatchProcessor from './components/batch/BatchProcessor';
+import AppNav from './components/layout/AppNav';
 
 function DashboardPage() {
   const { activePropertyId } = useStore();
@@ -45,6 +46,7 @@ function DashboardPage() {
         <div className="flex-1 max-w-xl">
           <AddressSearch searchInputRef={searchInputRef} />
         </div>
+        <AppNav />
       </header>
       <div className="flex-1">
         <Dashboard onAddProperty={focusSearch} />
