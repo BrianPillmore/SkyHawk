@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../../store/useStore';
 import type { RoofMeasurement, Property, EdgeType } from '../../types';
+import type { SolarBuildingInsights } from '../../types/solar';
 import { formatArea, formatLength, formatPitch, formatNumber } from '../../utils/geometry';
 import { EDGE_COLORS, EDGE_LABELS } from '../../utils/colors';
 import { calculateWasteTable } from '../../utils/geometry';
-import { estimateMaterials } from '../../utils/materials';
+import { estimateMaterials, estimateMaterialCosts, formatCurrency } from '../../utils/materials';
 import { exportMeasurementJSON, exportMeasurementGeoJSON, exportMeasurementCSV } from '../../utils/exportData';
 import { exportESX } from '../../utils/esxExport';
 import { computeAccuracyScore } from '../../utils/accuracyScore';
+import { calculateEnvironmentalImpact } from '../../utils/environmentalImpact';
 import PitchDiagram from './PitchDiagram';
 import DamagePanel from './DamagePanel';
 import RoofViewer3D from './RoofViewer3D';
@@ -266,10 +268,15 @@ export default function MeasurementsPanel() {
       {activeMeasurement.totalSquares > 0 && (
         <section>
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            Material Estimates
+            Material Estimates & Cost
           </h3>
           <MaterialEstimateTable measurement={activeMeasurement} />
         </section>
+      )}
+
+      {/* Environmental Impact */}
+      {solarInsights && (
+        <EnvironmentalImpactCard solarInsights={solarInsights} />
       )}
 
       {/* Waste Table */}
@@ -341,14 +348,20 @@ function LineSummary({ type, label, length, count }: { type: string; label: stri
 
 function MaterialEstimateTable({ measurement }: { measurement: RoofMeasurement }) {
   const materials = estimateMaterials(measurement);
+  const costEstimate = useMemo(
+    () => estimateMaterialCosts(materials, measurement.totalSquares),
+    [materials, measurement.totalSquares],
+  );
 
   const rows: { label: string; qty: number; unit: string }[] = [
     { label: 'Shingle Bundles', qty: materials.shingleBundles, unit: 'bundles' },
+    { label: 'Hip & Ridge', qty: materials.hipRidgeBundles, unit: 'bundles' },
     { label: 'Underlayment', qty: materials.underlaymentRolls, unit: 'rolls' },
     { label: 'Ice & Water Shield', qty: materials.iceWaterRolls, unit: 'rolls' },
     { label: 'Starter Strip', qty: materials.starterStripLf, unit: 'lf' },
     { label: 'Ridge Cap', qty: materials.ridgeCapLf, unit: 'lf' },
     { label: 'Drip Edge', qty: materials.dripEdgeLf, unit: 'lf' },
+    { label: 'Valley Metal', qty: materials.valleyMetalLf, unit: 'lf' },
     { label: 'Step Flashing', qty: materials.stepFlashingPcs, unit: 'pcs' },
     { label: 'Pipe Boots', qty: materials.pipeBoots, unit: 'pcs' },
     { label: 'Roofing Nails', qty: materials.nailsLbs, unit: 'lbs' },
@@ -382,8 +395,26 @@ function MaterialEstimateTable({ measurement }: { measurement: RoofMeasurement }
           ))}
         </tbody>
       </table>
+      {/* Cost Estimate Summary */}
+      <div className="border-t border-gray-700/50 px-3 py-2 space-y-1">
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-500">Materials</span>
+          <span className="text-gray-300">{formatCurrency(costEstimate.totalMaterialCost)}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-gray-500">Est. Labor</span>
+          <span className="text-gray-300">{formatCurrency(costEstimate.estimatedLaborCost)}</span>
+        </div>
+        <div className="flex justify-between text-xs font-medium border-t border-gray-700/50 pt-1">
+          <span className="text-gray-400">Est. Total</span>
+          <span className="text-white">{formatCurrency(costEstimate.totalProjectCost)}</span>
+        </div>
+        <div className="text-right text-[10px] text-gray-500">
+          {formatCurrency(costEstimate.costPerSquare)}/sq
+        </div>
+      </div>
       <div className="px-3 py-2 text-[10px] text-gray-500 border-t border-gray-700/50">
-        Includes {measurement.suggestedWastePercent}% waste factor. Estimates are approximate.
+        Includes {measurement.suggestedWastePercent}% waste. National avg pricing — actual costs vary by region.
       </div>
     </div>
   );
@@ -422,5 +453,41 @@ function ExportDropdown({ measurement, property }: { measurement: RoofMeasuremen
         </div>
       )}
     </div>
+  );
+}
+
+function EnvironmentalImpactCard({ solarInsights }: { solarInsights: SolarBuildingInsights }) {
+  const impact = useMemo(() => calculateEnvironmentalImpact(solarInsights), [solarInsights]);
+
+  return (
+    <section>
+      <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+        Environmental Impact
+      </h3>
+      <div className="bg-green-900/20 rounded-lg border border-green-800/30 p-3 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <div className="text-[10px] text-green-400/70 uppercase">Annual CO2 Offset</div>
+            <div className="text-sm font-semibold text-green-300">{impact.annualCO2OffsetTons} tons</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-green-400/70 uppercase">Lifetime (25yr)</div>
+            <div className="text-sm font-semibold text-green-300">{impact.lifetimeCO2OffsetTons} tons</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-green-400/70 uppercase">Trees Equivalent</div>
+            <div className="text-sm font-semibold text-green-300">{impact.treeEquivalent.toLocaleString()}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-green-400/70 uppercase">Miles Not Driven</div>
+            <div className="text-sm font-semibold text-green-300">{impact.milesNotDriven.toLocaleString()}</div>
+          </div>
+        </div>
+        <div className="flex justify-between text-[10px] text-green-400/50 border-t border-green-800/30 pt-1.5">
+          <span>{impact.annualEnergyKwh.toLocaleString()} kWh/yr</span>
+          <span>{impact.homesPowered} homes powered</span>
+        </div>
+      </div>
+    </section>
   );
 }

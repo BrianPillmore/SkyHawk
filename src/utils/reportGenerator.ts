@@ -2,12 +2,13 @@ import jsPDF from 'jspdf';
 import type { Property, RoofMeasurement, RoofConditionAssessment, DamageSeverity } from '../types';
 import { DAMAGE_TYPE_LABELS, CLAIM_STATUS_LABELS, ROOF_MATERIAL_LABELS } from '../types';
 import { formatArea, formatLength, formatPitch, formatNumber, calculateWasteTable, pitchToDegrees } from './geometry';
-import { estimateMaterials } from './materials';
+import { estimateMaterials, estimateMaterialCosts, formatCurrency } from './materials';
 import { analyzeSolarPotential, analyzeSolarPotentialFromApi, DEFAULT_SOLAR_CONFIG } from './solarCalculations';
 import type { SolarSystemSummary } from './solarCalculations';
 import type { SolarBuildingInsights } from '../types/solar';
 import { computePanelLayout, renderPanelLayoutDiagram } from './solarPanelLayout';
 import { computeAccuracyScore } from './accuracyScore';
+import { calculateEnvironmentalImpact } from './environmentalImpact';
 import { generateTOC, renderTOCPage } from './reportTableOfContents';
 import type { TOCEntry } from './reportTableOfContents';
 import { renderSummaryPage, applyPageDecoration } from './reportPageTemplates';
@@ -216,7 +217,7 @@ export async function generateReport(
     tocSections.push({ title: 'Damage Assessment', pageNumber: tocPageNum, indent: 0 });
     tocPageNum++;
   }
-  tocSections.push({ title: 'Material Estimate', pageNumber: tocPageNum, indent: 0 });
+  tocSections.push({ title: 'Material Estimate & Cost', pageNumber: tocPageNum, indent: 0 });
   tocPageNum++;
   tocSections.push({ title: 'Appendix: Methodology & Data Sources', pageNumber: tocPageNum, indent: 0 });
 
@@ -589,6 +590,50 @@ export async function generateReport(
       addText(activeRows[i][2], margin + contentWidth * 0.7, rowY, 9, grayText);
     }
     y += activeRows.length * 7 + 6;
+
+    // ============ COST ESTIMATE ============
+    checkPage(60);
+    const costEstimate = estimateMaterialCosts(materials, measurement.totalSquares);
+    y = addText('ESTIMATED PROJECT COST', margin, y, 12, primaryColor, 'bold');
+    y += 2;
+    y = addLine(y);
+    y += 2;
+    y = addText(
+      'National average pricing (2025-2026). Actual costs vary by region, material grade, and contractor.',
+      margin, y, 7, grayText
+    );
+    y += 5;
+
+    // Cost summary table
+    const costRows: string[][] = [
+      ['Materials (Shingles, Underlayment, Accessories)', formatCurrency(costEstimate.totalMaterialCost)],
+      ['Estimated Labor (60/40 labor-to-material ratio)', formatCurrency(costEstimate.estimatedLaborCost)],
+    ];
+
+    for (let ci = 0; ci < costRows.length; ci++) {
+      const rowY = y + ci * 7;
+      if (ci % 2 === 0) {
+        doc.setFillColor(...lightBg);
+        doc.rect(margin, rowY - 4, contentWidth, 7, 'F');
+      }
+      addText(costRows[ci][0], margin + 3, rowY, 9, grayText);
+      addText(costRows[ci][1], pageWidth - margin - 3 - doc.getTextWidth(costRows[ci][1]), rowY, 9, darkText, 'bold');
+    }
+    y += costRows.length * 7;
+
+    // Total row
+    checkPage(10);
+    doc.setFillColor(219, 234, 254);
+    doc.rect(margin, y - 4, contentWidth, 7, 'F');
+    addText('TOTAL ESTIMATED COST', margin + 3, y, 9, primaryColor, 'bold');
+    const totalCostStr = formatCurrency(costEstimate.totalProjectCost);
+    addText(totalCostStr, pageWidth - margin - 3 - doc.getTextWidth(totalCostStr), y, 9, primaryColor, 'bold');
+    y += 7;
+
+    // Cost per square
+    const cpsStr = `${formatCurrency(costEstimate.costPerSquare)} per square`;
+    addText(cpsStr, pageWidth - margin - 3 - doc.getTextWidth(cpsStr), y, 7.5, grayText);
+    y += 8;
   }
 
   // ============ DAMAGE ASSESSMENT ============
@@ -782,12 +827,23 @@ export async function generateReport(
       }
       y += solarSummary.length * 7 + 6;
 
-      // Environmental impact
-      checkPage(30);
-      y = addText('Environmental Impact (Annual)', margin, y, 10, primaryColor, 'bold');
+      // Environmental impact — enhanced with API-based calculations
+      checkPage(55);
+      y = addText('Environmental Impact', margin, y, 10, primaryColor, 'bold');
       y += 4;
 
-      const envData = [
+      const envImpact = options.solarInsights
+        ? calculateEnvironmentalImpact(options.solarInsights, solar.totalCapacityKw)
+        : null;
+
+      const envData = envImpact ? [
+        ['Annual CO2 Offset', `${envImpact.annualCO2OffsetTons.toLocaleString()} metric tons`],
+        ['Lifetime CO2 Offset (25 yr)', `${envImpact.lifetimeCO2OffsetTons.toLocaleString()} metric tons`],
+        ['Trees Equivalent (Annual)', `${envImpact.treeEquivalent.toLocaleString()} trees`],
+        ['Miles Not Driven Equivalent', `${envImpact.milesNotDriven.toLocaleString()} miles`],
+        ['Homes Powered Equivalent', formatNumber(envImpact.homesPowered, 2)],
+        ['Grid Carbon Intensity', `${envImpact.carbonFactorKgPerMwh} kg CO2/MWh`],
+      ] : [
         ['CO2 Offset', `${solar.carbonOffsetLbs.toLocaleString()} lbs`],
         ['Trees Equivalent', `${solar.treesEquivalent} trees`],
       ];
@@ -802,6 +858,21 @@ export async function generateReport(
         addText(envData[i][1], pageWidth - margin - 3 - doc.getTextWidth(envData[i][1]), rowY, 9, darkText, 'bold');
       }
       y += envData.length * 7 + 6;
+
+      // Solar ROI Summary box
+      checkPage(30);
+      const greenBg: [number, number, number] = [220, 252, 231];
+      const greenAccent: [number, number, number] = [22, 163, 74];
+      doc.setFillColor(...greenBg);
+      doc.rect(margin, y, contentWidth, 22, 'F');
+      doc.setFillColor(...greenAccent);
+      doc.rect(margin, y, 4, 22, 'F');
+      addText('SOLAR ROI SUMMARY', margin + 8, y + 5, 8, greenAccent, 'bold');
+      const roiLine = `${solar.paybackYears}-year payback | ${formatCurrency(solar.annualSavings)}/yr savings | ${formatCurrency(solar.twentyFiveYearSavings)} lifetime savings`;
+      addText(roiLine, margin + 8, y + 12, 7.5, darkText);
+      const roiNetLine = `Net cost after 30% ITC: ${formatCurrency(solar.netCost)} | System: ${solar.totalCapacityKw} kW (${solar.totalPanels} panels)`;
+      addText(roiNetLine, margin + 8, y + 18, 7, grayText);
+      y += 28;
 
       // Per-facet solar breakdown
       if (solar.facetAnalyses.length > 0) {

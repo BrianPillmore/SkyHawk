@@ -107,3 +107,102 @@ export function estimateMaterials(
 export function formatMaterialLine(qty: number, unit: string, name: string): string {
   return `${qty} ${unit} — ${name}`;
 }
+
+// ============ MATERIAL COST PRICING ============
+
+/**
+ * National average material prices (2025-2026).
+ * Prices are per unit (bundle, roll, linear foot, piece, etc.).
+ * These serve as defaults — can be overridden with regional pricing.
+ */
+export const DEFAULT_MATERIAL_PRICES = {
+  shingleBundlePrice: 35.00,        // per bundle (architectural)
+  hipRidgeBundlePrice: 45.00,       // per bundle (hip & ridge cap)
+  underlaymentRollPrice: 55.00,     // per roll (synthetic)
+  iceWaterRollPrice: 95.00,         // per roll
+  starterStripPerLf: 0.45,          // per linear foot
+  ridgeCapPerLf: 1.20,              // per linear foot (installed price)
+  dripEdgePerLf: 0.85,              // per 10ft piece / 10
+  valleyMetalPerLf: 2.50,           // per linear foot (W-valley)
+  stepFlashingPerPc: 1.50,          // per piece
+  roofToWallFlashingPerPc: 8.00,    // per 10ft piece
+  pipeBootPrice: 12.00,             // each
+  coilNailBoxPrice: 45.00,          // per box
+  handNailPerLb: 3.50,              // per lb
+  caulkTubePrice: 6.50,             // per tube
+  ridgeVentPerLf: 3.50,             // per linear foot
+  sheathingSheetPrice: 28.00,       // per 4x8 sheet
+} as const;
+
+export type MaterialPrices = typeof DEFAULT_MATERIAL_PRICES;
+
+export interface MaterialCostEstimate {
+  /** Per-item cost breakdown */
+  items: {
+    name: string;
+    quantity: number;
+    unit: string;
+    unitPrice: number;
+    totalPrice: number;
+  }[];
+  /** Total material cost */
+  totalMaterialCost: number;
+  /** Estimated labor cost (materials * labor multiplier) */
+  estimatedLaborCost: number;
+  /** Total project cost (materials + labor) */
+  totalProjectCost: number;
+  /** Cost per square (total / squares) */
+  costPerSquare: number;
+}
+
+/**
+ * Compute estimated material costs from a material estimate.
+ * Uses national average pricing with optional regional overrides.
+ *
+ * Labor cost is estimated at 1.5x material cost (industry standard ratio
+ * for residential roofing — materials ~40%, labor ~60% of total job).
+ */
+export function estimateMaterialCosts(
+  materials: MaterialEstimate,
+  squares: number,
+  prices: Partial<MaterialPrices> = {},
+): MaterialCostEstimate {
+  const p = { ...DEFAULT_MATERIAL_PRICES, ...prices };
+
+  const items: MaterialCostEstimate['items'] = [
+    { name: 'Shingle Bundles', quantity: materials.shingleBundles, unit: 'bundles', unitPrice: p.shingleBundlePrice, totalPrice: materials.shingleBundles * p.shingleBundlePrice },
+    { name: 'Hip & Ridge Shingles', quantity: materials.hipRidgeBundles, unit: 'bundles', unitPrice: p.hipRidgeBundlePrice, totalPrice: materials.hipRidgeBundles * p.hipRidgeBundlePrice },
+    { name: 'Underlayment', quantity: materials.underlaymentRolls, unit: 'rolls', unitPrice: p.underlaymentRollPrice, totalPrice: materials.underlaymentRolls * p.underlaymentRollPrice },
+    { name: 'Ice & Water Shield', quantity: materials.iceWaterRolls, unit: 'rolls', unitPrice: p.iceWaterRollPrice, totalPrice: materials.iceWaterRolls * p.iceWaterRollPrice },
+    { name: 'Starter Strip', quantity: materials.starterStripLf, unit: 'lf', unitPrice: p.starterStripPerLf, totalPrice: materials.starterStripLf * p.starterStripPerLf },
+    { name: 'Ridge Cap', quantity: materials.ridgeCapLf, unit: 'lf', unitPrice: p.ridgeCapPerLf, totalPrice: materials.ridgeCapLf * p.ridgeCapPerLf },
+    { name: 'Drip Edge', quantity: materials.dripEdgeLf, unit: 'lf', unitPrice: p.dripEdgePerLf, totalPrice: materials.dripEdgeLf * p.dripEdgePerLf },
+    { name: 'Valley Metal', quantity: materials.valleyMetalLf, unit: 'lf', unitPrice: p.valleyMetalPerLf, totalPrice: materials.valleyMetalLf * p.valleyMetalPerLf },
+    { name: 'Step Flashing', quantity: materials.stepFlashingPcs, unit: 'pcs', unitPrice: p.stepFlashingPerPc, totalPrice: materials.stepFlashingPcs * p.stepFlashingPerPc },
+    { name: 'Roof-to-Wall Flashing', quantity: materials.roofToWallFlashingPcs, unit: 'pcs', unitPrice: p.roofToWallFlashingPerPc, totalPrice: materials.roofToWallFlashingPcs * p.roofToWallFlashingPerPc },
+    { name: 'Pipe Boots', quantity: materials.pipeBoots, unit: 'pcs', unitPrice: p.pipeBootPrice, totalPrice: materials.pipeBoots * p.pipeBootPrice },
+    { name: 'Coil Nails', quantity: materials.coilNailBoxes, unit: 'boxes', unitPrice: p.coilNailBoxPrice, totalPrice: materials.coilNailBoxes * p.coilNailBoxPrice },
+    { name: 'Hand Nails', quantity: materials.nailsLbs, unit: 'lbs', unitPrice: p.handNailPerLb, totalPrice: materials.nailsLbs * p.handNailPerLb },
+    { name: 'Caulk', quantity: materials.caulkTubes, unit: 'tubes', unitPrice: p.caulkTubePrice, totalPrice: materials.caulkTubes * p.caulkTubePrice },
+    { name: 'Ridge Vent', quantity: materials.ridgeVentLf, unit: 'lf', unitPrice: p.ridgeVentPerLf, totalPrice: materials.ridgeVentLf * p.ridgeVentPerLf },
+    { name: 'Sheathing (OSB)', quantity: materials.sheathingSheets, unit: 'sheets', unitPrice: p.sheathingSheetPrice, totalPrice: materials.sheathingSheets * p.sheathingSheetPrice },
+  ].filter(item => item.quantity > 0);
+
+  const totalMaterialCost = items.reduce((sum, item) => sum + item.totalPrice, 0);
+  const estimatedLaborCost = totalMaterialCost * 1.5; // 60/40 labor/material ratio
+  const totalProjectCost = totalMaterialCost + estimatedLaborCost;
+  const costPerSquare = squares > 0 ? totalProjectCost / squares : 0;
+
+  return {
+    items,
+    totalMaterialCost: Math.round(totalMaterialCost * 100) / 100,
+    estimatedLaborCost: Math.round(estimatedLaborCost * 100) / 100,
+    totalProjectCost: Math.round(totalProjectCost * 100) / 100,
+    costPerSquare: Math.round(costPerSquare * 100) / 100,
+  };
+}
+
+/** Format a dollar amount */
+export function formatCurrency(amount: number): string {
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
