@@ -73,7 +73,7 @@ interface AppState {
 
   // UI state
   sidebarOpen: boolean;
-  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls';
+  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls' | 'timeline';
 
   // Roof condition assessment
   roofCondition: RoofConditionAssessment | null;
@@ -98,6 +98,7 @@ interface AppState {
   createProperty: (address: string, city: string, state: string, zip: string, lat: number, lng: number) => string;
   setActiveProperty: (id: string | null) => void;
   deleteProperty: (id: string) => void;
+  updatePropertyNotes: (propertyId: string, notes: string) => void;
 
   // Actions - Measurement
   startNewMeasurement: () => void;
@@ -135,7 +136,7 @@ interface AppState {
 
   // Actions - UI
   toggleSidebar: () => void;
-  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls') => void;
+  setActivePanel: (panel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls' | 'timeline') => void;
 
   // Actions - Roof Condition
   setRoofCondition: (assessment: RoofConditionAssessment) => void;
@@ -435,6 +436,16 @@ export const useStore = create<AppState>()(
             activePropertyId: s.activePropertyId === id ? null : s.activePropertyId,
             activeMeasurement: s.activeMeasurement?.propertyId === id ? null : s.activeMeasurement,
             ...(s.activePropertyId === id ? { _undoStack: [], _redoStack: [] } : {}),
+          }));
+        },
+
+        updatePropertyNotes: (propertyId, notes) => {
+          set((s) => ({
+            properties: s.properties.map((p) =>
+              p.id === propertyId
+                ? { ...p, notes, updatedAt: new Date().toISOString() }
+                : p,
+            ),
           }));
         },
 

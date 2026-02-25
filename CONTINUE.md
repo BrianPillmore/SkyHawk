@@ -526,6 +526,16 @@ test(scope): description of test additions
   - ✅ 30-second polling for real-time updates
   - ✅ 52 unit tests across 2 test files
 
+- [x] **Property Timeline + Notes** (COMPLETE)
+  - ✅ Timeline types: 13 event types (property, measurement, damage, claim, inspection, note, snapshot, condition, export)
+  - ✅ Timeline builder: aggregates all property events into a unified chronological view
+  - ✅ Event filtering by type, grouping by date (Today/Yesterday/dated)
+  - ✅ PropertyTimeline UI: filterable timeline with connected dot-and-line visual
+  - ✅ PropertyNotes UI: add notes with author/timestamp tracking
+  - ✅ `updatePropertyNotes` store action for note persistence
+  - ✅ Timeline tab added to Workspace sidebar
+  - ✅ 20 unit tests
+
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
@@ -800,6 +810,14 @@ All keys are configured in `.env` (gitignored, not committed):
 | App navigation bar | `src/components/layout/AppNav.tsx` |
 | Dashboard component | `src/components/dashboard/Dashboard.tsx` |
 
+### Property Timeline
+| Purpose | File |
+|---------|------|
+| Timeline types | `src/types/timeline.ts` |
+| Timeline builder utility | `src/utils/propertyTimeline.ts` |
+| Timeline UI component | `src/components/timeline/PropertyTimeline.tsx` |
+| Property notes UI | `src/components/timeline/PropertyNotes.tsx` |
+
 ### Notifications
 | Purpose | File |
 |---------|------|
@@ -952,6 +970,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Property search | `tests/unit/propertySearch.test.ts` |
 | Notification service | `tests/unit/notificationService.test.ts` |
 | Notification routes | `tests/unit/notificationRoutes.test.ts` |
+| Property timeline | `tests/unit/propertyTimeline.test.ts` |
 
 #### Integration Tests
 | Purpose | File |
