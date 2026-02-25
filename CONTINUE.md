@@ -245,6 +245,15 @@ Quantifiable accuracy metrics and automatic multi-building detection.
   - Eliminates previous Voronoi/azimuth partitioning failures that collapsed to 1 facet
   - 8 regression tests in `tests/unit/roofReconstructionRegression.test.ts` against EagleView calibration properties
 
+- [x] **Enhanced Material Estimation** — `src/utils/materials.ts`
+  - 5 new material items added to `MaterialEstimate` interface:
+    - `hipRidgeBundles` — hip & ridge shingle bundles (1 bundle per ~35 linear feet)
+    - `valleyMetalLf` — valley metal/ice & water shield (linear feet)
+    - `sheathingSheets` — plywood/OSB sheathing (4×8 sheets, 32 sq ft each)
+    - `coilNailBoxes` — coil nails for nail gun (7200 nails/box, ~320 per square)
+    - `roofToWallFlashingPcs` — L-metal roof-to-wall flashing (10ft pieces)
+  - All calculated with waste factor multiplier applied
+
 ---
 
 ## CONTINUATION PROTOCOL
@@ -437,6 +446,7 @@ test(scope): description of test additions
   - ✅ Weighted 100-point accuracy scoring (5 factors, letter grades A+ through D)
   - ✅ DBSCAN-like multi-structure detection from Solar API segments
   - ✅ Roof reconstruction rewrite — one facet per Solar API segment guarantee
+  - ✅ Enhanced material estimation (5 new items: hip/ridge bundles, valley metal, sheathing, coil nails, roof-to-wall flashing)
   - ✅ Regression tests against 18 EagleView calibration properties
 
 ### Not Started
@@ -523,6 +533,8 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - jsPDF + html2canvas (PDF generation)
 - geotiff (GeoTIFF parsing for LIDAR data)
 - React Router v7
+- pdf-parse (PDF text extraction for EagleView uploads)
+- multer (multipart form handling for file uploads)
 - Vitest (2028 tests across 79 test files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
