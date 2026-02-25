@@ -148,8 +148,8 @@ FAA Part 107 requirements, cost estimates, and 4-phase implementation roadmap.
 - [ ] Integration with SkyHawk measurement engine (replace Google satellite with drone orthomosaic)
 - [ ] Autonomous inspection workflows
 
-### Priority 6: Google Solar API Deep Integration (Phases 1-5, 8 COMPLETE)
-**Plan file**: `plans/active/google-solar-api-deep-dive.md`
+### Priority 6: Google Solar API Deep Integration (Phases 1-8 COMPLETE)
+**Plan file**: `plans/completed/google-solar-api-deep-dive.md`
 
 SkyHawk currently uses ~30% of the Solar API's available data. An 8-phase plan to leverage
 the remaining 70% for significant accuracy and feature improvements:
@@ -736,9 +736,9 @@ All keys are configured in `.env` (gitignored, not committed):
 | Phase 4 (AI) | `plans/completed/PHASE4_AI.md` | COMPLETE |
 | EagleView Calibration | `plans/completed/EAGLEVIEW_CALIBRATION_PROMPT.md` | Phases 1-7 COMPLETE |
 | GotRuf Marketing Site | `plans/active/gotruf-marketing-site.md` | Phase 1 COMPLETE |
-| EagleView Parity Plan | `plans/active/eagleview-parity-improvements.md` | Phases 1-4 COMPLETE |
-| Database Persistence | `plans/active/database-persistence.md` | Phases A-C COMPLETE |
-| Google Solar API Deep Dive | `plans/active/google-solar-api-deep-dive.md` | Phases 1-8 COMPLETE |
+| EagleView Parity Plan | `plans/completed/eagleview-parity-improvements.md` | Phases 1-5 COMPLETE |
+| Database Persistence | `plans/completed/database-persistence.md` | Phases A-D COMPLETE |
+| Google Solar API Deep Dive | `plans/completed/google-solar-api-deep-dive.md` | Phases 1-8 COMPLETE |
 | Drone Integration | `plans/research/PHASE7_Thoughts_On_Drones-aerial-imagery-platform-design.md` | RESEARCH ONLY |
 | API Spec | `specs/API_SPEC.md` | |
 | Measurement Spec | `specs/MEASUREMENT_SPEC.md` | |
