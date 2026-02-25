@@ -18,6 +18,7 @@ import CheckoutCancel from './pages/marketing/CheckoutCancel';
 import LoginRedirect from './pages/Login';
 import AccountPage from './components/account/AccountPage';
 import BatchProcessor from './components/batch/BatchProcessor';
+import QuickEstimate from './components/estimate/QuickEstimate';
 import AppNav from './components/layout/AppNav';
 
 function DashboardPage() {
@@ -87,6 +88,7 @@ export default function App() {
       <Route path="/workspace" element={<ProtectedRoute><Workspace /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
       <Route path="/batch" element={<ProtectedRoute><BatchProcessor /></ProtectedRoute>} />
+      <Route path="/estimate" element={<ProtectedRoute><QuickEstimate /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

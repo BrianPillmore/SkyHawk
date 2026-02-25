@@ -104,6 +104,15 @@ export default function Dashboard({ onAddProperty }: { onAddProperty?: () => voi
             <h2 className="text-xl font-bold">Properties</h2>
             <div className="flex gap-2">
               <button
+                onClick={() => navigate('/estimate')}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm0 2.25h.008v.008H8.25v-.008zm2.498-6h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm2.25-4.5h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zm3.75-2.25h.008v.008h-.008v-.008zm0 2.25h.008v.008h-.008v-.008zM6.75 5.25v-1.5a.75.75 0 01.75-.75h9a.75.75 0 01.75.75v1.5M6.75 5.25H4.875c-.621 0-1.125.504-1.125 1.125v12.75c0 .621.504 1.125 1.125 1.125h14.25c.621 0 1.125-.504 1.125-1.125V6.375c0-.621-.504-1.125-1.125-1.125H17.25" />
+                </svg>
+                Quick Estimate
+              </button>
+              <button
                 onClick={() => navigate('/batch')}
                 className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
               >

@@ -549,6 +549,19 @@ test(scope): description of test additions
   - ✅ `src/components/dashboard/PropertyMapOverview.tsx` — map component
   - ✅ 21 unit tests
 
+- [x] **Quick Estimate Calculator** (COMPLETE)
+  - ✅ Instant material and cost estimates from basic roof parameters (no full auto-measurement needed)
+  - ✅ Calculation engine: pitch multiplier, perimeter/ridge estimation, material quantities, cost breakdown
+  - ✅ Inputs: area, pitch, complexity (4 levels), stories, shingle grade (4 options), underlayment (3 types), tearoff with layer count
+  - ✅ Outputs: true area, squares (with waste), 8 material quantities, 10 cost items, cost per square
+  - ✅ Waste factors per complexity: simple 8%, moderate 12%, complex 17%, very complex 22%
+  - ✅ Labor scaling by complexity and story count (1.0x–1.35x multiplier)
+  - ✅ Full-page UI with live-updating results, pitch slider, gradient total card
+  - ✅ "Quick Estimate" button on Dashboard, `/estimate` protected route
+  - ✅ `src/utils/quickEstimate.ts` — calculation engine + price tables + label constants
+  - ✅ `src/components/estimate/QuickEstimate.tsx` — full page UI
+  - ✅ 49 unit tests
+
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
@@ -635,7 +648,7 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - React Router v7
 - pdf-parse (PDF text extraction for EagleView uploads)
 - multer (multipart form handling for file uploads)
-- Vitest (2028 tests across 79 test files)
+- Vitest (2237 tests across 86 test files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -829,6 +842,12 @@ All keys are configured in `.env` (gitignored, not committed):
 | Map utility functions | `src/utils/propertyMapUtils.ts` |
 | Property map component | `src/components/dashboard/PropertyMapOverview.tsx` |
 
+### Quick Estimate Calculator
+| Purpose | File |
+|---------|------|
+| Estimate calculation engine | `src/utils/quickEstimate.ts` |
+| Estimate UI page | `src/components/estimate/QuickEstimate.tsx` |
+
 ### Property Timeline
 | Purpose | File |
 |---------|------|
@@ -919,7 +938,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (2028 passing tests across 79 files)
+### Tests (2237 passing tests across 86 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
@@ -991,6 +1010,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Notification routes | `tests/unit/notificationRoutes.test.ts` |
 | Property timeline | `tests/unit/propertyTimeline.test.ts` |
 | Property map utils | `tests/unit/propertyMapUtils.test.ts` |
+| Quick estimate calculator | `tests/unit/quickEstimate.test.ts` |
 
 #### Integration Tests
 | Purpose | File |
