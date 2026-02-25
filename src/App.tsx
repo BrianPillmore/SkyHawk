@@ -19,6 +19,7 @@ import LoginRedirect from './pages/Login';
 import AccountPage from './components/account/AccountPage';
 import BatchProcessor from './components/batch/BatchProcessor';
 import QuickEstimate from './components/estimate/QuickEstimate';
+import SharedReportViewer from './pages/SharedReportViewer';
 import AppNav from './components/layout/AppNav';
 
 function DashboardPage() {
@@ -82,6 +83,9 @@ export default function App() {
 
       {/* Login redirect — opens modal on landing page */}
       <Route path="/login" element={<LoginRedirect />} />
+
+      {/* Shared report viewer (public, no auth) */}
+      <Route path="/shared/:token" element={<SharedReportViewer />} />
 
       {/* App routes (authenticated) */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />

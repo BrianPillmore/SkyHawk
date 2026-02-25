@@ -562,6 +562,18 @@ test(scope): description of test additions
   - ✅ `src/components/estimate/QuickEstimate.tsx` — full page UI
   - ✅ 49 unit tests
 
+- [x] **Shared Report Viewer** (COMPLETE)
+  - ✅ Public `/shared/:token` route — no authentication required
+  - ✅ Fetches property, measurements, and damage annotations via `GET /api/shared/:token`
+  - ✅ Closes the sharing loop: SharingPanel creates links → SharedReportViewer displays them
+  - ✅ Polished read-only viewer with GotRuf branding, satellite map preview, measurement grid
+  - ✅ Damage annotations section with severity-colored cards
+  - ✅ Error states: 404 (not found/revoked), 410 (expired), network error
+  - ✅ Loading spinner, CTA to sign up, attribution footer
+  - ✅ `src/services/sharedReportApi.ts` — typed API client with SharedReportError class
+  - ✅ `src/pages/SharedReportViewer.tsx` — full viewer page
+  - ✅ 28 unit tests
+
 ### Not Started
 - [ ] **Phase 7: Drone Integration** (requires hardware + FAA certification)
 
@@ -648,7 +660,7 @@ Script: `scripts/eagleview-regression.py` | Results: `tests/fixtures/solar-api-c
 - React Router v7
 - pdf-parse (PDF text extraction for EagleView uploads)
 - multer (multipart form handling for file uploads)
-- Vitest (2237 tests across 86 test files)
+- Vitest (2265 tests across 87 test files)
 - Express.js backend (deployed on Hetzner VPS at 89.167.94.69)
 
 ---
@@ -848,6 +860,12 @@ All keys are configured in `.env` (gitignored, not committed):
 | Estimate calculation engine | `src/utils/quickEstimate.ts` |
 | Estimate UI page | `src/components/estimate/QuickEstimate.tsx` |
 
+### Shared Report Viewer
+| Purpose | File |
+|---------|------|
+| Shared report API client | `src/services/sharedReportApi.ts` |
+| Shared report viewer page | `src/pages/SharedReportViewer.tsx` |
+
 ### Property Timeline
 | Purpose | File |
 |---------|------|
@@ -938,7 +956,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Report Spec | `specs/REPORT_SPEC.md` | |
 | Feature Roadmap | `ROADMAP.md` | |
 
-### Tests (2237 passing tests across 86 files)
+### Tests (2265 passing tests across 87 files)
 | Purpose | File |
 |---------|------|
 | Geometry calculations | `tests/unit/geometry.test.ts` |
@@ -1011,6 +1029,7 @@ All keys are configured in `.env` (gitignored, not committed):
 | Property timeline | `tests/unit/propertyTimeline.test.ts` |
 | Property map utils | `tests/unit/propertyMapUtils.test.ts` |
 | Quick estimate calculator | `tests/unit/quickEstimate.test.ts` |
+| Shared report viewer | `tests/unit/sharedReport.test.ts` |
 
 #### Integration Tests
 | Purpose | File |
