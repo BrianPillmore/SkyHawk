@@ -235,7 +235,10 @@ def get_train_augmentations(config: dict) -> A.Compose:
     transforms.append(A.CLAHE(p=0.2))
 
     # Gaussian noise (sensor noise simulation)
-    transforms.append(A.GaussNoise(p=0.15))
+    try:
+        transforms.append(A.GaussNoise(p=0.15))
+    except TypeError:
+        transforms.append(A.GaussNoise(std_range=(0.01, 0.05), p=0.15))
 
     crop_scale = aug_cfg.get("random_crop_scale")
     if crop_scale:
@@ -250,17 +253,36 @@ def get_train_augmentations(config: dict) -> A.Compose:
     # Cutout / CoarseDropout (research: Omdena rooftop project)
     cutout_cfg = aug_cfg.get("cutout", {})
     if cutout_cfg.get("enabled", False):
-        transforms.append(A.CoarseDropout(
-            max_holes=cutout_cfg.get("num_holes", 4),
-            max_height=cutout_cfg.get("max_h_size", 64),
-            max_width=cutout_cfg.get("max_w_size", 64),
-            min_holes=1,
-            min_height=16,
-            min_width=16,
-            fill_value=0,
-            mask_fill_value=0,
-            p=cutout_cfg.get("p", 0.3),
-        ))
+        num_holes = cutout_cfg.get("num_holes", 4)
+        max_h = cutout_cfg.get("max_h_size", 64)
+        max_w = cutout_cfg.get("max_w_size", 64)
+        p = cutout_cfg.get("p", 0.3)
+
+        # albumentations v2.0+ changed CoarseDropout parameter names
+        import inspect
+        sig = inspect.signature(A.CoarseDropout.__init__)
+        if "num_holes_range" in sig.parameters:
+            # New API (v2.0+)
+            transforms.append(A.CoarseDropout(
+                num_holes_range=(1, num_holes),
+                hole_height_range=(16, max_h),
+                hole_width_range=(16, max_w),
+                fill=0,
+                p=p,
+            ))
+        else:
+            # Old API (v1.x)
+            transforms.append(A.CoarseDropout(
+                max_holes=num_holes,
+                max_height=max_h,
+                max_width=max_w,
+                min_holes=1,
+                min_height=16,
+                min_width=16,
+                fill_value=0,
+                mask_fill_value=0,
+                p=p,
+            ))
 
     return A.Compose(transforms)
 
