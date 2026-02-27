@@ -11,6 +11,8 @@ import { apiKeysRouter } from './routes/apiKeys.js';
 import { reportsRouter } from './routes/reports.js';
 import { auditRouter } from './routes/audit.js';
 import { checkoutRouter } from './routes/checkout.js';
+import { mlTrainingRouter } from './routes/mlTraining.js';
+import { mlVisionRouter } from './routes/mlVision.js';
 import { requireAuth } from './middleware/auth.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import { auditLogger } from './middleware/auditLog.js';
@@ -69,6 +71,12 @@ app.use('/api/reports', requireAuth, reportsRouter);
 
 // Audit log query routes (protected, RBAC enforced inside the router)
 app.use('/api/audit-log', requireAuth, auditRouter);
+
+// ML Training annotation routes (protected)
+app.use('/api/ml/annotations', requireAuth, mlTrainingRouter);
+
+// ML Vision inference routes (protected)
+app.use('/api/ml/vision', requireAuth, mlVisionRouter);
 
 // Start server
 async function start() {

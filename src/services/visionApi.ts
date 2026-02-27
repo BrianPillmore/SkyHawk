@@ -244,6 +244,54 @@ export async function detectRoofEdges(
   };
 }
 
+/**
+ * Check if the ML model is available for inference.
+ */
+export async function checkMLModelAvailable(): Promise<boolean> {
+  try {
+    const response = await fetch('/api/ml/vision/status', {
+      headers: getAuthHeaders(),
+    });
+    if (!response.ok) return false;
+    const data = await response.json();
+    return data.available === true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * ML Model Edge Detection: Send satellite image to the local ONNX model
+ * for semantic segmentation + vectorization. Returns edges in the same
+ * DetectedRoofEdges format as Claude Vision — zero changes needed downstream.
+ */
+export async function detectRoofEdgesML(
+  imageBase64: string,
+  imageBounds: { north: number; south: number; east: number; west: number },
+  imageSize: number = 640,
+): Promise<DetectedRoofEdges> {
+  const response = await fetch('/api/ml/vision/detect-edges', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ imageBase64, imageBounds, imageSize }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`ML edge detection error: ${response.status} - ${body}`);
+  }
+
+  const data = await response.json();
+
+  return {
+    vertices: data.vertices,
+    edges: data.edges,
+    roofType: (data.roofType || 'complex') as RoofType,
+    estimatedPitchDegrees: data.estimatedPitchDegrees || 22,
+    confidence: data.confidence || 0.7,
+  };
+}
+
 export interface RoofConditionResponse {
   overallScore: number;
   estimatedAgeYears: number;

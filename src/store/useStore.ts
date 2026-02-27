@@ -73,7 +73,7 @@ interface AppState {
 
   // UI state
   sidebarOpen: boolean;
-  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls';
+  activePanel: 'tools' | 'measurements' | 'report' | 'compare' | 'claims' | 'schedule' | 'solar' | 'shading' | 'enterprise' | 'condition' | 'walls' | 'ml-training';
 
   // Roof condition assessment
   roofCondition: RoofConditionAssessment | null;

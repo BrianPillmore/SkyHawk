@@ -14,3 +14,16 @@ Thumbs.db
 npm-debug.log*
 coverage/
 dist-server/
+
+# ML training data (large files — not tracked in git)
+ml/data/raw/*.png
+ml/data/raw/*.json
+ml/data/annotated/*.png
+ml/data/annotated/*.json
+ml/data/train/
+ml/data/val/
+ml/data/test/
+ml/models/*.onnx
+ml/models/*.pth
+ml/models/evaluation/
+ml/models/training_history.json

@@ -11,6 +11,7 @@ import ShadingPanel from '../solar/ShadingPanel';
 import EnterprisePanel from '../enterprise/EnterprisePanel';
 import ConditionPanel from '../measurement/ConditionPanel';
 import WallsPanel from '../measurement/WallsPanel';
+import AccuracyDashboard from '../annotation/AccuracyDashboard';
 
 export default function Sidebar() {
   const { sidebarOpen, activePanel, activeMeasurement, activePropertyId, toggleSidebar } = useStore();
@@ -32,9 +33,10 @@ export default function Sidebar() {
         {activePanel === 'condition' && <ConditionPanel />}
         {activePanel === 'walls' && <WallsPanel />}
         {activePanel === 'shading' && <ShadingPanel />}
+        {activePanel === 'ml-training' && <AccuracyDashboard />}
 
         {/* Other panels require active measurement */}
-        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && activePanel !== 'condition' && activePanel !== 'walls' && activePanel !== 'shading' && (
+        {activePanel !== 'claims' && activePanel !== 'compare' && activePanel !== 'schedule' && activePanel !== 'enterprise' && activePanel !== 'condition' && activePanel !== 'walls' && activePanel !== 'shading' && activePanel !== 'ml-training' && (
           !activeMeasurement ? (
             <div className="p-4 text-center text-gray-500 text-sm">
               <p className="mb-2">No active measurement</p>

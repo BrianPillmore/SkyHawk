@@ -219,7 +219,7 @@ export interface ReconstructedRoof {
   }[];
   roofType: RoofType;
   confidence: 'high' | 'medium' | 'low';
-  dataSource?: 'lidar-mask' | 'ai-vision' | 'hybrid';
+  dataSource?: 'lidar-mask' | 'ai-vision' | 'ml-model' | 'hybrid';
   buildingHeight?: BuildingHeightAnalysis;
   facetDsmAnalysis?: DsmFacetAnalysis[];
   imageryQuality?: 'HIGH' | 'MEDIUM' | 'LOW';

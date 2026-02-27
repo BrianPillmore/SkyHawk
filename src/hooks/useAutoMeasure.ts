@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import type { AutoMeasureProgress, ReconstructedRoof, SolarRoofSegment, FluxMapAnalysis } from '../types/solar';
 import { fetchBuildingInsights, fetchDataLayers, fetchGeoTiff, SolarApiError } from '../services/solarApi';
-import { capturePropertyImage, detectRoofEdges } from '../services/visionApi';
+import { capturePropertyImage, detectRoofEdges, detectRoofEdgesML, checkMLModelAvailable } from '../services/visionApi';
 import type { EdgeType } from '../types';
 import { extractFacetsFromEdges } from '../utils/planarFaceExtraction';
 import { parseMaskGeoTiff, parseDsmGeoTiff, extractBuildingOutline } from '../utils/contour';
@@ -215,7 +215,68 @@ export function useAutoMeasure() {
         }
       }
 
-      // Step 3: AI Vision fallback path (original pipeline)
+      // Step 3: ML Model path (when available) — between LIDAR and Claude Vision
+      try {
+        const mlAvailable = await checkMLModelAvailable();
+        if (mlAvailable) {
+          setProgress({ status: 'processing', percent: 25, message: 'Capturing satellite imagery for ML model...' });
+          const { base64: mlBase64, bounds: mlBounds } = await capturePropertyImage(lat, lng, googleApiKey);
+
+          setProgress({ status: 'processing', percent: 35, message: 'ML model analyzing roof edges...' });
+          const mlDetected = await detectRoofEdgesML(mlBase64, mlBounds, 640);
+
+          if (mlDetected.edges.length > 0) {
+            setProgress({ status: 'processing', percent: 60, message: `ML detected ${mlDetected.edges.length} edges, ${mlDetected.vertices.length} vertices` });
+
+            // Merge Solar pitch with ML edges
+            const solarPitchDeg = solarSegments.length > 0
+              ? [...solarSegments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2)[0].pitchDegrees
+              : null;
+            const pitchDeg = solarPitchDeg ?? mlDetected.estimatedPitchDegrees;
+            const pitchOver12 = Math.round(Math.tan(pitchDeg * Math.PI / 180) * 12);
+
+            setProgress({ status: 'processing', percent: 75, message: 'Extracting roof facets from ML edges...' });
+            let facets = extractFacetsFromEdges(
+              mlDetected.vertices,
+              mlDetected.edges,
+              solarSegments.length > 0 ? solarSegments : undefined,
+              pitchOver12,
+            );
+
+            if (facets.length === 0) {
+              facets = buildFallbackFacet(mlDetected, pitchOver12);
+            }
+
+            const mlReconstructed: ReconstructedRoof = {
+              vertices: mlDetected.vertices,
+              edges: mlDetected.edges.map(e => ({
+                startIndex: e.startIndex,
+                endIndex: e.endIndex,
+                type: e.type as 'ridge' | 'hip' | 'valley' | 'rake' | 'eave' | 'flashing',
+              })),
+              facets,
+              roofType: mlDetected.roofType,
+              confidence: mlDetected.confidence >= 0.7 ? 'high' : mlDetected.confidence >= 0.4 ? 'medium' : 'low',
+              dataSource: 'ml-model',
+              imageryQuality: imageryQuality,
+            };
+
+            if (insights?.solarPotential?.wholeRoofStats?.areaMeters2) {
+              mlReconstructed.solarApiAreaSqFt = insights.solarPotential.wholeRoofStats.areaMeters2 * 10.7639;
+            }
+
+            applyAutoMeasurement(mlReconstructed);
+            setProgress({ status: 'complete', percent: 100, message: `ML Model ${capitalize(mlReconstructed.roofType)} roof: ${mlReconstructed.facets.length} facets (${mlReconstructed.confidence} confidence)` });
+            return mlReconstructed;
+          }
+          // ML detected no edges — fall through to Claude Vision
+          console.warn('ML model detected no edges, falling back to AI Vision');
+        }
+      } catch (mlErr) {
+        console.warn('ML model path failed, falling back to AI Vision:', mlErr);
+      }
+
+      // Step 4: AI Vision fallback path (original pipeline)
       setProgress({ status: 'downloading', percent: 25, message: 'Capturing satellite imagery...' });
       const { base64, bounds } = await capturePropertyImage(lat, lng, googleApiKey);
 
