@@ -37,8 +37,9 @@ export default function CorrectionOverlay({ visible, onClose, dataSource }: Corr
   const token = useStore((s) => s.token);
   const vertices = useStore((s) => s.activeMeasurement?.vertices ?? []);
   const edges = useStore((s) => s.activeMeasurement?.edges ?? []);
-  const moveVertex = useStore((s) => s.moveVertex);
-  const addEdge = useStore((s) => s.addEdge);
+  // Will be used when drag-to-move and click-to-add correction modes are wired up
+  void useStore((s) => s.moveVertex);
+  void useStore((s) => s.addEdge);
   const updateEdgeType = useStore((s) => s.updateEdgeType);
   const deleteEdge = useStore((s) => s.deleteEdge);
 

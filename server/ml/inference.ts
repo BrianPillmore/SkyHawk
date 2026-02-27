@@ -9,9 +9,11 @@
 import path from 'path';
 import fs from 'fs';
 
-// ONNX Runtime and Sharp are optional dependencies
-let ort: typeof import('onnxruntime-node') | null = null;
-let sharp: typeof import('sharp') | null = null;
+// ONNX Runtime and Sharp are optional dependencies (installed on server only)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let ort: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let sharp: any = null;
 
 try {
   ort = require('onnxruntime-node');

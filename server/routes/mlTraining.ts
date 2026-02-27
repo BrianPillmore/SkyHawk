@@ -107,7 +107,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     if (await isDbAvailable()) {
       const query = await getQuery();
@@ -160,7 +160,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
 
     // Delete files
     for (const suffix of ['', '_mask']) {
@@ -184,7 +184,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 router.post('/:id/corrections', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
+    const id = String(req.params.id);
     const { maskBase64, imageBase64 } = req.body;
 
     if (!maskBase64) {
