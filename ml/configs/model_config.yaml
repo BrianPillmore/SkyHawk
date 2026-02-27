@@ -1,11 +1,39 @@
 # SkyHawk Roof Edge Detection Model Configuration
+#
+# Research-backed architecture decisions:
+#   - U-Net + ResNet-50: proven for aerial segmentation (SpaceNet, DLR ROOF3D)
+#   - RGB + DSM input: DLR showed height channel improves boundary accuracy
+#     (Schuegraf et al. 2023, DepthAtt-UResNet34 for roof plane segmentation)
+#   - Weighted CE + Dice loss: standard for class-imbalanced segmentation
+#   - Cutout augmentation: Omdena rooftop ML project showed improved robustness
+#   - LR finder: ArcGIS Mask R-CNN study used lr finder for optimal lr ~4e-5
+#   - Pre-train on auto-labels → fine-tune: SpaceNet showed 0.48→0.66 IoU gain
 
 model:
+  # Mode: 'standard' | 'hed-unet' | 'satlas'
+  #   standard: U-Net + ResNet-50 (baseline, ImageNet pretrained)
+  #   hed-unet: Dual-task segmentation + edge detection (best for thin lines)
+  #   satlas: SatlasPretrain encoder (302M satellite labels, best accuracy)
+  mode: standard
+  mc_dropout: 0.1   # MC Dropout rate for active learning uncertainty scoring
+
   encoder: resnet50
   encoder_weights: imagenet
-  in_channels: 3
+
+  # Input channels: 3 = RGB only, 4 = RGB + DSM height channel
+  # DSM from Google Solar API provides elevation data per pixel.
+  # DLR ROOF3D showed Fuse-UResNet with height improves roof plane boundaries.
+  in_channels: 3     # Start with 3 (RGB). Switch to 4 when DSM data available.
+  use_dsm: false      # Set true to enable 4-channel RGB+DSM mode
+
   classes: 7
   activation: null  # raw logits
+
+# Roof type classification (from ArcGIS/Mask R-CNN research)
+# Future: add roof type head for: flat, gable, hip, shed, mansard, vault, dome
+roof_types:
+  enabled: false
+  classes: [flat, gable, hip, shed, mansard, vault, dome]
 
 classes:
   0: background
@@ -23,31 +51,39 @@ class_colors:
   hip: [255, 165, 0]
   valley: [0, 0, 255]
   eave_rake: [0, 255, 0]
-  flashing: [128, 128, 128]
+  flashing: [192, 192, 192]
 
 training:
   image_size: 640
-  batch_size: 4
-  epochs: 200
+  batch_size: 4        # Fits ~6GB VRAM. Increase to 8 with 12GB+ GPU.
+  epochs: 200          # ArcGIS study used 220 epochs for production model
   early_stopping_patience: 15
-  learning_rate: 0.0001
+  learning_rate: 0.0001    # Default. Use lr_finder for optimal value (~4e-5).
   weight_decay: 0.01
   optimizer: adamw
   scheduler: cosine_annealing
+  use_lr_finder: true  # Run lr range test before training (ArcGIS approach)
 
   # Class weights — edge classes upweighted heavily
+  # Research confirms class imbalance is critical (Omdena, SpaceNet)
+  # Edges are <2% of pixels but are the primary detection target
   class_weights: [0.1, 0.3, 2.0, 2.0, 2.0, 1.5, 2.0]
 
-  # Combined loss: weighted CE + Dice
+  # Combined loss: Focal + Dice + Boundary + Topology
+  # Research: each component addresses a specific failure mode
   loss:
-    ce_weight: 0.5
-    dice_weight: 0.5
+    focal_weight: 0.3      # Down-weights easy background pixels
+    dice_weight: 0.3       # Per-class overlap (IoU proxy)
+    boundary_weight: 0.2   # Concentrates gradients on edge pixels
+    topo_weight: 0.2       # Prevents fragmented edge predictions
+    edge_weight: 0.5       # HED-UNet edge detection head (only in hed-unet mode)
+    focal_gamma: 2.0       # Focal loss focusing parameter
 
-  # Data augmentation
+  # Data augmentation (research-backed additions)
   augmentation:
     horizontal_flip: true
     vertical_flip: true
-    random_rotate_90: true
+    random_rotate_90: true  # Roofs can face any direction
     brightness_contrast:
       brightness_limit: 0.2
       contrast_limit: 0.2
@@ -55,6 +91,20 @@ training:
       hue: 0.05
       saturation: 0.2
     random_crop_scale: [0.7, 1.0]
+    # Cutout: randomly mask square regions (Omdena study, p=0.3)
+    # Improves robustness to partial occlusion (trees, shadows)
+    cutout:
+      enabled: true
+      num_holes: 4
+      max_h_size: 64   # max hole height in pixels
+      max_w_size: 64   # max hole width in pixels
+      p: 0.3
+
+  # Fine-tuning config (Phase 4: active learning from corrections)
+  finetune:
+    learning_rate: 0.00001     # 10x lower than initial training
+    correction_weight: 3.0     # Weight correction pairs higher
+    epochs: 50
 
 data:
   train_split: 0.70
@@ -62,17 +112,29 @@ data:
   test_split: 0.15
   edge_line_width: 3  # pixels for mask drawing
 
-  # ImageNet normalization
+  # ImageNet normalization (RGB channels)
   normalize:
     mean: [0.485, 0.456, 0.406]
     std: [0.229, 0.224, 0.225]
 
+  # DSM normalization (when use_dsm=true)
+  # Height values normalized to [0, 1] using min/max per-image
+  dsm_normalize: minmax
+
 export:
   onnx_opset: 17
-  input_shape: [1, 3, 640, 640]
+  input_shape: [1, 3, 640, 640]   # Updated to [1, 4, 640, 640] when use_dsm
   output_shape: [1, 7, 640, 640]
 
 targets:
-  initial_edge_iou: 0.30    # 50-100 images
-  usable_edge_iou: 0.50     # 200+ images
-  production_edge_iou: 0.65  # 500+ images
+  # Research-calibrated targets
+  initial_edge_iou: 0.30    # 50-100 images (smoke test)
+  usable_edge_iou: 0.50     # 200+ images (deployable)
+  production_edge_iou: 0.65  # 500+ images (production quality)
+
+# References:
+#   - Omdena: https://www.omdena.com/blog/machine-learning-rooftops
+#   - Omdena solar: https://www.omdena.com/blog/rooftops-classification
+#   - ArcGIS Mask R-CNN: https://developers.arcgis.com/python-2-3/samples/building-reconstruction-using-mask-rcnn/
+#   - DLR ROOF3D: https://isprs-annals.copernicus.org/articles/X-1-W1-2023/971/2023/
+#   - SpaceNet: https://github.com/yangsiyu007/SpaceNetExploration

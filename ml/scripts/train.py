@@ -1,10 +1,17 @@
 """
 train.py — Training loop for roof edge segmentation model.
 
+Research-backed training pipeline:
+  - LR finder (ArcGIS study) for optimal learning rate
+  - Combined loss: Focal + Dice + Boundary + Topology (satellite-image-deep-learning)
+  - HED-UNet dual-task training (segmentation + edge detection)
+  - Sample weighting for user corrections (active learning)
+  - SatlasPretrain / standard encoder support
+
 Usage:
     python train.py [--config ../configs/model_config.yaml] [--data-dir ../data/annotated]
                     [--checkpoint-dir ../models] [--epochs 200] [--batch-size 4]
-                    [--resume ../models/latest.pth]
+                    [--resume ../models/latest.pth] [--find-lr]
 """
 
 import argparse
@@ -18,10 +25,10 @@ import torch.nn as nn
 import yaml
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from tqdm import tqdm
 
-from model import create_model, load_config, CombinedLoss
+from model import create_model, load_config, CombinedLoss, find_learning_rate
 from dataset import RoofEdgeDataset, get_train_augmentations, get_val_augmentations, split_dataset
 
 
@@ -52,7 +59,8 @@ def compute_iou(pred: torch.Tensor, target: torch.Tensor, num_classes: int = 7) 
 
 
 def train_epoch(model: nn.Module, loader: DataLoader, criterion: CombinedLoss,
-                optimizer: torch.optim.Optimizer, device: torch.device) -> float:
+                optimizer: torch.optim.Optimizer, device: torch.device,
+                use_edge_maps: bool = False) -> float:
     """Train for one epoch. Returns average loss."""
     model.train()
     total_loss = 0.0
@@ -60,13 +68,26 @@ def train_epoch(model: nn.Module, loader: DataLoader, criterion: CombinedLoss,
     for batch in tqdm(loader, desc="  Training", leave=False):
         images = batch["image"].to(device)
         masks = batch["mask"].to(device)
+        edge_maps = batch.get("edge_map")
+        if edge_maps is not None:
+            edge_maps = edge_maps.to(device)
 
         optimizer.zero_grad()
-        logits = model(images)
-        loss = criterion(logits, masks)
-        loss.backward()
-        optimizer.step()
+        output = model(images)
 
+        if isinstance(output, dict) and use_edge_maps and edge_maps is not None:
+            loss = criterion(output, masks, edge_targets=edge_maps)
+        elif isinstance(output, dict):
+            loss = criterion(output["seg"], masks)
+        else:
+            loss = criterion(output, masks)
+
+        loss.backward()
+
+        # Gradient clipping (prevents training instability)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+        optimizer.step()
         total_loss += loss.item() * images.size(0)
 
     return total_loss / len(loader.dataset)
@@ -85,7 +106,14 @@ def validate(model: nn.Module, loader: DataLoader, criterion: CombinedLoss,
         images = batch["image"].to(device)
         masks = batch["mask"].to(device)
 
-        logits = model(images)
+        output = model(images)
+
+        # Extract segmentation logits (handle HED-UNet dict output)
+        if isinstance(output, dict):
+            logits = output["seg"]
+        else:
+            logits = output
+
         loss = criterion(logits, masks)
         total_loss += loss.item() * images.size(0)
 
@@ -100,6 +128,26 @@ def validate(model: nn.Module, loader: DataLoader, criterion: CombinedLoss,
     return total_loss / len(loader.dataset), ious
 
 
+def create_weighted_sampler(dataset: RoofEdgeDataset) -> WeightedRandomSampler:
+    """Create weighted sampler that oversamples user corrections.
+
+    Active learning: corrections from real users represent model weaknesses
+    and should be seen more often during training.
+    """
+    weights = []
+    for pair in dataset.pairs:
+        if pair["is_correction"]:
+            weights.append(3.0)  # 3x oversampling for corrections
+        else:
+            weights.append(1.0)
+
+    return WeightedRandomSampler(
+        weights=weights,
+        num_samples=len(weights),
+        replacement=True,
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description="Train roof edge segmentation model")
     parser.add_argument("--config", default=None, help="Config YAML path")
@@ -110,12 +158,19 @@ def main():
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--resume", default=None, help="Resume from checkpoint")
     parser.add_argument("--gpu", type=int, default=0, help="GPU index")
+    parser.add_argument("--find-lr", action="store_true", help="Run LR finder before training")
+    parser.add_argument("--mode", choices=["standard", "hed-unet", "satlas"], default=None,
+                        help="Model mode override")
     args = parser.parse_args()
 
     # Paths
     ml_dir = Path(__file__).resolve().parent.parent
     config_path = args.config or str(ml_dir / "configs" / "model_config.yaml")
     config = load_config(config_path)
+
+    # Override model mode if specified
+    if args.mode:
+        config["model"]["mode"] = args.mode
 
     data_dir = Path(args.data_dir) if args.data_dir else ml_dir / "data" / "annotated"
     checkpoint_dir = Path(args.checkpoint_dir) if args.checkpoint_dir else ml_dir / "models"
@@ -127,6 +182,9 @@ def main():
     batch_size = args.batch_size or train_cfg["batch_size"]
     lr = args.lr or train_cfg["learning_rate"]
     patience = train_cfg["early_stopping_patience"]
+    use_dsm = config["model"].get("use_dsm", False)
+    model_mode = config["model"].get("mode", "standard")
+    use_edge_maps = model_mode == "hed-unet"
 
     # Device
     if torch.cuda.is_available():
@@ -155,29 +213,67 @@ def main():
     train_aug = get_train_augmentations(config)
     val_aug = get_val_augmentations()
 
-    train_dataset = RoofEdgeDataset(str(train_dir), transform=train_aug)
-    val_dataset = RoofEdgeDataset(str(val_dir), transform=val_aug)
+    train_dataset = RoofEdgeDataset(
+        str(train_dir), transform=train_aug,
+        use_dsm=use_dsm, generate_edge_maps=use_edge_maps,
+    )
+    val_dataset = RoofEdgeDataset(
+        str(val_dir), transform=val_aug,
+        use_dsm=use_dsm, generate_edge_maps=use_edge_maps,
+    )
 
+    print(f"Model mode: {model_mode}")
     print(f"Training set: {len(train_dataset)} images")
     print(f"Validation set: {len(val_dataset)} images")
+    if use_dsm:
+        print("DSM channel: enabled (4-channel RGB+DSM input)")
+    if use_edge_maps:
+        print("HED-UNet: dual-task segmentation + edge detection")
 
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2, pin_memory=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2, pin_memory=True)
+    # Weighted sampler for active learning (oversample user corrections)
+    sampler = create_weighted_sampler(train_dataset)
+
+    train_loader = DataLoader(
+        train_dataset, batch_size=batch_size, sampler=sampler,
+        num_workers=2, pin_memory=True,
+    )
+    val_loader = DataLoader(
+        val_dataset, batch_size=batch_size, shuffle=False,
+        num_workers=2, pin_memory=True,
+    )
 
     # Model
     model = create_model(config).to(device)
-    print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Model parameters: {total_params:,} total, {trainable_params:,} trainable")
 
-    # Loss
+    # Loss — research-backed combined loss
     class_weights = train_cfg["class_weights"]
+    loss_cfg = train_cfg.get("loss", {})
+
     criterion = CombinedLoss(
         class_weights=class_weights,
-        ce_weight=train_cfg["loss"]["ce_weight"],
-        dice_weight=train_cfg["loss"]["dice_weight"],
+        focal_weight=loss_cfg.get("focal_weight", 0.3),
+        dice_weight=loss_cfg.get("dice_weight", 0.3),
+        boundary_weight=loss_cfg.get("boundary_weight", 0.2),
+        topo_weight=loss_cfg.get("topo_weight", 0.2),
+        edge_weight=loss_cfg.get("edge_weight", 0.5) if use_edge_maps else 0.0,
+        focal_gamma=loss_cfg.get("focal_gamma", 2.0),
     ).to(device)
 
-    # Optimizer + scheduler
+    # Optimizer
     optimizer = AdamW(model.parameters(), lr=lr, weight_decay=train_cfg["weight_decay"])
+
+    # LR Finder (research: ArcGIS Mask R-CNN study)
+    if args.find_lr or train_cfg.get("use_lr_finder", False):
+        print("\nRunning LR finder...")
+        optimal_lr = find_learning_rate(model, train_loader, criterion, str(device))
+        lr = optimal_lr
+        # Recreate optimizer with found LR
+        optimizer = AdamW(model.parameters(), lr=lr, weight_decay=train_cfg["weight_decay"])
+        print(f"Using found LR: {lr:.2e}\n")
+
     scheduler = CosineAnnealingLR(optimizer, T_max=epochs)
 
     # Resume from checkpoint
@@ -196,13 +292,19 @@ def main():
     epochs_without_improvement = 0
 
     print(f"\nTraining for {epochs} epochs (early stopping patience: {patience})")
+    print(f"Loss: Focal({loss_cfg.get('focal_weight', 0.3)}) + "
+          f"Dice({loss_cfg.get('dice_weight', 0.3)}) + "
+          f"Boundary({loss_cfg.get('boundary_weight', 0.2)}) + "
+          f"Topology({loss_cfg.get('topo_weight', 0.2)})")
+    if use_edge_maps:
+        print(f"  + Edge BCE({loss_cfg.get('edge_weight', 0.5)})")
     print(f"{'='*70}")
 
     for epoch in range(start_epoch, epochs):
         t0 = time.time()
 
         # Train
-        train_loss = train_epoch(model, train_loader, criterion, optimizer, device)
+        train_loss = train_epoch(model, train_loader, criterion, optimizer, device, use_edge_maps)
 
         # Validate
         val_loss, val_ious = validate(model, val_loader, criterion, device)
@@ -231,11 +333,9 @@ def main():
         history.append(epoch_record)
 
         # Save best model
-        improved = False
         if edge_iou > best_edge_iou:
             best_edge_iou = edge_iou
             epochs_without_improvement = 0
-            improved = True
 
             torch.save({
                 "epoch": epoch,

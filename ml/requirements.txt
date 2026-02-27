@@ -1,13 +1,27 @@
+# Core ML
 torch>=2.0.0
 torchvision>=0.15.0
 segmentation-models-pytorch>=0.3.3
+timm>=0.9.0                   # Universal encoder support (HRNet, Swin, ConvNeXt)
+
+# Data & augmentation
 albumentations>=1.3.0
 opencv-python-headless>=4.8.0
 numpy>=1.24.0
 Pillow>=10.0.0
+
+# Foundation models (optional — install for best accuracy)
+# satlaspretrain_models         # Allen AI SatlasPretrain (302M satellite labels)
+# peft>=0.7.0                   # LoRA fine-tuning (parameter-efficient)
+
+# Export & inference
 onnx>=1.14.0
 onnxruntime>=1.15.0
+
+# Evaluation & visualization
 scikit-learn>=1.3.0
 matplotlib>=3.7.0
+
+# Training utilities
 tqdm>=4.65.0
 PyYAML>=6.0

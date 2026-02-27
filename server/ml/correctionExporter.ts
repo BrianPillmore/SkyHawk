@@ -166,3 +166,68 @@ export function saveCorrectionAsTraining(
 
   return { imagePath, maskPath };
 }
+
+/**
+ * Auto-save user's manual edge drawings as training data.
+ *
+ * Active learning: every time a user draws/edits edges on a roof in MapView,
+ * this captures it as a training pair (satellite image + edge mask).
+ * This is the most powerful training data source because it represents
+ * real-world corrections from real users.
+ *
+ * Called automatically after every edge edit session (debounced).
+ */
+export function saveUserDrawingAsTraining(
+  imageBase64: string,
+  correctionData: CorrectionData,
+  bounds: { north: number; south: number; east: number; west: number },
+  address: string,
+  outputDir: string
+): { saved: boolean; imagePath: string; maskPath: string; metaPath: string } {
+  const timestamp = Date.now();
+  const slug = address.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 60);
+  const name = `user-${slug}-${timestamp}`;
+  const dir = path.resolve(outputDir);
+
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  // Render edges to mask
+  const mask = renderCorrectionMask(correctionData, bounds);
+
+  // Check if mask has meaningful content (at least some edge pixels)
+  let edgePixels = 0;
+  for (let i = 0; i < mask.length; i++) {
+    if (mask[i] > 0) edgePixels++;
+  }
+  if (edgePixels < 10) {
+    return { saved: false, imagePath: '', maskPath: '', metaPath: '' };
+  }
+
+  // Save satellite image
+  const imagePath = path.join(dir, `${name}.png`);
+  fs.writeFileSync(imagePath, Buffer.from(imageBase64, 'base64'));
+
+  // Save mask as raw pixel data
+  const maskPath = path.join(dir, `${name}_mask_raw.json`);
+  fs.writeFileSync(maskPath, JSON.stringify({
+    width: IMAGE_SIZE,
+    height: IMAGE_SIZE,
+    data: Array.from(mask),
+  }));
+
+  // Save metadata (marks this as user correction for weighted sampling)
+  const metaPath = path.join(dir, `${name}_meta.json`);
+  fs.writeFileSync(metaPath, JSON.stringify({
+    address,
+    bounds,
+    timestamp: new Date().toISOString(),
+    source: 'user-correction',
+    edgePixels,
+    edgeCount: correctionData.edges.length,
+    vertexCount: correctionData.vertices.length,
+  }, null, 2));
+
+  return { saved: true, imagePath, maskPath, metaPath };
+}

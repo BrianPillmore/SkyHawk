@@ -260,4 +260,72 @@ router.post('/:id/corrections', (req: Request, res: Response) => {
   }
 });
 
+/**
+ * POST /api/ml/annotations/auto-save-drawing
+ * Auto-save user's manual edge drawings as training data.
+ *
+ * Active learning: every manual edge draw/edit in MapView gets captured as a
+ * training pair (satellite image + edge mask). This is the most powerful
+ * training data source — real corrections from real users on real roofs.
+ *
+ * Body: { imageBase64, vertices, edges, bounds, address }
+ */
+router.post('/auto-save-drawing', (req: Request, res: Response) => {
+  try {
+    const { imageBase64, vertices, edges, bounds, address } = req.body;
+
+    if (!imageBase64 || !vertices || !edges || !bounds) {
+      res.status(400).json({ error: 'imageBase64, vertices, edges, and bounds are required' });
+      return;
+    }
+
+    // Dynamically import correctionExporter
+    let saveUserDrawingAsTraining: typeof import('../ml/correctionExporter').saveUserDrawingAsTraining;
+    try {
+      saveUserDrawingAsTraining = require('../ml/correctionExporter').saveUserDrawingAsTraining;
+    } catch {
+      res.status(500).json({ error: 'correctionExporter not available' });
+      return;
+    }
+
+    const correctionData = {
+      vertices: vertices.map((v: { lat: number; lng: number }) => ({ lat: v.lat, lng: v.lng })),
+      edges: edges.map((e: { startVertexId: string; endVertexId: string; type: string }) => ({
+        startVertexId: e.startVertexId,
+        endVertexId: e.endVertexId,
+        type: e.type,
+      })),
+    };
+
+    const result = saveUserDrawingAsTraining(
+      imageBase64,
+      correctionData,
+      bounds,
+      address || 'unknown',
+      ANNOTATIONS_DIR,
+    );
+
+    if (result.saved) {
+      // Also add to metadata index
+      const allMeta = loadMetadata();
+      allMeta.push({
+        id: randomUUID(),
+        name: `user-drawing-${address || 'unknown'}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        source: 'user-drawing',
+        metadata: { address, edgeCount: edges.length, vertexCount: vertices.length },
+      });
+      saveMetadata(allMeta);
+
+      res.json({ saved: true, message: 'Drawing saved as training data' });
+    } else {
+      res.json({ saved: false, message: 'Not enough edge data to save' });
+    }
+  } catch (err) {
+    console.error('Failed to auto-save drawing:', err);
+    res.status(500).json({ error: 'Failed to save drawing as training data' });
+  }
+});
+
 export { router as mlTrainingRouter };
