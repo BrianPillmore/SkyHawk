@@ -5,184 +5,173 @@ import path from 'path';
 
 const router = Router();
 
-// Annotation storage directory
-const ANNOTATIONS_DIR = path.resolve(__dirname, '../../ml/data/annotated');
+// ── Image storage directory ──────────────────────────────────────────────────
+// Images stored on filesystem, metadata in PostgreSQL.
+// Path: ml/data/annotations/{uuid}.png, {uuid}_mask.png
+const STORAGE_DIR = path.resolve(__dirname, '../../ml/data/annotations');
 
-// Ensure directory exists
-if (!fs.existsSync(ANNOTATIONS_DIR)) {
-  fs.mkdirSync(ANNOTATIONS_DIR, { recursive: true });
+if (!fs.existsSync(STORAGE_DIR)) {
+  fs.mkdirSync(STORAGE_DIR, { recursive: true });
 }
 
-interface AnnotationMetadata {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  metadata?: Record<string, unknown>;
-  source?: string;
-}
+// ── Database helpers ─────────────────────────────────────────────────────────
 
-function getMetadataPath(): string {
-  return path.join(ANNOTATIONS_DIR, '_annotations.json');
-}
-
-function loadMetadata(): AnnotationMetadata[] {
-  const metaPath = getMetadataPath();
-  if (!fs.existsSync(metaPath)) return [];
+async function isDbAvailable(): Promise<boolean> {
+  if (!process.env.DATABASE_URL) return false;
   try {
-    return JSON.parse(fs.readFileSync(metaPath, 'utf-8'));
+    const { query } = await import('../db/index.js');
+    await query('SELECT 1');
+    return true;
   } catch {
-    return [];
+    return false;
   }
 }
 
-function saveMetadata(metadata: AnnotationMetadata[]): void {
-  fs.writeFileSync(getMetadataPath(), JSON.stringify(metadata, null, 2));
+async function getQuery() {
+  const { query } = await import('../db/index.js');
+  return query;
 }
 
-/**
- * GET /api/ml/annotations
- * List all saved annotations.
- */
-router.get('/', (_req: Request, res: Response) => {
+// ── Helper: save image to filesystem ─────────────────────────────────────────
+
+function saveImage(id: string, imageBase64: string, suffix: string = ''): string {
+  const filename = `${id}${suffix}.png`;
+  const filePath = path.join(STORAGE_DIR, filename);
+  fs.writeFileSync(filePath, Buffer.from(imageBase64, 'base64'));
+  return filePath;
+}
+
+function getStoragePath(id: string, suffix: string = ''): string {
+  return path.join(STORAGE_DIR, `${id}${suffix}.png`);
+}
+
+// ── GET /api/ml/annotations ──────────────────────────────────────────────────
+
+router.get('/', async (_req: Request, res: Response) => {
   try {
-    const metadata = loadMetadata();
-    res.json(metadata.map((m) => ({ id: m.id, name: m.name, createdAt: m.createdAt, source: m.source })));
+    if (await isDbAvailable()) {
+      const query = await getQuery();
+      const result = await query(
+        `SELECT id, address, source, status, roof_type, edge_count, vertex_count,
+                edge_pixel_pct, created_at
+         FROM ml_annotations
+         ORDER BY created_at DESC
+         LIMIT 200`
+      );
+      res.json(result.rows);
+    } else {
+      res.json([]);
+    }
   } catch (err) {
     console.error('Failed to list annotations:', err);
     res.status(500).json({ error: 'Failed to list annotations' });
   }
 });
 
-/**
- * POST /api/ml/annotations
- * Save image + mask + metadata.
- * Body: { name, imageBase64, maskBase64, actions?, metadata? }
- */
-router.post('/', (req: Request, res: Response) => {
-  try {
-    const { name, imageBase64, maskBase64, actions, metadata: extraMeta } = req.body;
+// ── POST /api/ml/annotations ─────────────────────────────────────────────────
 
-    if (!name || !imageBase64 || !maskBase64) {
-      res.status(400).json({ error: 'name, imageBase64, and maskBase64 are required' });
+router.post('/', async (req: Request, res: Response) => {
+  try {
+    const { name, imageBase64, maskBase64, metadata: extraMeta } = req.body;
+
+    if (!imageBase64 || !maskBase64) {
+      res.status(400).json({ error: 'imageBase64 and maskBase64 are required' });
       return;
     }
 
     const id = randomUUID();
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80);
 
-    // Save image
-    const imagePath = path.join(ANNOTATIONS_DIR, `${slug}.png`);
-    fs.writeFileSync(imagePath, Buffer.from(imageBase64, 'base64'));
+    // Save images to filesystem
+    const imagePath = saveImage(id, imageBase64);
+    const maskPath = saveImage(id, maskBase64, '_mask');
 
-    // Save mask
-    const maskPath = path.join(ANNOTATIONS_DIR, `${slug}_mask.png`);
-    fs.writeFileSync(maskPath, Buffer.from(maskBase64, 'base64'));
-
-    // Save actions (for re-editing)
-    if (actions) {
-      const actionsPath = path.join(ANNOTATIONS_DIR, `${slug}_actions.json`);
-      fs.writeFileSync(actionsPath, JSON.stringify(actions, null, 2));
+    // Save to database
+    if (await isDbAvailable()) {
+      const query = await getQuery();
+      const userId = (req as any).user?.id || null;
+      await query(
+        `INSERT INTO ml_annotations (id, user_id, address, source, image_path, mask_path, notes)
+         VALUES ($1, $2, $3, 'manual', $4, $5, $6)`,
+        [id, userId, name || '', imagePath, maskPath, JSON.stringify(extraMeta || {})]
+      );
     }
 
-    // Update metadata index
-    const allMeta = loadMetadata();
-    const entry: AnnotationMetadata = {
-      id,
-      name,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      metadata: extraMeta,
-    };
-    allMeta.push(entry);
-    saveMetadata(allMeta);
-
-    res.json({ id, name, createdAt: entry.createdAt });
+    res.json({ id, name, createdAt: new Date().toISOString() });
   } catch (err) {
     console.error('Failed to save annotation:', err);
     res.status(500).json({ error: 'Failed to save annotation' });
   }
 });
 
-/**
- * GET /api/ml/annotations/:id
- * Retrieve a single annotation with image + mask + actions.
- */
-router.get('/:id', (req: Request, res: Response) => {
+// ── GET /api/ml/annotations/:id ──────────────────────────────────────────────
+
+router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const allMeta = loadMetadata();
-    const entry = allMeta.find((m) => m.id === id);
 
-    if (!entry) {
-      res.status(404).json({ error: 'Annotation not found' });
-      return;
+    if (await isDbAvailable()) {
+      const query = await getQuery();
+      const result = await query(
+        `SELECT a.*,
+                array_agg(DISTINCT jsonb_build_object(
+                  'index', v.vertex_index, 'lat', v.lat, 'lng', v.lng,
+                  'px', v.pixel_x, 'py', v.pixel_y
+                )) FILTER (WHERE v.id IS NOT NULL) AS vertices,
+                array_agg(DISTINCT jsonb_build_object(
+                  'startIdx', e.start_vertex_idx, 'endIdx', e.end_vertex_idx,
+                  'type', e.edge_type, 'lengthFt', e.length_ft
+                )) FILTER (WHERE e.id IS NOT NULL) AS edges
+         FROM ml_annotations a
+         LEFT JOIN ml_annotation_vertices v ON v.annotation_id = a.id
+         LEFT JOIN ml_annotation_edges e ON e.annotation_id = a.id
+         WHERE a.id = $1
+         GROUP BY a.id`,
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: 'Annotation not found' });
+        return;
+      }
+
+      const row = result.rows[0];
+
+      // Read images from filesystem
+      let imageBase64 = null;
+      let maskBase64 = null;
+      if (row.image_path && fs.existsSync(row.image_path)) {
+        imageBase64 = fs.readFileSync(row.image_path).toString('base64');
+      }
+      if (row.mask_path && fs.existsSync(row.mask_path)) {
+        maskBase64 = fs.readFileSync(row.mask_path).toString('base64');
+      }
+
+      res.json({ ...row, imageBase64, maskBase64 });
+    } else {
+      res.status(404).json({ error: 'Annotation not found (no database)' });
     }
-
-    const slug = entry.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80);
-
-    const imagePath = path.join(ANNOTATIONS_DIR, `${slug}.png`);
-    const maskPath = path.join(ANNOTATIONS_DIR, `${slug}_mask.png`);
-    const actionsPath = path.join(ANNOTATIONS_DIR, `${slug}_actions.json`);
-
-    const imageBase64 = fs.existsSync(imagePath)
-      ? fs.readFileSync(imagePath).toString('base64')
-      : null;
-
-    const maskBase64 = fs.existsSync(maskPath)
-      ? fs.readFileSync(maskPath).toString('base64')
-      : null;
-
-    let actions = null;
-    if (fs.existsSync(actionsPath)) {
-      try {
-        actions = JSON.parse(fs.readFileSync(actionsPath, 'utf-8'));
-      } catch {}
-    }
-
-    res.json({
-      ...entry,
-      imageBase64,
-      maskBase64,
-      actions,
-    });
   } catch (err) {
     console.error('Failed to retrieve annotation:', err);
     res.status(500).json({ error: 'Failed to retrieve annotation' });
   }
 });
 
-/**
- * DELETE /api/ml/annotations/:id
- * Remove an annotation.
- */
-router.delete('/:id', (req: Request, res: Response) => {
+// ── DELETE /api/ml/annotations/:id ───────────────────────────────────────────
+
+router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const allMeta = loadMetadata();
-    const idx = allMeta.findIndex((m) => m.id === id);
 
-    if (idx === -1) {
-      res.status(404).json({ error: 'Annotation not found' });
-      return;
+    // Delete files
+    for (const suffix of ['', '_mask']) {
+      const fp = getStoragePath(id, suffix);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
     }
 
-    const entry = allMeta[idx];
-    const slug = entry.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80);
-
-    // Remove files
-    const filesToRemove = [
-      path.join(ANNOTATIONS_DIR, `${slug}.png`),
-      path.join(ANNOTATIONS_DIR, `${slug}_mask.png`),
-      path.join(ANNOTATIONS_DIR, `${slug}_actions.json`),
-    ];
-    for (const f of filesToRemove) {
-      if (fs.existsSync(f)) fs.unlinkSync(f);
+    if (await isDbAvailable()) {
+      const query = await getQuery();
+      await query('DELETE FROM ml_annotations WHERE id = $1', [id]);
     }
-
-    // Remove from metadata
-    allMeta.splice(idx, 1);
-    saveMetadata(allMeta);
 
     res.json({ deleted: true });
   } catch (err) {
@@ -191,86 +180,55 @@ router.delete('/:id', (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/ml/annotations/:id/corrections
- * Save corrected annotation (from active learning feedback loop).
- * Body: { maskBase64, actions?, source: 'correction' }
- */
-router.post('/:id/corrections', (req: Request, res: Response) => {
+// ── POST /api/ml/annotations/:id/corrections ─────────────────────────────────
+
+router.post('/:id/corrections', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { maskBase64, actions, imageBase64 } = req.body;
+    const { maskBase64, imageBase64 } = req.body;
 
     if (!maskBase64) {
       res.status(400).json({ error: 'maskBase64 is required' });
       return;
     }
 
-    const allMeta = loadMetadata();
-    const entry = allMeta.find((m) => m.id === id);
-
-    // Create as a new correction entry
     const corrId = randomUUID();
-    const corrName = entry ? `${entry.name}-corrected` : `correction-${corrId.slice(0, 8)}`;
-    const slug = corrName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80);
 
-    // Save corrected image (use original if not provided)
+    // Save corrected mask
+    saveImage(corrId, maskBase64, '_mask');
+
+    // Save or copy image
     if (imageBase64) {
-      fs.writeFileSync(
-        path.join(ANNOTATIONS_DIR, `${slug}.png`),
-        Buffer.from(imageBase64, 'base64')
-      );
-    } else if (entry) {
-      // Copy original image
-      const origSlug = entry.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 80);
-      const origPath = path.join(ANNOTATIONS_DIR, `${origSlug}.png`);
+      saveImage(corrId, imageBase64);
+    } else {
+      // Copy original image if exists
+      const origPath = getStoragePath(id);
+      const newPath = getStoragePath(corrId);
       if (fs.existsSync(origPath)) {
-        fs.copyFileSync(origPath, path.join(ANNOTATIONS_DIR, `${slug}.png`));
+        fs.copyFileSync(origPath, newPath);
       }
     }
 
-    // Save corrected mask
-    fs.writeFileSync(
-      path.join(ANNOTATIONS_DIR, `${slug}_mask.png`),
-      Buffer.from(maskBase64, 'base64')
-    );
-
-    if (actions) {
-      fs.writeFileSync(
-        path.join(ANNOTATIONS_DIR, `${slug}_actions.json`),
-        JSON.stringify(actions, null, 2)
+    if (await isDbAvailable()) {
+      const query = await getQuery();
+      const userId = (req as any).user?.id || null;
+      await query(
+        `INSERT INTO ml_annotations (id, user_id, source, status, image_path, mask_path, parent_id, training_weight)
+         VALUES ($1, $2, 'correction', 'approved', $3, $4, $5, 3.0)`,
+        [corrId, userId, getStoragePath(corrId), getStoragePath(corrId, '_mask'), id]
       );
     }
 
-    const corrEntry: AnnotationMetadata = {
-      id: corrId,
-      name: corrName,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      source: 'correction',
-      metadata: { originalId: id },
-    };
-    allMeta.push(corrEntry);
-    saveMetadata(allMeta);
-
-    res.json({ id: corrId, name: corrName });
+    res.json({ id: corrId });
   } catch (err) {
     console.error('Failed to save correction:', err);
     res.status(500).json({ error: 'Failed to save correction' });
   }
 });
 
-/**
- * POST /api/ml/annotations/auto-save-drawing
- * Auto-save user's manual edge drawings as training data.
- *
- * Active learning: every manual edge draw/edit in MapView gets captured as a
- * training pair (satellite image + edge mask). This is the most powerful
- * training data source — real corrections from real users on real roofs.
- *
- * Body: { imageBase64, vertices, edges, bounds, address }
- */
-router.post('/auto-save-drawing', (req: Request, res: Response) => {
+// ── POST /api/ml/annotations/auto-save-drawing ──────────────────────────────
+
+router.post('/auto-save-drawing', async (req: Request, res: Response) => {
   try {
     const { imageBase64, vertices, edges, bounds, address } = req.body;
 
@@ -279,52 +237,115 @@ router.post('/auto-save-drawing', (req: Request, res: Response) => {
       return;
     }
 
-    // Dynamically import correctionExporter
-    let saveUserDrawingAsTraining: typeof import('../ml/correctionExporter').saveUserDrawingAsTraining;
-    try {
-      saveUserDrawingAsTraining = require('../ml/correctionExporter').saveUserDrawingAsTraining;
-    } catch {
-      res.status(500).json({ error: 'correctionExporter not available' });
+    if (edges.length < 3) {
+      res.json({ saved: false, message: 'Not enough edges (minimum 3)' });
       return;
     }
 
-    const correctionData = {
-      vertices: vertices.map((v: { lat: number; lng: number }) => ({ lat: v.lat, lng: v.lng })),
-      edges: edges.map((e: { startVertexId: string; endVertexId: string; type: string }) => ({
-        startVertexId: e.startVertexId,
-        endVertexId: e.endVertexId,
-        type: e.type,
-      })),
-    };
+    const id = randomUUID();
 
-    const result = saveUserDrawingAsTraining(
-      imageBase64,
-      correctionData,
-      bounds,
-      address || 'unknown',
-      ANNOTATIONS_DIR,
-    );
+    // Save satellite image
+    const imagePath = saveImage(id, imageBase64);
 
-    if (result.saved) {
-      // Also add to metadata index
-      const allMeta = loadMetadata();
-      allMeta.push({
-        id: randomUUID(),
-        name: `user-drawing-${address || 'unknown'}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        source: 'user-drawing',
-        metadata: { address, edgeCount: edges.length, vertexCount: vertices.length },
-      });
-      saveMetadata(allMeta);
+    // Render edge mask via correctionExporter
+    let maskPath = '';
+    try {
+      const { renderCorrectionMask } = await import('../ml/correctionExporter.js');
+      const correctionData = {
+        vertices: vertices.map((v: { lat: number; lng: number }) => ({ lat: v.lat, lng: v.lng })),
+        edges: edges.map((e: { startVertexId: string; endVertexId: string; type: string }) => ({
+          startVertexId: e.startVertexId,
+          endVertexId: e.endVertexId,
+          type: e.type,
+        })),
+      };
+      const mask = renderCorrectionMask(correctionData, bounds);
 
-      res.json({ saved: true, message: 'Drawing saved as training data' });
-    } else {
-      res.json({ saved: false, message: 'Not enough edge data to save' });
+      // Save mask as raw data (JSON format that Python can read)
+      maskPath = path.join(STORAGE_DIR, `${id}_mask_raw.json`);
+      fs.writeFileSync(maskPath, JSON.stringify({
+        width: 640, height: 640,
+        data: Array.from(mask),
+      }));
+    } catch (err) {
+      console.warn('[MLTraining] Could not render mask:', err);
     }
+
+    // Save to PostgreSQL
+    if (await isDbAvailable()) {
+      const query = await getQuery();
+      const userId = (req as any).user?.id || null;
+
+      // Insert annotation record
+      await query(
+        `INSERT INTO ml_annotations
+           (id, user_id, address, source, status, image_path, mask_path,
+            bounds_north, bounds_south, bounds_east, bounds_west,
+            edge_count, vertex_count, training_weight)
+         VALUES ($1, $2, $3, 'user-drawing', 'approved', $4, $5,
+                 $6, $7, $8, $9, $10, $11, 3.0)`,
+        [
+          id, userId, address || '',
+          imagePath, maskPath,
+          bounds.north, bounds.south, bounds.east, bounds.west,
+          edges.length, vertices.length,
+        ]
+      );
+
+      // Insert vertices
+      for (let i = 0; i < vertices.length; i++) {
+        const v = vertices[i];
+        await query(
+          `INSERT INTO ml_annotation_vertices (annotation_id, vertex_index, lat, lng)
+           VALUES ($1, $2, $3, $4)`,
+          [id, i, v.lat, v.lng]
+        );
+      }
+
+      // Insert edges
+      for (const e of edges) {
+        await query(
+          `INSERT INTO ml_annotation_edges (annotation_id, start_vertex_idx, end_vertex_idx, edge_type, length_ft)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [id, e.startVertexId, e.endVertexId, e.type, e.lengthFt || 0]
+        );
+      }
+    }
+
+    console.info(`[MLTraining] Auto-saved drawing: ${edges.length} edges, address=${address}`);
+    res.json({ saved: true, annotationId: id });
   } catch (err) {
     console.error('Failed to auto-save drawing:', err);
     res.status(500).json({ error: 'Failed to save drawing as training data' });
+  }
+});
+
+// ── GET /api/ml/annotations/stats ────────────────────────────────────────────
+
+router.get('/stats/summary', async (_req: Request, res: Response) => {
+  try {
+    if (await isDbAvailable()) {
+      const query = await getQuery();
+      const result = await query(`
+        SELECT
+          COUNT(*) AS total,
+          COUNT(*) FILTER (WHERE source = 'user-drawing') AS user_drawings,
+          COUNT(*) FILTER (WHERE source = 'correction') AS corrections,
+          COUNT(*) FILTER (WHERE source = 'manual') AS manual,
+          COUNT(*) FILTER (WHERE source = 'cv-auto') AS cv_auto,
+          COUNT(*) FILTER (WHERE status = 'approved') AS approved,
+          COUNT(*) FILTER (WHERE used_in_training) AS used_in_training,
+          AVG(edge_count) AS avg_edges,
+          AVG(vertex_count) AS avg_vertices
+        FROM ml_annotations
+      `);
+      res.json(result.rows[0]);
+    } else {
+      res.json({ total: 0 });
+    }
+  } catch (err) {
+    console.error('Failed to get stats:', err);
+    res.status(500).json({ error: 'Failed to get stats' });
   }
 });
 

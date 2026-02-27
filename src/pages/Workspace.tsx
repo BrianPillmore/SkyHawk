@@ -6,6 +6,7 @@ import TabletLayout from '../layouts/TabletLayout';
 import { useStore } from '../store/useStore';
 import { useKeyboardShortcuts } from '../hooks/useKeyboard';
 import { useIsTablet } from '../hooks/useMediaQuery';
+import { useTrainingDataAutoSave } from '../hooks/useTrainingDataAutoSave';
 
 const tabs = [
   { id: 'tools' as const, label: 'Tools', icon: '✏️' },
@@ -23,6 +24,7 @@ const tabs = [
 
 export default function Workspace() {
   useKeyboardShortcuts();
+  useTrainingDataAutoSave();
   const isTablet = useIsTablet();
   const { activePropertyId, startNewMeasurement, activeMeasurement, activePanel, setActivePanel, sidebarOpen, toggleSidebar } = useStore();
 
