@@ -13,6 +13,43 @@ import { parseFluxGeoTiff, parseMonthlyFluxGeoTiff, analyzeFluxForFacets } from 
 import { verifyPitchFromDSM } from '../utils/dsmPitchVerification';
 import { detectMultipleStructures } from '../utils/multiStructureDetection';
 
+/**
+ * Log pipeline decision points to console and server-side file.
+ * Captures which system path auto-measure takes for each address.
+ */
+function logPipelineEvent(
+  address: string,
+  lat: number,
+  lng: number,
+  step: string,
+  pipelinePath: string,
+  reason: string,
+) {
+  const timestamp = new Date().toISOString();
+  const tag = `[Pipeline ${timestamp}]`;
+  const loc = address || `${lat.toFixed(5)},${lng.toFixed(5)}`;
+
+  // Always log to console
+  if (pipelinePath === 'fallthrough') {
+    console.warn(`${tag} ${loc} | FALLTHROUGH at ${step} → ${reason}`);
+  } else {
+    console.info(`${tag} ${loc} | ${step} → ${pipelinePath} | ${reason}`);
+  }
+
+  // Send to server log (fire-and-forget, don't block pipeline)
+  const token = useStore.getState().token;
+  if (token) {
+    fetch('/api/pipeline-log', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ address, lat, lng, step, path: pipelinePath, reason, timestamp }),
+    }).catch(() => { /* non-blocking */ });
+  }
+}
+
 export function useAutoMeasure() {
   const [progress, setProgress] = useState<AutoMeasureProgress>({
     status: 'idle',
@@ -29,6 +66,15 @@ export function useAutoMeasure() {
     googleApiKey: string,
   ) => {
     try {
+      // Resolve property address for logging
+      const storeState = useStore.getState();
+      const activeProperty = storeState.properties.find((p) => p.id === storeState.activePropertyId);
+      const address = activeProperty
+        ? `${activeProperty.address}, ${activeProperty.city}, ${activeProperty.state} ${activeProperty.zip}`
+        : '';
+
+      logPipelineEvent(address, lat, lng, 'start', 'begin', 'Auto-measure started');
+
       // Step 1: Fetch Solar API data in parallel — buildingInsights + dataLayers
       setProgress({ status: 'detecting', percent: 5, message: 'Querying Solar API...' });
 
@@ -45,6 +91,19 @@ export function useAutoMeasure() {
 
       const solarSegments: SolarRoofSegment[] = insights?.solarPotential?.roofSegmentStats || [];
       const imageryQuality = insights?.imageryQuality;
+
+      // Log Solar API results
+      if (!insights) {
+        logPipelineEvent(address, lat, lng, 'solar-api', 'fallthrough', 'Solar API buildingInsights unavailable');
+      } else if (solarSegments.length === 0) {
+        logPipelineEvent(address, lat, lng, 'solar-api', 'fallthrough', `Solar API returned 0 segments (quality=${imageryQuality || 'unknown'})`);
+      } else {
+        logPipelineEvent(address, lat, lng, 'solar-api', 'success', `${solarSegments.length} segments, quality=${imageryQuality || 'unknown'}`);
+      }
+      if (!dataLayers) {
+        logPipelineEvent(address, lat, lng, 'data-layers', 'fallthrough', 'Solar API dataLayers unavailable — no LIDAR coverage');
+      }
+
       if (solarSegments.length > 0) {
         const sorted = [...solarSegments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2);
         const qualityNote = imageryQuality === 'MEDIUM' ? ' (MEDIUM quality — reduced accuracy)' : '';
@@ -82,6 +141,7 @@ export function useAutoMeasure() {
           const lidarOutline = extractBuildingOutline(parsedMask, lat, lng);
 
           if (lidarOutline.length >= 3 && solarSegments.length > 0) {
+            logPipelineEvent(address, lat, lng, 'lidar', 'success', `LIDAR outline ${lidarOutline.length} vertices, ${solarSegments.length} solar segments`);
             // Reconstruct roof using LIDAR outline + Solar segments
             setProgress({ status: 'reconstructing', percent: 60, message: 'Reconstructing roof from LIDAR outline...' });
             const reconstructed = reconstructRoof(lidarOutline, solarSegments);
@@ -204,13 +264,19 @@ export function useAutoMeasure() {
             const qualityWarning = imageryQuality === 'MEDIUM' ? ' ⚠ MEDIUM quality imagery' : '';
             setProgress({ status: 'complete', percent: 100, message: `LIDAR ${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets, ${buildingHeight.heightFt.toFixed(0)} ft tall (${reconstructed.confidence} confidence)${qualityWarning}` });
 
+            logPipelineEvent(address, lat, lng, 'complete', 'lidar', `LIDAR success: ${reconstructed.facets.length} facets, ${reconstructed.roofType}, ${buildingHeight.heightFt.toFixed(0)} ft`);
             return reconstructed;
           }
 
           // LIDAR outline too small or no solar segments — fall through to AI Vision
+          const lidarReason = lidarOutline.length < 3
+            ? `LIDAR outline too small (${lidarOutline.length} vertices)`
+            : `No solar segments (${solarSegments.length})`;
+          logPipelineEvent(address, lat, lng, 'lidar', 'fallthrough', lidarReason);
           console.warn('LIDAR outline insufficient, falling back to AI Vision');
         } catch (lidarErr) {
           // LIDAR path failed — fall through to AI Vision
+          logPipelineEvent(address, lat, lng, 'lidar', 'fallthrough', `LIDAR exception: ${lidarErr instanceof Error ? lidarErr.message : String(lidarErr)}`);
           console.warn('LIDAR path failed, falling back to AI Vision:', lidarErr);
         }
       }
@@ -218,6 +284,9 @@ export function useAutoMeasure() {
       // Step 3: ML Model path (when available) — between LIDAR and Claude Vision
       try {
         const mlAvailable = await checkMLModelAvailable();
+        if (!mlAvailable) {
+          logPipelineEvent(address, lat, lng, 'ml-model', 'fallthrough', 'ML model not available (not trained/deployed)');
+        }
         if (mlAvailable) {
           setProgress({ status: 'processing', percent: 25, message: 'Capturing satellite imagery for ML model...' });
           const { base64: mlBase64, bounds: mlBounds } = await capturePropertyImage(lat, lng, googleApiKey);
@@ -267,16 +336,20 @@ export function useAutoMeasure() {
 
             applyAutoMeasurement(mlReconstructed);
             setProgress({ status: 'complete', percent: 100, message: `ML Model ${capitalize(mlReconstructed.roofType)} roof: ${mlReconstructed.facets.length} facets (${mlReconstructed.confidence} confidence)` });
+            logPipelineEvent(address, lat, lng, 'complete', 'ml-model', `ML success: ${mlReconstructed.facets.length} facets, ${mlReconstructed.roofType}`);
             return mlReconstructed;
           }
           // ML detected no edges — fall through to Claude Vision
+          logPipelineEvent(address, lat, lng, 'ml-model', 'fallthrough', 'ML model detected 0 edges');
           console.warn('ML model detected no edges, falling back to AI Vision');
         }
       } catch (mlErr) {
+        logPipelineEvent(address, lat, lng, 'ml-model', 'fallthrough', `ML exception: ${mlErr instanceof Error ? mlErr.message : String(mlErr)}`);
         console.warn('ML model path failed, falling back to AI Vision:', mlErr);
       }
 
-      // Step 4: AI Vision fallback path (original pipeline)
+      // Step 4: AI Vision fallback path (original pipeline) — COSTS MONEY (Anthropic API)
+      logPipelineEvent(address, lat, lng, 'claude-vision', 'entering', '⚠ Falling back to Claude Vision (paid API call)');
       setProgress({ status: 'downloading', percent: 25, message: 'Capturing satellite imagery...' });
       const { base64, bounds } = await capturePropertyImage(lat, lng, googleApiKey);
 
@@ -332,6 +405,7 @@ export function useAutoMeasure() {
 
       setProgress({ status: 'complete', percent: 100, message: `AI Vision ${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets (${reconstructed.confidence} confidence)` });
 
+      logPipelineEvent(address, lat, lng, 'complete', 'claude-vision', `Claude Vision used ($$): ${reconstructed.facets.length} facets, ${reconstructed.roofType}`);
       return reconstructed;
     } catch (err) {
       const message = err instanceof SolarApiError

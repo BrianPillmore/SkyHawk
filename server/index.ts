@@ -1,6 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { visionRouter } from './routes/vision.js';
 import { authRouter } from './routes/auth.js';
 import { propertiesRouter } from './routes/properties.js';
@@ -41,6 +47,22 @@ app.use('/api', apiKeyAuth);
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Pipeline logging endpoint — appends to logs/pipeline.log
+const LOG_DIR = path.resolve(__dirname, '..', 'logs');
+const PIPELINE_LOG = path.join(LOG_DIR, 'pipeline.log');
+if (!fs.existsSync(LOG_DIR)) { fs.mkdirSync(LOG_DIR, { recursive: true }); }
+
+app.post('/api/pipeline-log', requireAuth, (req, res) => {
+  const { address, lat, lng, step, reason, path: pipelinePath, timestamp } = req.body;
+  const user = (req as any).user?.username || 'unknown';
+  const line = JSON.stringify({ timestamp: timestamp || new Date().toISOString(), user, address, lat, lng, step, reason, path: pipelinePath }) + '\n';
+  console.log(`[Pipeline] ${address || `${lat},${lng}`} | step=${step} | path=${pipelinePath} | ${reason}`);
+  fs.appendFile(PIPELINE_LOG, line, (err) => {
+    if (err) console.error('Failed to write pipeline log:', err);
+  });
+  res.json({ logged: true });
 });
 
 // Auth routes (public)
