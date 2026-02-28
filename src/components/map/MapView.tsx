@@ -804,7 +804,7 @@ export default function MapView() {
     };
   }, [isDrawingOutline, currentOutlineVertices]);
 
-  // Edge drawing preview line: dashed line from start vertex to cursor
+  // Edge drawing: snap indicators (before & after first click) + preview line (after first click)
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -812,8 +812,8 @@ export default function MapView() {
     const edgeModes: DrawingMode[] = ['ridge', 'hip', 'valley', 'rake', 'eave', 'flashing'];
     const isEdgeMode = edgeModes.includes(drawingMode);
 
-    // Clean up if not in edge mode or no start vertex
-    if (!isEdgeMode || !edgeStartVertexId || !activeMeasurement) {
+    // Clean up everything if not in edge mode or no measurement
+    if (!isEdgeMode || !activeMeasurement) {
       if (previewLineRef.current) {
         previewLineRef.current.setMap(null);
         previewLineRef.current = null;
@@ -829,36 +829,46 @@ export default function MapView() {
       return;
     }
 
-    const startVertex = activeMeasurement.vertices.find((v) => v.id === edgeStartVertexId);
-    if (!startVertex) return;
+    // Resolve start vertex (null before first click — that's OK for snap indicators)
+    const startVertex = edgeStartVertexId
+      ? activeMeasurement.vertices.find((v) => v.id === edgeStartVertexId) ?? null
+      : null;
 
     const edgeColor = getEdgeColor(drawingMode as EdgeType);
 
-    // Create preview line if it doesn't exist
-    if (!previewLineRef.current) {
-      previewLineRef.current = new google.maps.Polyline({
-        path: [
-          { lat: startVertex.lat, lng: startVertex.lng },
-          { lat: startVertex.lat, lng: startVertex.lng },
-        ],
-        map,
-        strokeColor: edgeColor,
-        strokeWeight: 2,
-        strokeOpacity: 0.6,
-        icons: [
-          {
-            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, scale: 2 },
-            offset: '0',
-            repeat: '10px',
-          },
-        ],
-        zIndex: 150,
-      });
+    // Create preview line only when we have a start vertex
+    if (startVertex) {
+      if (!previewLineRef.current) {
+        previewLineRef.current = new google.maps.Polyline({
+          path: [
+            { lat: startVertex.lat, lng: startVertex.lng },
+            { lat: startVertex.lat, lng: startVertex.lng },
+          ],
+          map,
+          strokeColor: edgeColor,
+          strokeWeight: 2,
+          strokeOpacity: 0.6,
+          icons: [
+            {
+              icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.8, scale: 2 },
+              offset: '0',
+              repeat: '10px',
+            },
+          ],
+          zIndex: 150,
+        });
+      } else {
+        previewLineRef.current.setOptions({ strokeColor: edgeColor });
+      }
     } else {
-      previewLineRef.current.setOptions({ strokeColor: edgeColor });
+      // No start vertex yet — tear down any leftover preview line
+      if (previewLineRef.current) {
+        previewLineRef.current.setMap(null);
+        previewLineRef.current = null;
+      }
     }
 
-    // Create snap highlight marker (vertex snap — circle)
+    // Create snap highlight marker (vertex snap — circle) — always available in edge mode
     if (!snapHighlightRef.current) {
       snapHighlightRef.current = new google.maps.Marker({
         position: { lat: 0, lng: 0 },
@@ -876,7 +886,7 @@ export default function MapView() {
       });
     }
 
-    // Create edge snap highlight marker (edge snap — cyan diamond)
+    // Create edge snap highlight marker (edge snap — cyan diamond) — always available in edge mode
     if (!edgeSnapHighlightRef.current) {
       edgeSnapHighlightRef.current = new google.maps.Marker({
         position: { lat: 0, lng: 0 },
@@ -894,9 +904,9 @@ export default function MapView() {
       });
     }
 
-    // Mouse move handler: update preview line endpoint
+    // Mouse move handler: show snap indicators + update preview line when applicable
     const moveListener = map.addListener('mousemove', (e: google.maps.MapMouseEvent) => {
-      if (!e.latLng || !previewLineRef.current) return;
+      if (!e.latLng) return;
 
       const mouseLatLng = e.latLng;
 
@@ -918,12 +928,14 @@ export default function MapView() {
               const dy = (mousePoint.y - vPoint.y) * scale;
               const distPx = Math.sqrt(dx * dx + dy * dy);
               if (distPx < SNAP_THRESHOLD_PX) {
-                // Snap preview line to this vertex
-                previewLineRef.current.setPath([
-                  { lat: startVertex.lat, lng: startVertex.lng },
-                  { lat: v.lat, lng: v.lng },
-                ]);
-                // Show snap highlight
+                // Update preview line to snap to this vertex (only if we have a start)
+                if (previewLineRef.current && startVertex) {
+                  previewLineRef.current.setPath([
+                    { lat: startVertex.lat, lng: startVertex.lng },
+                    { lat: v.lat, lng: v.lng },
+                  ]);
+                }
+                // Show snap highlight circle
                 if (snapHighlightRef.current) {
                   snapHighlightRef.current.setPosition({ lat: v.lat, lng: v.lng });
                   snapHighlightRef.current.setMap(map);
@@ -949,11 +961,13 @@ export default function MapView() {
         );
 
         if (edgeSnap) {
-          // Snap preview line to edge point
-          previewLineRef.current.setPath([
-            { lat: startVertex.lat, lng: startVertex.lng },
-            { lat: edgeSnap.lat, lng: edgeSnap.lng },
-          ]);
+          // Update preview line to snap to edge point (only if we have a start)
+          if (previewLineRef.current && startVertex) {
+            previewLineRef.current.setPath([
+              { lat: startVertex.lat, lng: startVertex.lng },
+              { lat: edgeSnap.lat, lng: edgeSnap.lng },
+            ]);
+          }
           // Show diamond marker, hide vertex circle
           if (edgeSnapHighlightRef.current) {
             edgeSnapHighlightRef.current.setPosition({ lat: edgeSnap.lat, lng: edgeSnap.lng });
@@ -964,10 +978,12 @@ export default function MapView() {
           }
         } else {
           // No snap — free cursor
-          previewLineRef.current.setPath([
-            { lat: startVertex.lat, lng: startVertex.lng },
-            { lat: mouseLatLng.lat(), lng: mouseLatLng.lng() },
-          ]);
+          if (previewLineRef.current && startVertex) {
+            previewLineRef.current.setPath([
+              { lat: startVertex.lat, lng: startVertex.lng },
+              { lat: mouseLatLng.lat(), lng: mouseLatLng.lng() },
+            ]);
+          }
           if (snapHighlightRef.current) {
             snapHighlightRef.current.setMap(null);
           }
