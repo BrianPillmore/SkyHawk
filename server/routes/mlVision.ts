@@ -9,6 +9,7 @@
 import { Router, type Request, type Response } from 'express';
 import { isModelAvailable, inferRoofEdges, reloadModel } from '../ml/inference.js';
 import { vectorizeEdges } from '../ml/vectorize.js';
+import { requireRole } from '../middleware/rbac.js';
 
 const router = Router();
 
@@ -136,7 +137,7 @@ router.post('/detect-edges', async (req: Request, res: Response) => {
  * POST /api/ml/vision/reload
  * Hot-reload the ONNX model (after deploying a new version).
  */
-router.post('/reload', async (_req: Request, res: Response) => {
+router.post('/reload', requireRole('admin'), async (_req: Request, res: Response) => {
   try {
     await reloadModel();
     const status = isModelAvailable();

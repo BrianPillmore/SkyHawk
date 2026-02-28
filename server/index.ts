@@ -13,6 +13,9 @@ import { auditRouter } from './routes/audit.js';
 import { checkoutRouter } from './routes/checkout.js';
 import { mlTrainingRouter } from './routes/mlTraining.js';
 import { mlVisionRouter } from './routes/mlVision.js';
+import { organizationsRouter } from './routes/organizations.js';
+import { sharingRouter } from './routes/sharing.js';
+import { webhooksRouter } from './routes/webhooks.js';
 import { requireAuth } from './middleware/auth.js';
 import { apiKeyAuth } from './middleware/apiKeyAuth.js';
 import { auditLogger } from './middleware/auditLog.js';
@@ -46,6 +49,7 @@ app.use('/api/auth', authRouter);
 // Checkout & billing routes (auth handled inside router per-endpoint)
 app.use('/api/checkout', checkoutRouter);
 app.use('/api/webhooks/stripe', checkoutRouter);
+app.use('/api/webhooks', requireAuth, webhooksRouter);
 app.use('/api/user', checkoutRouter);
 
 // Vision API proxy routes (protected)
@@ -77,6 +81,12 @@ app.use('/api/ml/annotations', requireAuth, mlTrainingRouter);
 
 // ML Vision inference routes (protected)
 app.use('/api/ml/vision', requireAuth, mlVisionRouter);
+
+// Organization management routes (protected)
+app.use('/api/organizations', requireAuth, organizationsRouter);
+
+// Sharing routes (inline auth — GET /shared/:token is intentionally public)
+app.use('/api', sharingRouter);
 
 // Start server
 async function start() {

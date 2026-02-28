@@ -1,7 +1,13 @@
 import { Router, type Request, type Response } from 'express';
 import { randomUUID } from 'crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import fs from 'fs';
 import path from 'path';
+import { requireUuidParam } from '../middleware/validate.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const router = Router();
 
@@ -105,7 +111,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 // ── GET /api/ml/annotations/:id ──────────────────────────────────────────────
 
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', requireUuidParam('id'), async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
 
@@ -158,7 +164,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 // ── DELETE /api/ml/annotations/:id ───────────────────────────────────────────
 
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', requireUuidParam('id'), async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
 
@@ -182,7 +188,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
 
 // ── POST /api/ml/annotations/:id/corrections ─────────────────────────────────
 
-router.post('/:id/corrections', async (req: Request, res: Response) => {
+router.post('/:id/corrections', requireUuidParam('id'), async (req: Request, res: Response) => {
   try {
     const id = String(req.params.id);
     const { maskBase64, imageBase64 } = req.body;

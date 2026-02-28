@@ -1,8 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import multer from 'multer';
 // pdf-parse v2 has private-typed methods that work at runtime; use type assertion
-import { PDFParse as PDFParseClass } from 'pdf-parse';
-
+// Lazy import to avoid crashing server if pdf-parse is not installed
 interface PDFParseRuntime {
   load(buffer: Buffer): Promise<void>;
   getInfo(): Promise<{ numPages?: number; [key: string]: unknown }>;
@@ -10,8 +9,9 @@ interface PDFParseRuntime {
   destroy(): void;
 }
 
-function createParser(): PDFParseRuntime {
-  return new PDFParseClass({}) as unknown as PDFParseRuntime;
+async function createParser(): Promise<PDFParseRuntime> {
+  const { PDFParse } = await import('pdf-parse');
+  return new PDFParse({}) as unknown as PDFParseRuntime;
 }
 import { query } from '../db/index.js';
 
@@ -125,7 +125,7 @@ router.post(
 
     try {
       // Extract text from PDF
-      const parser = createParser();
+      const parser = await createParser();
       await parser.load(req.file.buffer);
       const info = await parser.getInfo();
       const numPages = info?.numPages ?? 0;

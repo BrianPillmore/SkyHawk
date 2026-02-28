@@ -9,6 +9,8 @@ function getJwtSecret(): string {
 
 export interface AuthPayload {
   username: string;
+  userId?: string;
+  role?: string;
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {

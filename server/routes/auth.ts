@@ -92,7 +92,7 @@ router.post('/register', async (req: Request, res: Response) => {
 
     const user = result.rows[0];
     const token = jwt.sign(
-      { username: user.username, userId: user.id },
+      { username: user.username, userId: user.id, role: user.role || 'user' },
       getJwtSecret(),
       { expiresIn: '24h' },
     );
@@ -123,8 +123,8 @@ router.post('/login', async (req: Request, res: Response) => {
 
     if (dbReady) {
       // Try database authentication
-      const result = await query<{ id: string; username: string; password_hash: string; report_credits: number }>(
-        'SELECT id, username, password_hash, COALESCE(report_credits, 0) AS report_credits FROM users WHERE username = $1',
+      const result = await query<{ id: string; username: string; password_hash: string; report_credits: number; role: string }>(
+        'SELECT id, username, password_hash, COALESCE(report_credits, 0) AS report_credits, COALESCE(role, \'user\') AS role FROM users WHERE username = $1',
         [username],
       );
 
@@ -137,7 +137,7 @@ router.post('/login', async (req: Request, res: Response) => {
         }
 
         const token = jwt.sign(
-          { username: user.username, userId: user.id },
+          { username: user.username, userId: user.id, role: user.role },
           getJwtSecret(),
           { expiresIn: '24h' },
         );
@@ -184,7 +184,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { username: fileUser.username, ...(userId ? { userId } : {}) },
+      { username: fileUser.username, role: 'user', ...(userId ? { userId } : {}) },
       getJwtSecret(),
       { expiresIn: '24h' },
     );

@@ -5,7 +5,8 @@ import { useIsMobile } from '../../hooks/useMediaQuery';
 import { getEdgeColor, FACET_STROKE_COLORS } from '../../utils/colors';
 import { getMidpoint, getCentroid } from '../../utils/geometry';
 import { computePanelLayout, getPanelColor } from '../../utils/solarPanelLayout';
-import type { DrawingMode, EdgeType, RoofVertex, DamageAnnotation } from '../../types';
+import type { DrawingMode, EdgeType, RoofVertex, RoofEdge, DamageAnnotation } from '../../types';
+import { pointToSegmentDistSq } from '../../utils/snapUtils';
 import { DAMAGE_TYPE_LABELS, DAMAGE_SEVERITY_COLORS } from '../../types';
 import PlaceholderMap from './PlaceholderMap';
 
@@ -21,6 +22,9 @@ function hapticFeedback(duration = 15) {
 
 // Distance threshold in pixels for vertex snap highlight
 const SNAP_THRESHOLD_PX = 18;
+
+/** SVG path for diamond-shaped edge snap indicator (distinct from vertex snap circle) */
+const EDGE_SNAP_DIAMOND = 'M 0,-8 L 6,0 L 0,8 L -6,0 Z';
 
 const EDGE_MODES: DrawingMode[] = ['ridge', 'hip', 'valley', 'rake', 'eave', 'flashing'];
 
@@ -64,6 +68,70 @@ function findNearestVertexInPixels(
   return bestId;
 }
 
+interface EdgeSnapResult {
+  edgeId: string;
+  lat: number;
+  lng: number;
+  distPx: number;
+}
+
+/**
+ * Find the nearest edge interior point within a pixel-distance threshold.
+ * Excludes near-endpoint hits (t < 0.02 or t > 0.98) so vertex snap takes priority.
+ */
+function findNearestEdgeInPixels(
+  map: google.maps.Map,
+  lat: number,
+  lng: number,
+  vertices: RoofVertex[],
+  edges: RoofEdge[],
+  threshold: number,
+): EdgeSnapResult | null {
+  const projection = map.getProjection();
+  const zoom = map.getZoom() || 20;
+  if (!projection) return null;
+
+  const clickPoint = projection.fromLatLngToPoint(new google.maps.LatLng(lat, lng));
+  if (!clickPoint) return null;
+
+  const scale = Math.pow(2, zoom);
+  const px = clickPoint.x * scale;
+  const py = clickPoint.y * scale;
+
+  let best: EdgeSnapResult | null = null;
+  let bestDistSq = threshold * threshold;
+
+  for (const edge of edges) {
+    const sv = vertices.find((v) => v.id === edge.startVertexId);
+    const ev = vertices.find((v) => v.id === edge.endVertexId);
+    if (!sv || !ev) continue;
+
+    const sp = projection.fromLatLngToPoint(new google.maps.LatLng(sv.lat, sv.lng));
+    const ep = projection.fromLatLngToPoint(new google.maps.LatLng(ev.lat, ev.lng));
+    if (!sp || !ep) continue;
+
+    const ax = sp.x * scale;
+    const ay = sp.y * scale;
+    const bx = ep.x * scale;
+    const by = ep.y * scale;
+
+    const { t, distSq } = pointToSegmentDistSq(px, py, ax, ay, bx, by);
+
+    // Skip near-endpoints — let vertex snap handle those
+    if (t < 0.02 || t > 0.98) continue;
+
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      // Interpolate lat/lng at parameter t
+      const snapLat = sv.lat + t * (ev.lat - sv.lat);
+      const snapLng = sv.lng + t * (ev.lng - sv.lng);
+      best = { edgeId: edge.id, lat: snapLat, lng: snapLng, distPx: Math.sqrt(distSq) };
+    }
+  }
+
+  return best;
+}
+
 export default function MapView() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -75,6 +143,7 @@ export default function MapView() {
   const tempLineRef = useRef<google.maps.Polyline | null>(null);
   const previewLineRef = useRef<google.maps.Polyline | null>(null);
   const snapHighlightRef = useRef<google.maps.Marker | null>(null);
+  const edgeSnapHighlightRef = useRef<google.maps.Marker | null>(null);
   const edgeLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const facetLabelsRef = useRef<Map<string, google.maps.Marker>>(new Map());
   const damageMarkersRef = useRef<Map<string, google.maps.Marker>>(new Map());
@@ -92,7 +161,7 @@ export default function MapView() {
     activeMeasurement, isDrawingOutline, currentOutlineVertices,
     edgeStartVertexId,
     addOutlinePoint, finishOutline,
-    addVertex, addEdge, setEdgeStartVertex,
+    addVertex, addEdge, setEdgeStartVertex, splitEdge,
     moveVertex, selectVertex, selectEdge, selectFacet,
     selectedVertexId, selectedEdgeId, selectedFacetId,
     setMapCenter, setMapZoom,
@@ -190,13 +259,30 @@ export default function MapView() {
         const map = mapInstanceRef.current;
         if (!map) return;
 
-        // Check if click is near an existing vertex (snap)
+        // 1. Check if click is near an existing vertex (snap — highest priority)
         const snappedId = findNearestVertexInPixels(
           map, lat, lng, activeMeasurement.vertices, SNAP_THRESHOLD_PX
         );
 
-        // Get or create vertex ID for this click
-        const vertexId = snappedId || addVertex(lat, lng);
+        let vertexId: string;
+        if (snappedId) {
+          // Snap to existing vertex
+          vertexId = snappedId;
+        } else {
+          // 2. Check if click is near an existing edge interior (edge snap)
+          const edgeSnap = findNearestEdgeInPixels(
+            map, lat, lng, activeMeasurement.vertices, activeMeasurement.edges, SNAP_THRESHOLD_PX
+          );
+          if (edgeSnap) {
+            // Split the edge and use the new vertex
+            vertexId = splitEdge(edgeSnap.edgeId, edgeSnap.lat, edgeSnap.lng);
+          } else {
+            // 3. No snap — create new vertex at click location
+            vertexId = addVertex(lat, lng);
+          }
+        }
+
+        if (!vertexId) return;
         hapticFeedback();
 
         const startId = useStore.getState().edgeStartVertexId;
@@ -210,7 +296,7 @@ export default function MapView() {
         hapticFeedback();
       }
     },
-    [drawingMode, isDrawingOutline, currentOutlineVertices, activeMeasurement, addOutlinePoint, finishOutline, addVertex, addEdge, setEdgeStartVertex, addDamageAnnotation, activeDamageType, activeDamageSeverity]
+    [drawingMode, isDrawingOutline, currentOutlineVertices, activeMeasurement, addOutlinePoint, finishOutline, addVertex, addEdge, setEdgeStartVertex, splitEdge, addDamageAnnotation, activeDamageType, activeDamageSeverity]
   );
 
   // Register map click listener
@@ -736,6 +822,10 @@ export default function MapView() {
         snapHighlightRef.current.setMap(null);
         snapHighlightRef.current = null;
       }
+      if (edgeSnapHighlightRef.current) {
+        edgeSnapHighlightRef.current.setMap(null);
+        edgeSnapHighlightRef.current = null;
+      }
       return;
     }
 
@@ -768,7 +858,7 @@ export default function MapView() {
       previewLineRef.current.setOptions({ strokeColor: edgeColor });
     }
 
-    // Create snap highlight marker
+    // Create snap highlight marker (vertex snap — circle)
     if (!snapHighlightRef.current) {
       snapHighlightRef.current = new google.maps.Marker({
         position: { lat: 0, lng: 0 },
@@ -782,6 +872,24 @@ export default function MapView() {
           strokeWeight: 2,
         },
         zIndex: 99,
+        clickable: false,
+      });
+    }
+
+    // Create edge snap highlight marker (edge snap — cyan diamond)
+    if (!edgeSnapHighlightRef.current) {
+      edgeSnapHighlightRef.current = new google.maps.Marker({
+        position: { lat: 0, lng: 0 },
+        map: null, // hidden initially
+        icon: {
+          path: EDGE_SNAP_DIAMOND,
+          scale: 1,
+          fillColor: '#06b6d4',
+          fillOpacity: 0.5,
+          strokeColor: '#06b6d4',
+          strokeWeight: 2,
+        },
+        zIndex: 100,
         clickable: false,
       });
     }
@@ -828,13 +936,44 @@ export default function MapView() {
         }
       }
 
-      if (!snappedToVertex) {
-        previewLineRef.current.setPath([
-          { lat: startVertex.lat, lng: startVertex.lng },
-          { lat: mouseLatLng.lat(), lng: mouseLatLng.lng() },
-        ]);
-        if (snapHighlightRef.current) {
-          snapHighlightRef.current.setMap(null);
+      if (snappedToVertex) {
+        // Hide edge snap diamond when vertex-snapped
+        if (edgeSnapHighlightRef.current) {
+          edgeSnapHighlightRef.current.setMap(null);
+        }
+      } else {
+        // Check for edge-interior snap
+        const edges = useStore.getState().activeMeasurement?.edges || [];
+        const edgeSnap = findNearestEdgeInPixels(
+          map, mouseLatLng.lat(), mouseLatLng.lng(), vertices, edges, SNAP_THRESHOLD_PX
+        );
+
+        if (edgeSnap) {
+          // Snap preview line to edge point
+          previewLineRef.current.setPath([
+            { lat: startVertex.lat, lng: startVertex.lng },
+            { lat: edgeSnap.lat, lng: edgeSnap.lng },
+          ]);
+          // Show diamond marker, hide vertex circle
+          if (edgeSnapHighlightRef.current) {
+            edgeSnapHighlightRef.current.setPosition({ lat: edgeSnap.lat, lng: edgeSnap.lng });
+            edgeSnapHighlightRef.current.setMap(map);
+          }
+          if (snapHighlightRef.current) {
+            snapHighlightRef.current.setMap(null);
+          }
+        } else {
+          // No snap — free cursor
+          previewLineRef.current.setPath([
+            { lat: startVertex.lat, lng: startVertex.lng },
+            { lat: mouseLatLng.lat(), lng: mouseLatLng.lng() },
+          ]);
+          if (snapHighlightRef.current) {
+            snapHighlightRef.current.setMap(null);
+          }
+          if (edgeSnapHighlightRef.current) {
+            edgeSnapHighlightRef.current.setMap(null);
+          }
         }
       }
     });
@@ -848,6 +987,10 @@ export default function MapView() {
       if (snapHighlightRef.current) {
         snapHighlightRef.current.setMap(null);
         snapHighlightRef.current = null;
+      }
+      if (edgeSnapHighlightRef.current) {
+        edgeSnapHighlightRef.current.setMap(null);
+        edgeSnapHighlightRef.current = null;
       }
     };
   }, [drawingMode, edgeStartVertexId, activeMeasurement?.vertices]);

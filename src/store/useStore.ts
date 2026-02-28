@@ -121,6 +121,7 @@ interface AppState {
   deleteEdge: (id: string) => void;
   selectEdge: (id: string | null) => void;
   setEdgeStartVertex: (id: string | null) => void;
+  splitEdge: (edgeId: string, lat: number, lng: number) => string;
 
   // Actions - Facets
   addFacet: (name: string, vertexIds: string[], pitch: number) => string;
@@ -683,6 +684,86 @@ export const useStore = create<AppState>()(
         selectEdge: (id) => set({ selectedEdgeId: id, selectedVertexId: null, selectedFacetId: null }),
 
         setEdgeStartVertex: (id) => set({ edgeStartVertexId: id }),
+
+        splitEdge: (edgeId, lat, lng) => {
+          const { activeMeasurement } = get();
+          if (!activeMeasurement) return '';
+
+          const edge = activeMeasurement.edges.find((e) => e.id === edgeId);
+          if (!edge) return '';
+
+          const startV = activeMeasurement.vertices.find((v) => v.id === edge.startVertexId);
+          const endV = activeMeasurement.vertices.find((v) => v.id === edge.endVertexId);
+          if (!startV || !endV) return '';
+
+          pushUndo();
+
+          const newVertexId = uuidv4();
+          const newVertex: RoofVertex = { id: newVertexId, lat, lng };
+
+          const edge1Id = uuidv4();
+          const edge2Id = uuidv4();
+          const edge1: RoofEdge = {
+            id: edge1Id,
+            startVertexId: edge.startVertexId,
+            endVertexId: newVertexId,
+            type: edge.type,
+            lengthFt: calculateEdgeLengthFt(startV, newVertex),
+          };
+          const edge2: RoofEdge = {
+            id: edge2Id,
+            startVertexId: newVertexId,
+            endVertexId: edge.endVertexId,
+            type: edge.type,
+            lengthFt: calculateEdgeLengthFt(newVertex, endV),
+          };
+
+          set((s) => {
+            if (!s.activeMeasurement) return s;
+
+            const edges = s.activeMeasurement.edges
+              .filter((e) => e.id !== edgeId)
+              .concat([edge1, edge2]);
+
+            const facets = s.activeMeasurement.facets.map((f) => {
+              const idx = f.edgeIds.indexOf(edgeId);
+              if (idx === -1) return f;
+
+              // Replace the split edge with two new edges
+              const newEdgeIds = [...f.edgeIds];
+              newEdgeIds.splice(idx, 1, edge1Id, edge2Id);
+
+              // Insert the new vertex between the split edge's endpoints
+              const startIdx = f.vertexIds.indexOf(edge.startVertexId);
+              const endIdx = f.vertexIds.indexOf(edge.endVertexId);
+              const newVertexIds = [...f.vertexIds];
+
+              if (startIdx !== -1 && endIdx !== -1) {
+                // Insert after whichever endpoint comes first in the vertex array
+                // The new vertex goes between the two endpoints of the split edge
+                const insertAfter = startIdx < endIdx
+                  ? (endIdx === startIdx + 1 ? startIdx : endIdx)
+                  : (startIdx === endIdx + 1 ? endIdx : startIdx);
+                newVertexIds.splice(insertAfter + 1, 0, newVertexId);
+              }
+
+              return { ...f, edgeIds: newEdgeIds, vertexIds: newVertexIds };
+            });
+
+            return {
+              activeMeasurement: {
+                ...s.activeMeasurement,
+                vertices: [...s.activeMeasurement.vertices, newVertex],
+                edges,
+                facets,
+                updatedAt: new Date().toISOString(),
+              },
+            };
+          });
+
+          get().recalculateMeasurements();
+          return newVertexId;
+        },
 
         // Facet actions
         addFacet: (name, vertexIds, pitch) => {

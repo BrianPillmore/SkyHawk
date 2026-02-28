@@ -197,7 +197,16 @@ router.put(
   requireUuidParam('claimId', 'inspId'),
   async (req: Request, res: Response) => {
     try {
+      const { username } = (req as AuthRequest).user;
+      const propertyId = p(req, 'propertyId');
+      const claimId = p(req, 'claimId');
       const inspId = p(req, 'inspId');
+
+      if (!(await verifyPropertyOwnership(propertyId, username))) {
+        res.status(404).json({ error: 'Property not found' });
+        return;
+      }
+
       const { status, notes, scheduledDate, scheduledTime, adjusterId } = req.body;
 
       const result = await query(
@@ -208,10 +217,10 @@ router.put(
              scheduled_time = COALESCE($5, scheduled_time),
              adjuster_id = COALESCE($6, adjuster_id),
              updated_at = NOW()
-         WHERE id = $1
+         WHERE id = $1 AND claim_id = $7
          RETURNING id, claim_id, adjuster_id, scheduled_date, scheduled_time, status, notes,
                    created_at, updated_at`,
-        [inspId, status, notes, scheduledDate, scheduledTime, adjusterId],
+        [inspId, status, notes, scheduledDate, scheduledTime, adjusterId, claimId],
       );
 
       if (result.rows.length === 0) {
