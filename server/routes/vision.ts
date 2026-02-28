@@ -5,11 +5,20 @@ const router = Router();
 router.use(apiLimiter);
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
+const VISION_ENABLED = process.env.ENABLE_CLAUDE_VISION === 'true';
 
 function getApiKey(): string {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error('ANTHROPIC_API_KEY not configured');
   return key;
+}
+
+/** Standard 503 response when Claude Vision is disabled */
+function sendDisabled(res: Response) {
+  res.status(503).json({
+    error: 'service_unavailable',
+    message: 'AI Vision is not currently enabled. Please use the drawing tools to trace the roof manually, or set ENABLE_CLAUDE_VISION=true to re-enable.',
+  });
 }
 
 /**
@@ -18,6 +27,8 @@ function getApiKey(): string {
  * Body: { imageBase64, imageBounds, imageSize?, model?, max_tokens? }
  */
 router.post('/analyze', async (req: Request, res: Response) => {
+  if (!VISION_ENABLED) return sendDisabled(res);
+
   try {
     const { imageBase64, imageBounds, imageSize = 640, model, max_tokens } = req.body;
 
@@ -85,6 +96,8 @@ Return ONLY the JSON object, no other text.`,
  * Body: { imageBase64, model?, max_tokens? }
  */
 router.post('/condition', async (req: Request, res: Response) => {
+  if (!VISION_ENABLED) return sendDisabled(res);
+
   try {
     const { imageBase64, model, max_tokens } = req.body;
 
@@ -155,6 +168,8 @@ Return ONLY valid JSON, no markdown.`;
  * Returns individual edges with types + pixel coordinates.
  */
 router.post('/detect-edges', async (req: Request, res: Response) => {
+  if (!VISION_ENABLED) return sendDisabled(res);
+
   try {
     const { imageBase64, imageBounds, imageSize = 640, model, max_tokens, solarSegments } = req.body;
 

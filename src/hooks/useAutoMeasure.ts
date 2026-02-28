@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useStore } from '../store/useStore';
 import type { AutoMeasureProgress, ReconstructedRoof, SolarRoofSegment, FluxMapAnalysis } from '../types/solar';
 import { fetchBuildingInsights, fetchDataLayers, fetchGeoTiff, SolarApiError } from '../services/solarApi';
-import { capturePropertyImage, detectRoofEdges, detectRoofEdgesML, checkMLModelAvailable } from '../services/visionApi';
+import { capturePropertyImage, detectRoofEdgesML, checkMLModelAvailable } from '../services/visionApi';
 import type { EdgeType } from '../types';
 import { extractFacetsFromEdges } from '../utils/planarFaceExtraction';
 import { parseMaskGeoTiff, parseDsmGeoTiff, extractBuildingOutline } from '../utils/contour';
@@ -348,65 +348,12 @@ export function useAutoMeasure() {
         console.warn('ML model path failed, falling back to AI Vision:', mlErr);
       }
 
-      // Step 4: AI Vision fallback path (original pipeline) — COSTS MONEY (Anthropic API)
-      logPipelineEvent(address, lat, lng, 'claude-vision', 'entering', '⚠ Falling back to Claude Vision (paid API call)');
-      setProgress({ status: 'downloading', percent: 25, message: 'Capturing satellite imagery...' });
-      const { base64, bounds } = await capturePropertyImage(lat, lng, googleApiKey);
+      // Step 4: Claude Vision disabled — guide user to manual drawing
+      logPipelineEvent(address, lat, lng, 'claude-vision', 'skipped', 'Claude Vision disabled — manual drawing required');
 
-      setProgress({ status: 'ai-fallback', percent: 40, message: 'AI analyzing roof edges...' });
-      const segmentHints = solarSegments.length > 0
-        ? solarSegments.map((s) => ({
-            center: s.center,
-            pitchDegrees: s.pitchDegrees,
-            azimuthDegrees: s.azimuthDegrees,
-            stats: { areaMeters2: s.stats.areaMeters2 },
-          }))
-        : undefined;
-      const detected = await detectRoofEdges(base64, bounds, 640, segmentHints);
-
-      setProgress({ status: 'processing', percent: 70, message: `Detected ${detected.edges.length} edges, ${detected.vertices.length} vertices` });
-
-      // Merge Solar pitch with AI edges
-      const solarPitchDeg = solarSegments.length > 0
-        ? [...solarSegments].sort((a, b) => b.stats.areaMeters2 - a.stats.areaMeters2)[0].pitchDegrees
-        : null;
-      const pitchDeg = solarPitchDeg ?? detected.estimatedPitchDegrees;
-      const pitchOver12 = Math.round(Math.tan(pitchDeg * Math.PI / 180) * 12);
-
-      // Extract individual facets
-      setProgress({ status: 'processing', percent: 80, message: 'Extracting roof facets...' });
-      let facets = extractFacetsFromEdges(
-        detected.vertices,
-        detected.edges,
-        solarSegments.length > 0 ? solarSegments : undefined,
-        pitchOver12,
+      throw new Error(
+        'Auto-detection unavailable for this location. Google Solar API does not have coverage here and our ML system is still in training. Please use the drawing tools to trace the roof manually.'
       );
-
-      if (facets.length === 0) {
-        facets = buildFallbackFacet(detected, pitchOver12);
-      }
-
-      const reconstructed: ReconstructedRoof = {
-        vertices: detected.vertices,
-        edges: detected.edges.map(e => ({
-          startIndex: e.startIndex,
-          endIndex: e.endIndex,
-          type: e.type as 'ridge' | 'hip' | 'valley' | 'rake' | 'eave' | 'flashing',
-        })),
-        facets,
-        roofType: detected.roofType,
-        confidence: detected.confidence >= 0.7 ? 'high' : detected.confidence >= 0.4 ? 'medium' : 'low',
-        dataSource: 'ai-vision',
-      };
-
-      setProgress({ status: 'reconstructing', percent: 85, message: `${capitalize(reconstructed.roofType)} roof — ${reconstructed.facets.length} facets, ${reconstructed.edges.length} edges` });
-
-      applyAutoMeasurement(reconstructed);
-
-      setProgress({ status: 'complete', percent: 100, message: `AI Vision ${capitalize(reconstructed.roofType)} roof: ${reconstructed.facets.length} facets (${reconstructed.confidence} confidence)` });
-
-      logPipelineEvent(address, lat, lng, 'complete', 'claude-vision', `Claude Vision used ($$): ${reconstructed.facets.length} facets, ${reconstructed.roofType}`);
-      return reconstructed;
     } catch (err) {
       const message = err instanceof SolarApiError
         ? err.message
